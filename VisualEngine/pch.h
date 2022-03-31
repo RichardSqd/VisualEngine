@@ -1,0 +1,9 @@
+#pragma once
+#include <Windows.h>
+#include <d3d12.h>
+#include <vector>
+#include <string>
+#include <memory>
+#include <exception>
+#include <dxgi1_6.h>
+#include "d3dx12.h"
