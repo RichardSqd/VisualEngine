@@ -40,7 +40,7 @@ namespace Graphics {
 
 		//create graphic adapter
 		ComPtr<IDXGIAdapter1> adapter;
-		DXGI_ADAPTER_DESC1 adapterDesc;
+		//DXGI_ADAPTER_DESC1 adapterDesc;
 
 		//loop over each adapter available
 		ULONG_PTR maxSize = 0;

@@ -47,6 +47,9 @@
     <ClCompile Include="CommandAllocatorPool.cpp">
       <Filter>Source\Core</Filter>
     </ClCompile>
+    <ClCompile Include="FrameResource.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineCore.h">
@@ -80,6 +83,9 @@
       <Filter>Header Files\Core</Filter>
     </ClInclude>
     <ClInclude Include="CommandAllocatorPool.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameResource.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
   </ItemGroup>

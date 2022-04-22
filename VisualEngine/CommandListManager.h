@@ -14,8 +14,10 @@ public:
 	bool IsReady();
 private:
 	ComPtr<ID3D12CommandQueue> mQueue;
+	ComPtr<ID3D12Fence> mFence;
 	const D3D12_COMMAND_LIST_TYPE mType;
 	CommandAllocatorPool mCommandAllocatorPool;
+	HANDLE mFenceEventHandle;
 };
 
 class CommandListManager {
@@ -24,6 +26,7 @@ public:
 	CommandListManager() ;
 	~CommandListManager() {};
 	void CreateCommandObjects(ComPtr<ID3D12Device> mDevice);
+	
 
 	CommandQueue& GetGraphicsQueue() { return mGraphicsQueue; }
 	CommandQueue& GetComputeQueue() { return mComputeQueue; }
