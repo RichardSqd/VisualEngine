@@ -2,7 +2,6 @@
 #include "EngineCore.h"
 #include "AVisualApp.h"
 
-
 namespace EngineCore {
     using namespace DirectX;
     using namespace Graphics;
@@ -46,6 +45,8 @@ namespace EngineCore {
         }
         app->InitApp();
         ShowWindow(ghWnd, SW_SHOW);
+        //app->Run();
+        app->ShutDown();
 
         return 0;
     }
@@ -99,6 +100,13 @@ namespace EngineCore {
         
         
         //UpdateWindow(ghWnd);
+    }
+
+    bool UpdateApp() {
+        
+
+
+        return 1;
     }
 
     

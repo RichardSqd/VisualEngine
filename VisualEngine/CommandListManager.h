@@ -12,6 +12,8 @@ public:
 
 	void Create(ComPtr<ID3D12Device> device);
 	bool IsReady();
+	ComPtr<ID3D12CommandQueue> GetQueue();
+
 private:
 	ComPtr<ID3D12CommandQueue> mQueue;
 	const D3D12_COMMAND_LIST_TYPE mType;
@@ -28,7 +30,6 @@ public:
 	CommandQueue& GetGraphicsQueue() { return mGraphicsQueue; }
 	CommandQueue& GetComputeQueue() { return mComputeQueue; }
 	CommandQueue& GetCopyQueue() { return mCopyQueue; }
-	CommandQueue* GetCommandQueue();
 
 private:
 	ComPtr<ID3D12Device> mDevice;

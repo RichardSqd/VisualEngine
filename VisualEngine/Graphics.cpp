@@ -8,13 +8,20 @@ using Microsoft::WRL::ComPtr;
 
 
 namespace Graphics {
-	uint32_t gWidth = 1920;
-	uint32_t gHeight = 1080;
+	uint32_t gWidth = 1280;
+	uint32_t gHeight = 720;
 	HWND ghWnd = nullptr;
 	ComPtr<ID3D12Device> gDevice = nullptr;
+	ComPtr<IDXGISwapChain3> gSwapChain = nullptr;
+	ComPtr<ID3D12DescriptorHeap> gRtvHeap = nullptr;
+	ComPtr<ID3D12DescriptorHeap> gDsvHeap = nullptr;
+	ComPtr<ID3D12DescriptorHeap> gCbvSrvHeap = nullptr;
+	ComPtr<ID3D12DescriptorHeap> gSamplerHeap = nullptr;
 	CommandListManager gCommandListManager;
 	D3D_FEATURE_LEVEL gD3DFeatureLevel = D3D_FEATURE_LEVEL_12_1;
-	
+	ComPtr<IDXGIFactory6> gdxgiFactory;
+	UINT gNumFrame = 3;
+	UINT gFrameIndex = 0;
 
 	void Init(bool EnableDXR) {
 		ComPtr<ID3D12Device> device;
@@ -35,16 +42,16 @@ namespace Graphics {
 #endif
 
 		//For creating adapters and swap chain
-		ComPtr<IDXGIFactory6> dxgiFactory;
-		BREAKIFFAILED(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&dxgiFactory)));
+		
+		BREAKIFFAILED(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&gdxgiFactory)));
 
 		//create graphic adapter
 		ComPtr<IDXGIAdapter1> adapter;
-		DXGI_ADAPTER_DESC1 adapterDesc;
+		//DXGI_ADAPTER_DESC1 adapterDesc;
 
 		//loop over each adapter available
 		ULONG_PTR maxSize = 0;
-		for (uint32_t i = 0; DXGI_ERROR_NOT_FOUND != dxgiFactory->EnumAdapters1(i, &adapter); i++) {
+		for (uint32_t i = 0; DXGI_ERROR_NOT_FOUND != gdxgiFactory->EnumAdapters1(i, &adapter); i++) {
 			DXGI_ADAPTER_DESC1 desc;
 			adapter->GetDesc1(&desc);
 			if (FAILED(D3D12CreateDevice(adapter.Get(), gD3DFeatureLevel, IID_PPV_ARGS(&device))))
@@ -63,21 +70,88 @@ namespace Graphics {
 #endif
 
 		gCommandListManager.CreateCommandObjects(gDevice);
+		CreateSwapChain();
+		CreateDescriptorHeaps();
 
-
-
-
+		//create renderers
 
 	}
 
 
 	
 #if defined(DEBUG) || defined(_DEBUG)
-	//TODO: Infoqueue for profiling 
+
 #endif
 
 	//create command related components
-	
-	//D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-	//queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 }
+
+void Graphics::CreateSwapChain() {
+	ComPtr<IDXGISwapChain1> swapChain;
+	DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
+	swapChainDesc.Width = gWidth; 
+	swapChainDesc.Height = gHeight;
+	swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	swapChainDesc.BufferCount = gNumFrame;
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+	swapChainDesc.Scaling = DXGI_SCALING_NONE;
+	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	//no msaa for now 
+	swapChainDesc.SampleDesc.Count = 1;
+	swapChainDesc.SampleDesc.Quality = 0;
+	//DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
+	//fsSwapChainDesc.Windowed = TRUE;
+	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+	swapChainDesc.Stereo = 0;
+
+	BREAKIFFAILED(gdxgiFactory->CreateSwapChainForHwnd(
+		gCommandListManager.GetGraphicsQueue().GetQueue().Get(),
+		ghWnd,
+		&swapChainDesc,
+		nullptr,
+		nullptr,
+		&swapChain
+	));
+
+	BREAKIFFAILED(swapChain.As(&gSwapChain));
+	BREAKIFFAILED(gdxgiFactory->MakeWindowAssociation(ghWnd, DXGI_MWA_NO_ALT_ENTER));
+	gFrameIndex = gSwapChain->GetCurrentBackBufferIndex();
+
+}
+
+void Graphics::CreateDescriptorHeaps() {
+	//create rtv desc heap 
+	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
+	rtvHeapDesc.NumDescriptors = gNumFrame;
+	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	rtvHeapDesc.NodeMask = 0;
+	BREAKIFFAILED(gDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(gRtvHeap.GetAddressOf())));
+
+	//create dsv desc heap (one dsv for each frame and one for the scene)
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
+	dsvHeapDesc.NumDescriptors = gNumFrame + 1; 
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	dsvHeapDesc.NodeMask = 0;
+	BREAKIFFAILED(gDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(gDsvHeap.GetAddressOf())));
+
+	//create srv/cbv desc heap 
+	D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc;
+	cbvSrvHeapDesc.NumDescriptors = 4096;
+	cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	cbvSrvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	cbvSrvHeapDesc.NodeMask = 0;
+	BREAKIFFAILED(gDevice->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(gCbvSrvHeap.GetAddressOf())));
+
+	//create sampler desc heap 
+	D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc;
+	samplerHeapDesc.NumDescriptors = 2048;
+	samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+	samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	samplerHeapDesc.NodeMask = 0;
+	BREAKIFFAILED(gDevice->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(gSamplerHeap.GetAddressOf())));
+
+}
+

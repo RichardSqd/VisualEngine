@@ -25,6 +25,11 @@ bool CommandQueue::IsReady() {
 	return mQueue != nullptr;
 }
 
+ComPtr<ID3D12CommandQueue> CommandQueue::GetQueue() {
+	ASSERT(IsReady());
+	return mQueue;
+}
+
 CommandListManager::CommandListManager() :
 	mDevice(nullptr),
 	mGraphicsQueue(D3D12_COMMAND_LIST_TYPE_DIRECT),
@@ -36,9 +41,9 @@ CommandListManager::CommandListManager() :
 
 
 void CommandListManager::CreateCommandObjects(ComPtr<ID3D12Device> device) {
-	if (device != nullptr) PRINTERROR();
+	if (device == nullptr) PRINTERROR();
 	mDevice = device;
 	mGraphicsQueue.Create(mDevice);
 	mComputeQueue.Create(mDevice);
-	mComputeQueue.Create(mDevice);
+	mCopyQueue.Create(mDevice);
 }

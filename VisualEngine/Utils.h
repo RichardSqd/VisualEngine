@@ -1,7 +1,20 @@
 #pragma once
+#include <locale>
+#include <codecvt>
 
 namespace Utils {
 
+	
+	inline std::wstring to_wide_str(const std::string& input) {
+		std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+		return converter.from_bytes(input);
+	}
+
+	inline std::string to_byte_str(const std::wstring& input) {
+		std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+		return converter.to_bytes(input);
+	}
+	
 	inline void Print(const char* msg) { OutputDebugStringA(msg); }
 	inline void Print(const wchar_t* msg) { OutputDebugString(msg); }
 
