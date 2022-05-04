@@ -72,9 +72,6 @@ namespace Graphics {
 		gCommandListManager.CreateCommandObjects(gDevice);
 		CreateSwapChain();
 		CreateDescriptorHeaps();
-
-		//create renderers
-
 	}
 
 
@@ -91,7 +88,7 @@ void Graphics::CreateSwapChain() {
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
 	swapChainDesc.Width = gWidth; 
 	swapChainDesc.Height = gHeight;
-	swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	swapChainDesc.Format = Config::BackBufferFormat;
 	swapChainDesc.BufferCount = gNumFrame;
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;

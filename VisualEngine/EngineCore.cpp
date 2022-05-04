@@ -6,7 +6,8 @@ namespace EngineCore {
     using namespace DirectX;
     using namespace Graphics;
 
-    IVisualApp* app;
+    IVisualApp* app = nullptr;
+    Scene::Model eModel;
 
     LRESULT CALLBACK
     WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

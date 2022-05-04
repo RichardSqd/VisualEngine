@@ -1,5 +1,6 @@
 #pragma once
 #include "Graphics.h"
+#include "Model.h"
 
 namespace EngineCore {
 
@@ -25,4 +26,5 @@ namespace EngineCore {
     IVisualApp* InitAppBasedOnConfig();
 
     extern IVisualApp* app;
+    extern Scene::Model eModel;
 }

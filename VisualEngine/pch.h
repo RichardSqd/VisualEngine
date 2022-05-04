@@ -40,6 +40,7 @@
 #include <DirectXColors.h>
 #include <DirectXCollision.h>
 #include "d3dx12.h"
+#include <D3Dcompiler.h>
 #include "Utils.h"
 #include "Config.h"
 

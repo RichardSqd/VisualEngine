@@ -6,9 +6,6 @@
       <Extensions>
       </Extensions>
     </Filter>
-    <Filter Include="Shaders">
-      <UniqueIdentifier>{0b9776c6-0168-452c-9e31-a6e22a87544d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Core">
       <UniqueIdentifier>{d1ae8526-b312-4500-9d96-139198ec13be}</UniqueIdentifier>
     </Filter>
@@ -23,6 +20,12 @@
     </Filter>
     <Filter Include="Source\Scene">
       <UniqueIdentifier>{23dd43aa-d803-41aa-8f4c-4f49a2582c93}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets">
+      <UniqueIdentifier>{9ccabc3e-a985-4640-9f34-b1bae68d246d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets\Shaders">
+      <UniqueIdentifier>{7fda0b73-12fb-41ab-ac43-c85d3389e7f3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -40,9 +43,6 @@
     </ClCompile>
     <ClCompile Include="AVisualApp.cpp">
       <Filter>Source\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Config.cpp">
-      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Graphics.cpp">
       <Filter>Source\Core</Filter>
@@ -63,6 +63,9 @@
       <Filter>Source\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Renderer.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderItem.cpp">
       <Filter>Source\Core</Filter>
     </ClCompile>
   </ItemGroup>
@@ -124,5 +127,13 @@
     <ClInclude Include="Renderer.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
+    <ClInclude Include="RenderItem.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="Shaders\shader.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

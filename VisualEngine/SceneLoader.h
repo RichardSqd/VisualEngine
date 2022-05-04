@@ -8,6 +8,6 @@
 
 namespace Scene {
 
-	int LoadScene(std::string filename, Model& model);
+	int LoadScene(std::wstring filename, Model& model);
 	
 }
