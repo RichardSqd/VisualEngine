@@ -21,8 +21,8 @@ namespace Scene {
 
 			for (auto& attribute : primitive.attributes) {
 				tinygltf::Accessor accessor = tinyModel.accessors[attribute.second];
-				int stride = accessor.ByteStride(tinyModel.bufferViews[accessor.bufferView]);
-
+				int byteStride = accessor.ByteStride(tinyModel.bufferViews[accessor.bufferView]);
+				size_t byteOffset = accessor.byteOffset;
 				int size = 1;
 				if (accessor.type != TINYGLTF_TYPE_SCALAR) {
 					size = accessor.type;
@@ -32,7 +32,36 @@ namespace Scene {
 				if (attribute.first.compare("POSITION") == 0) vaa = 0;
 				if (attribute.first.compare("NORMAL") == 0) vaa = 1;
 				if (attribute.first.compare("TEXCOORD_0") == 0) vaa = 2;
-				if (vaa < 0)  ASSERT(0);
+				if (attribute.first.compare("TANGENT") == 0) vaa = 3;
+				//Utils::Print(attribute.first.c_str());
+				if (vaa < 0) {
+					//Utils::Print(attribute.first.c_str());
+					ASSERT(0);
+				}  
+
+				switch (accessor.componentType)
+				{
+				case TINYGLTF_COMPONENT_TYPE_BYTE:
+					break;
+				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+					break;
+				case TINYGLTF_COMPONENT_TYPE_SHORT:
+					break;
+				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+					break;
+				case TINYGLTF_COMPONENT_TYPE_INT:
+					break;
+				case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+					break;
+				case TINYGLTF_COMPONENT_TYPE_FLOAT:
+					break;
+				case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+					break;
+				default:
+					break;
+				}
+
+				
 					
 				
 			}

@@ -12,8 +12,8 @@ namespace Scene {
 
 	class Model {
 	private:
-		size_t size; 
-		size_t stride;
+		UINT size;
+		UINT stride;
 		std::vector<size_t> data;
 	public:
 
@@ -21,13 +21,38 @@ namespace Scene {
 
 	class SceneData {
 	private:
-		size_t vertexDataSize;
-		size_t vertexStride;
-		size_t vertexDataOffset;
+		UINT vertexDataSize;
+		UINT vertexStride;
+		UINT vertexDataOffset;
 
-		size_t indexDataSize;
-		size_t indexDataOffset;
+		UINT indexDataSize;
+		UINT indexDataOffset;
 		std::vector<Model> Models;
 
 	};
+
+	struct TextureResource {
+		UINT width;
+		UINT height;
+		UINT miplvl;
+		DXGI_FORMAT format; 
+		struct DataProperties {
+			UINT offset;
+			UINT size;
+			UINT pitch;
+			
+		};
+	};
+
+	struct DrawParam {
+		INT diffuseIndex;
+		INT normalIndex;
+		INT specularIndex;
+		UINT indexStart;
+		UINT indexCount;
+		UINT vertexBase;
+
+	};
+
+
 }

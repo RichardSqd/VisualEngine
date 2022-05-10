@@ -68,6 +68,9 @@
     <ClCompile Include="RenderItem.cpp">
       <Filter>Source\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineCore.h">
@@ -128,6 +131,9 @@
       <Filter>Header Files\Core</Filter>
     </ClInclude>
     <ClInclude Include="RenderItem.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
   </ItemGroup>
