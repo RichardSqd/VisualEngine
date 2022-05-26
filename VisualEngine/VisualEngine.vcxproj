@@ -165,6 +165,7 @@
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="RenderItem.cpp" />
     <ClCompile Include="SceneLoader.cpp" />
+    <ClCompile Include="Math.cpp" />
     <ClCompile Include="Time.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -177,6 +178,7 @@
     <ClInclude Include="EngineLoop.h" />
     <ClInclude Include="FrameResource.h" />
     <ClInclude Include="Graphics.h" />
+    <ClInclude Include="Math.h" />
     <ClInclude Include="RenderItem.h" />
     <ClInclude Include="json.hpp" />
     <ClInclude Include="Model.h" />

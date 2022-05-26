@@ -30,13 +30,13 @@ namespace Renderer {
 		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 		BREAKIFFAILED(Graphics::gDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)));
 
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[4];
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[4] = {};
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse and normal textures, register t1,2 
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //1 constant buffer 
 		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); //shadow texture
 		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 2, 0);
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[4];
+		CD3DX12_ROOT_PARAMETER1 rootParameters[4] = {};
 		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
 		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);

@@ -42,6 +42,7 @@
 #include "d3dx12.h"
 #include <D3Dcompiler.h>
 #include "Utils.h"
+#include "Math.h"
 #include "Config.h"
 
 #ifdef _DEBUG
