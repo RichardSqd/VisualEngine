@@ -1,7 +1,10 @@
 #include "pch.h"
 #include "SceneLoader.h"
+#include "Graphics.h"
 #include "tiny_gltf.h"
 
+
+using Microsoft::WRL::ComPtr;
 
 namespace Scene {
 	void SolveMeshs(tinygltf::Model& tinyModel, int meshIndex , Scene::Model& model, DirectX::XMMATRIX& localToObject) {
@@ -26,7 +29,7 @@ namespace Scene {
 		mesh.primitives.resize(tinyMesh.primitives.size());
 		for (UINT i = 0; i < tinyMesh.primitives.size(); i++) {
 			tinygltf::Primitive& tinyPrimitive = tinyMesh.primitives[i];
-			Primitives& primitive = mesh.primitives[i];
+			Primitive& primitive = mesh.primitives[i];
 			{ //Index buffer
 				tinygltf::Accessor indexAccessor = tinyModel.accessors[tinyPrimitive.indices];
 				tinygltf::BufferView& indexBufferview =  tinyModel.bufferViews[indexAccessor.bufferView];
@@ -231,6 +234,94 @@ namespace Scene {
 		}
 		Utils::Print(tinyModel.meshes[0].name.c_str());
 		translate(tinyModel, model);
+		return 1;
+	}
+
+	int LoadTestScene(std::wstring filename, Model& model) {
+
+		std::string filenamebyte = Utils::to_byte_str(filename);
+		std::ifstream fin(filenamebyte);
+		if (!fin) {
+			Utils::Print("Test File Not Found");
+		}
+
+		UINT vcount = 0;
+		UINT tcount = 0;
+		std::string ignore;
+
+		fin >> ignore >> vcount;
+		fin >> ignore >> tcount;
+		fin >> ignore >> ignore >> ignore >> ignore;
+
+
+		std::vector<Vertex> vertices(vcount);
+		for (UINT i = 0; i < vcount; ++i) {
+			fin >> vertices[i].position.x >> vertices[i].position.y >> vertices[i].position.z;
+			fin >> vertices[i].normal.x >> vertices[i].normal.y >> vertices[i].normal.z;
+		}
+
+		fin >> ignore;
+		fin >> ignore;
+		fin >> ignore;
+
+		std::vector<std::int32_t> indices(3 * tcount);
+		for (UINT i = 0; i < tcount; ++i)
+		{
+			fin >> indices[i * 3 + 0] >> indices[i * 3 + 1] >> indices[i * 3 + 2];
+		}
+
+		fin.close();
+
+		const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
+		const UINT ibByteSize = (UINT)indices.size() * sizeof(std::int32_t);
+
+
+		model.meshes.push_back( Mesh{});
+		model.meshes[0].primitives.push_back(Primitive{});
+
+		//Graphics::gDevice->CreateCommittedResource(
+		//	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		//	D3D12_HEAP_FLAG_NONE,
+		//	&CD3DX12_RESOURCE_DESC::Buffer(vbByteSize),
+		//	D3D12_RESOURCE_STATE_GENERIC_READ,
+		//	nullptr,
+		//	IID_PPV_ARGS(&model.vertexBuffer));
+		
+		//BREAKIFFAILED(D3DCreateBlob(vbByteSize, &model.vertexBufferCPU));
+		//memcpy(model.vertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
+
+		//BREAKIFFAILED(D3DCreateBlob(ibByteSize, &model.indexBufferCPU));
+		//memcpy(model.indexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
+
+		ComPtr<ID3D12Resource> vertexUploader;
+		Graphics::gDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(vbByteSize),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(vertexUploader.GetAddressOf()));
+
+		Graphics::gDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(vbByteSize),
+			D3D12_RESOURCE_STATE_COMMON,
+			nullptr,
+			IID_PPV_ARGS(model.vertexBufferGPU.GetAddressOf()));
+		
+		D3D12_SUBRESOURCE_DATA subresourceData = {};
+		subresourceData.pData = vertices.data();
+		subresourceData.RowPitch = vbByteSize;
+		subresourceData.SlicePitch = vbByteSize;
+
+		
+
+		
+
+
+
+
 		return 1;
 	}
 }

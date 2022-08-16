@@ -6,7 +6,7 @@ namespace Scene {
 
 	}
 
-	Primitives::Primitives(): vbOffset(0), indexCount(0), ibOffset(0), beginVertex(0){}
+	Primitive::Primitive(): vbOffset(0), indexCount(0), ibOffset(0), beginVertex(0){}
 
 
 }

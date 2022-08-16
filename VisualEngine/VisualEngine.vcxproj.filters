@@ -74,6 +74,9 @@
     <ClCompile Include="Math.cpp">
       <Filter>Source\Core</Filter>
     </ClCompile>
+    <ClCompile Include="CommandContextcpp.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineCore.h">
@@ -140,6 +143,9 @@
       <Filter>Header Files\Core</Filter>
     </ClInclude>
     <ClInclude Include="Math.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandContext.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
   </ItemGroup>
