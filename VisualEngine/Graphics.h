@@ -1,5 +1,7 @@
 #pragma once
 #include "pch.h"
+#include "CommandListManager.h"
+#include "FrameResource.h"
 
 using Microsoft::WRL::ComPtr;
 namespace Graphics {
@@ -13,10 +15,15 @@ namespace Graphics {
 	extern ComPtr<ID3D12DescriptorHeap> gDsvHeap;
 	extern ComPtr<ID3D12DescriptorHeap> gCbvSrvHeap;
 	extern ComPtr<ID3D12DescriptorHeap> gSamplerHeap;
-	extern UINT gNumFrame;
+	extern CommandQueueManager gCommandQueueManager;
+	extern CommandContextManager gCommandContextManager;
+	extern FrameResourceManager gFrameResourceManager;
+	extern UINT gNumFrameResources;
+	extern UINT gNumFrameBuffers;
 	extern UINT gFrameIndex;
 	void Init(bool EnableDXR);
 	void CreateSwapChain();
 	void CreateDescriptorHeaps();
+	void CreateConstantBufferViews();
 
 }

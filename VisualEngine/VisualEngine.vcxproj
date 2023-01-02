@@ -152,7 +152,6 @@
     <ClCompile Include="AVisualApp.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CommandAllocatorPool.cpp" />
-    <ClCompile Include="CommandContextcpp.cpp" />
     <ClCompile Include="CommandListManager.cpp" />
     <ClCompile Include="EngineCore.cpp" />
     <ClCompile Include="FrameResource.cpp" />
@@ -168,12 +167,12 @@
     <ClCompile Include="SceneLoader.cpp" />
     <ClCompile Include="Math.cpp" />
     <ClCompile Include="Time.cpp" />
+    <ClCompile Include="UploadBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AVisualApp.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CommandAllocatorPool.h" />
-    <ClInclude Include="CommandContext.h" />
     <ClInclude Include="CommandListManager.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="EngineCore.h" />
@@ -192,13 +191,14 @@
     <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="Time.h" />
     <ClInclude Include="tiny_gltf.h" />
+    <ClInclude Include="UploadBuffer.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="Shaders\shader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <FileType>Document</FileType>
+      <FileType>HLSL</FileType>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

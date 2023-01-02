@@ -18,7 +18,7 @@ namespace Renderer {
 
 	void Init() {
 		//ASSERT(Scene::LoadScene(Config::gltfFilePath, EngineCore::eModel));
-		ASSERT(Scene::LoadScene(Config::testSceneFilePath, EngineCore::eModel));
+		ASSERT(Scene::LoadTestScene(Config::testSceneFilePath, EngineCore::eModel));
 		CreateShadersAndInputLayout();
 		CreateRootSigniture();
 		CreatePipelineState();

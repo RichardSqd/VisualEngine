@@ -8,6 +8,7 @@ namespace EngineCore {
     public:
         virtual void InitApp(void) = 0;
         virtual void Update(void) = 0;
+        virtual void Draw(void) = 0;
         virtual void Run(void) = 0;
         virtual void ShutDown(void) = 0;
     };

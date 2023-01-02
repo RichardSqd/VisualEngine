@@ -74,7 +74,7 @@
     <ClCompile Include="Math.cpp">
       <Filter>Source\Core</Filter>
     </ClCompile>
-    <ClCompile Include="CommandContextcpp.cpp">
+    <ClCompile Include="UploadBuffer.cpp">
       <Filter>Source\Core</Filter>
     </ClCompile>
   </ItemGroup>
@@ -145,7 +145,7 @@
     <ClInclude Include="Math.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
-    <ClInclude Include="CommandContext.h">
+    <ClInclude Include="UploadBuffer.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
   </ItemGroup>

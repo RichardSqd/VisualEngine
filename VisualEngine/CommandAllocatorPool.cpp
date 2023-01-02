@@ -14,6 +14,7 @@ CommandAllocatorPool::~CommandAllocatorPool() {
 
 void CommandAllocatorPool::Create(ComPtr<ID3D12Device> device) {
 	mDevice = device;
+	mAllocatorPool.clear();
 }
 
 UINT CommandAllocatorPool::GetSize() {

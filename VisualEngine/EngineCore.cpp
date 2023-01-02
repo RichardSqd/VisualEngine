@@ -46,7 +46,7 @@ namespace EngineCore {
         }
         app->InitApp();
         ShowWindow(ghWnd, SW_SHOW);
-        //app->Run();
+        app->Run();
         app->ShutDown();
 
         return 0;
@@ -96,15 +96,20 @@ namespace EngineCore {
         }
 
 
-
-        
-        
-        
-        //UpdateWindow(ghWnd);
+        ShowWindow(ghWnd, SW_SHOW);       
+        UpdateWindow(ghWnd);
     }
 
     bool UpdateApp() {
-        
+
+        app->Update();
+        app->Draw();
+
+        //update user input 
+       
+
+
+        //detect if user end the program 
 
 
         return 1;

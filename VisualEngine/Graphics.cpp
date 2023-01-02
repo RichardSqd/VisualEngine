@@ -4,6 +4,7 @@
 
 #pragma comment(lib, "d3d12.lib") 
 #pragma comment(lib, "dxgi.lib") 
+#pragma comment(lib, "dxguid.lib")
 using Microsoft::WRL::ComPtr;
 
 
@@ -17,10 +18,14 @@ namespace Graphics {
 	ComPtr<ID3D12DescriptorHeap> gDsvHeap = nullptr;
 	ComPtr<ID3D12DescriptorHeap> gCbvSrvHeap = nullptr;
 	ComPtr<ID3D12DescriptorHeap> gSamplerHeap = nullptr;
-	CommandListManager gCommandListManager;
-	D3D_FEATURE_LEVEL gD3DFeatureLevel = D3D_FEATURE_LEVEL_12_1;
+	CommandQueueManager gCommandQueueManager {};
+	CommandContextManager gCommandContextManager{};
+	FrameResourceManager gFrameResourceManager {};
+
+	D3D_FEATURE_LEVEL gD3DFeatureLevel = D3D_FEATURE_LEVEL_12_2;
 	ComPtr<IDXGIFactory6> gdxgiFactory;
-	UINT gNumFrame = 3;
+	UINT gNumFrameResources = 3;
+	UINT gNumFrameBuffers = 3;
 	UINT gFrameIndex = 0;
 
 	void Init(bool EnableDXR) {
@@ -68,10 +73,14 @@ namespace Graphics {
 #if defined(DEBUG) || defined(_DEBUG)
 		gDevice->SetStablePowerState(1);
 #endif
-
-		gCommandListManager.CreateCommandObjects(gDevice);
+		
+		gCommandQueueManager.CreateCommandObjects(gDevice);
+		gCommandContextManager.CreateCommandContext(gDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
+		gFrameResourceManager.CreateFrameResources(gNumFrameResources);
 		CreateSwapChain();
 		CreateDescriptorHeaps();
+		CreateConstantBufferViews();
+
 	}
 
 
@@ -89,7 +98,7 @@ void Graphics::CreateSwapChain() {
 	swapChainDesc.Width = gWidth; 
 	swapChainDesc.Height = gHeight;
 	swapChainDesc.Format = Config::BackBufferFormat;
-	swapChainDesc.BufferCount = gNumFrame;
+	swapChainDesc.BufferCount = gNumFrameBuffers;
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	swapChainDesc.Scaling = DXGI_SCALING_NONE;
@@ -103,7 +112,7 @@ void Graphics::CreateSwapChain() {
 	swapChainDesc.Stereo = 0;
 
 	BREAKIFFAILED(gdxgiFactory->CreateSwapChainForHwnd(
-		gCommandListManager.GetGraphicsQueue().GetQueue().Get(),
+		gCommandQueueManager.GetGraphicsQueue().GetQueue().Get(),
 		ghWnd,
 		&swapChainDesc,
 		nullptr,
@@ -120,15 +129,15 @@ void Graphics::CreateSwapChain() {
 void Graphics::CreateDescriptorHeaps() {
 	//create rtv desc heap 
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
-	rtvHeapDesc.NumDescriptors = gNumFrame;
+	rtvHeapDesc.NumDescriptors = gNumFrameBuffers;
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
 	BREAKIFFAILED(gDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(gRtvHeap.GetAddressOf())));
 
-	//create dsv desc heap (one dsv for each frame and one for the scene)
+	//create dsv desc heap (one dsv for each frame buffers and one for the scene)
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-	dsvHeapDesc.NumDescriptors = gNumFrame + 1; 
+	dsvHeapDesc.NumDescriptors = gNumFrameBuffers + 1;
 	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	dsvHeapDesc.NodeMask = 0;
@@ -152,3 +161,6 @@ void Graphics::CreateDescriptorHeaps() {
 
 }
 
+void Graphics::CreateConstantBufferViews() {
+
+}

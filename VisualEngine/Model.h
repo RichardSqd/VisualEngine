@@ -15,7 +15,11 @@ namespace Scene {
 	
 		Vertex(
 
-		) {};
+		): position(0.0,0.0,0.0),
+			normal(0.0, 0.0, 0.0),
+			tangent(0.0, 0.0, 0.0),
+			texcoord(0.0, 0.0)
+		{};
 
 		Vertex(
 			const DirectX::XMFLOAT3& p,
@@ -47,14 +51,13 @@ namespace Scene {
 	
 		Primitive();
 		
-		DXGI_FORMAT format;
-		int indexBuffer;
-		UINT32 indexCount;
+		DXGI_FORMAT iformat;
 		UINT32 ibOffset;
+		UINT32 indexBufferByteSize;
+		UINT32 indexCount;
 
-		int vertexBuffer;
-		UINT32 beginVertex;
 		UINT32 vbOffset;
+		UINT32 vertexBufferByteSize;
 	};
 
 
@@ -68,12 +71,12 @@ namespace Scene {
 	};
 
 	struct Node {
-	
+		
 		DirectX::XMFLOAT4X4 matrix;
 		DirectX::XMFLOAT4 rotation;
 		DirectX::XMFLOAT3 scale;
 		DirectX::XMFLOAT3 translation;
-		UINT mesh;
+		UINT32 mesh;
 	};
 
 	struct Model {
@@ -97,7 +100,7 @@ namespace Scene {
 		ComPtr<ID3D12Resource> indexBufferGPU;
 
 		D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
-
+		D3D12_INDEX_BUFFER_VIEW indexBufferView; 
 		//std::unique_ptr<Mesh> mesh;
 	};
 
@@ -109,12 +112,8 @@ namespace Scene {
 		DirectX::XMFLOAT4X4 texTransform;
 
 		Model* model;
-		
-
-		//
-		UINT indexNum;
-		UINT indexPos;
-		UINT vertexPos;
+		UINT32 meshIndex;
+		std::vector<UINT32> primList;
 
 	};
 	
