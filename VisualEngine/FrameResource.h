@@ -58,6 +58,7 @@ public:
 	~FrameResourceManager();
 	void CreateFrameResources(UINT numberOfFrameResources);
 	FrameResource* GetCurrentFrameResource();
+	FrameResource* GetFrameResourceByIndex(UINT index);
 
 private:
 	static UINT curFrameIndex ;

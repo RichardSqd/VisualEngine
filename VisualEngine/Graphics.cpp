@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Graphics.h"
+#include "Model.h"
 #include "CommandListManager.h"
+#include "EngineCore.h"
 
 #pragma comment(lib, "d3d12.lib") 
 #pragma comment(lib, "dxgi.lib") 
@@ -24,6 +26,10 @@ namespace Graphics {
 
 	D3D_FEATURE_LEVEL gD3DFeatureLevel = D3D_FEATURE_LEVEL_12_2;
 	ComPtr<IDXGIFactory6> gdxgiFactory;
+	UINT gRTVDescriptorSize;
+	UINT gDSVDescriptorSize;
+	UINT gCbvSrvUavDescriptorSize;
+	UINT gSamplerDescriptorSize;
 	UINT gNumFrameResources = 3;
 	UINT gNumFrameBuffers = 3;
 	UINT gFrameIndex = 0;
@@ -73,13 +79,19 @@ namespace Graphics {
 #if defined(DEBUG) || defined(_DEBUG)
 		gDevice->SetStablePowerState(1);
 #endif
-		
+		//get descriptor sizes for each type 
+		gRTVDescriptorSize = gDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		gDSVDescriptorSize = gDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+		gCbvSrvUavDescriptorSize = gDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		gSamplerDescriptorSize = gDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+
 		gCommandQueueManager.CreateCommandObjects(gDevice);
 		gCommandContextManager.CreateCommandContext(gDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
-		gFrameResourceManager.CreateFrameResources(gNumFrameResources);
 		CreateSwapChain();
+		
 		CreateDescriptorHeaps();
-		CreateConstantBufferViews();
+		
 
 	}
 
@@ -161,6 +173,3 @@ void Graphics::CreateDescriptorHeaps() {
 
 }
 
-void Graphics::CreateConstantBufferViews() {
-
-}

@@ -29,11 +29,16 @@ FrameResourceManager::~FrameResourceManager()
 void FrameResourceManager::CreateFrameResources(UINT numberOfFrameResources)
 {
 	for (UINT i = 0; i < numberOfFrameResources; i++) {
-		mFrameResources.push_back(std::make_unique<FrameResource>(1, EngineCore::eModel.numMeshes));
+		mFrameResources.push_back(std::make_unique<FrameResource>(1, EngineCore::eModel.numNodes));
 	}
 }
 
 FrameResource* FrameResourceManager::GetCurrentFrameResource()
 {
 	return mFrameResources[curFrameIndex].get();
+}
+
+FrameResource* FrameResourceManager::GetFrameResourceByIndex(UINT index)
+{
+	return mFrameResources[index].get();
 }

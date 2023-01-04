@@ -77,6 +77,7 @@ namespace Scene {
 		DirectX::XMFLOAT3 scale;
 		DirectX::XMFLOAT3 translation;
 		UINT32 mesh;
+		UINT32 numFrameDirty;
 	};
 
 	struct Model {

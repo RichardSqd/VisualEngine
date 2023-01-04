@@ -23,6 +23,9 @@ void AVisualApp::InitApp() {
 	commandList->Reset(context->getCommandAllocator().Get(), nullptr);
 	
 	Renderer::Init();
+
+	
+
 	
 	BREAKIFFAILED(commandList->Close());
 	ID3D12CommandList* cmds[] = { commandList.Get() };

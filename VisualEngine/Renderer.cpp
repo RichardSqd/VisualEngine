@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Renderer.h"
+#include "Model.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +23,8 @@ namespace Renderer {
 		CreateShadersAndInputLayout();
 		CreateRootSigniture();
 		CreatePipelineState();
+		Graphics::gFrameResourceManager.CreateFrameResources(Graphics::gNumFrameResources);
+		CreateConstantBufferViews();
 	}
 
 
@@ -107,8 +110,36 @@ namespace Renderer {
 
 	}
 
-	void CreateFrameResources() {
+	
 
+	void CreateConstantBufferViews() {
+		UINT objectByteSize = (sizeof(ObjectConstants) + 255) & ~255;
+		UINT objCount = EngineCore::eModel.numNodes;
+
+
+		//generate constant buffer views for all frame resources 
+		for (int frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
+			auto objCB = Graphics::gFrameResourceManager.GetFrameResourceByIndex(frameIndex)->objCB->GetResource();
+
+			for (UINT objIndex = 0; objIndex < objCount; objIndex++) {
+				D3D12_GPU_VIRTUAL_ADDRESS cbAddress = objCB->GetGPUVirtualAddress();
+
+				//offset to each object constant buffer
+				cbAddress += objIndex * objectByteSize;
+
+				//offset to the object cbv in the descriptor heap 
+				int heapIndex = frameIndex * objCount + objIndex;
+				auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+			
+				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc; 
+				cbvDesc.BufferLocation = cbAddress;
+				cbvDesc.SizeInBytes = objectByteSize;
+			
+				Graphics::gDevice->CreateConstantBufferView(&cbvDesc, handle);
+			}
+
+		}
 	}
 	
 

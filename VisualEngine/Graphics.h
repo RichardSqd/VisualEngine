@@ -18,12 +18,19 @@ namespace Graphics {
 	extern CommandQueueManager gCommandQueueManager;
 	extern CommandContextManager gCommandContextManager;
 	extern FrameResourceManager gFrameResourceManager;
+	extern UINT gRTVDescriptorSize;
+	extern UINT gDSVDescriptorSize;
+	extern UINT gCbvSrvUavDescriptorSize;
+	extern UINT gSamplerDescriptorSize;
 	extern UINT gNumFrameResources;
 	extern UINT gNumFrameBuffers;
 	extern UINT gFrameIndex;
+	extern std::vector<std::unique_ptr<FrameResource>> gFrameResources;
+
 	void Init(bool EnableDXR);
 	void CreateSwapChain();
 	void CreateDescriptorHeaps();
-	void CreateConstantBufferViews();
+
+	
 
 }

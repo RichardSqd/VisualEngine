@@ -1,7 +1,6 @@
 #pragma once
 #include "SceneLoader.h"
 #include "Graphics.h"
-#include "Model.h"
 #include "EngineCore.h"
 
 namespace Renderer {
@@ -11,7 +10,7 @@ namespace Renderer {
 	extern void CreateShadersAndInputLayout();
 	//extern void CreateDepthStencilState();
 	extern void CreateFrameResources();
-	extern void CreateRenderItems();
+	extern void CreateConstantBufferViews();
 	//extern void DrawRenderItems();
 
 
