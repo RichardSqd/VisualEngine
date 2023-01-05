@@ -15,9 +15,11 @@ namespace Graphics {
 	extern ComPtr<ID3D12DescriptorHeap> gDsvHeap;
 	extern ComPtr<ID3D12DescriptorHeap> gCbvSrvHeap;
 	extern ComPtr<ID3D12DescriptorHeap> gSamplerHeap;
+	extern ComPtr<IDXGIFactory6> gdxgiFactory;
 	extern CommandQueueManager gCommandQueueManager;
 	extern CommandContextManager gCommandContextManager;
 	extern FrameResourceManager gFrameResourceManager;
+
 	extern UINT gRTVDescriptorSize;
 	extern UINT gDSVDescriptorSize;
 	extern UINT gCbvSrvUavDescriptorSize;
@@ -25,11 +27,12 @@ namespace Graphics {
 	extern UINT gNumFrameResources;
 	extern UINT gNumFrameBuffers;
 	extern UINT gFrameIndex;
+	extern UINT gPassCbvOffset;
 	extern std::vector<std::unique_ptr<FrameResource>> gFrameResources;
 
 	void Init(bool EnableDXR);
-	void CreateSwapChain();
-	void CreateDescriptorHeaps();
+
+
 
 	
 

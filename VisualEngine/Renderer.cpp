@@ -20,11 +20,47 @@ namespace Renderer {
 	void Init() {
 		//ASSERT(Scene::LoadScene(Config::gltfFilePath, EngineCore::eModel));
 		ASSERT(Scene::LoadTestScene(Config::testSceneFilePath, EngineCore::eModel));
+		CreateSwapChain();
+		CreateDescriptorHeaps();
 		CreateShadersAndInputLayout();
 		CreateRootSigniture();
-		CreatePipelineState();
-		Graphics::gFrameResourceManager.CreateFrameResources(Graphics::gNumFrameResources);
+		CreatePipelineState();	
+		CreateFrameResources();
 		CreateConstantBufferViews();
+	}
+
+	void CreateSwapChain() {
+		ComPtr<IDXGISwapChain1> swapChain;
+		DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
+		swapChainDesc.Width = Graphics::gWidth;
+		swapChainDesc.Height = Graphics::gHeight;
+		swapChainDesc.Format = Config::BackBufferFormat;
+		swapChainDesc.BufferCount = Graphics::gNumFrameBuffers;
+		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		swapChainDesc.Scaling = DXGI_SCALING_NONE;
+		swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+		//no msaa for now 
+		swapChainDesc.SampleDesc.Count = 1;
+		swapChainDesc.SampleDesc.Quality = 0;
+		//DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
+		//fsSwapChainDesc.Windowed = TRUE;
+		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+		swapChainDesc.Stereo = 0;
+
+		BREAKIFFAILED(Graphics::gdxgiFactory->CreateSwapChainForHwnd(
+			Graphics::gCommandQueueManager.GetGraphicsQueue().GetQueue().Get(),
+			Graphics::ghWnd,
+			&swapChainDesc,
+			nullptr,
+			nullptr,
+			&swapChain
+		));
+
+		BREAKIFFAILED(swapChain.As(&Graphics::gSwapChain));
+		BREAKIFFAILED(Graphics::gdxgiFactory->MakeWindowAssociation(Graphics::ghWnd, DXGI_MWA_NO_ALT_ENTER));
+		Graphics::gFrameIndex = Graphics::gSwapChain->GetCurrentBackBufferIndex();
+
 	}
 
 
@@ -81,9 +117,9 @@ namespace Renderer {
 
 		rDepthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 		int n = (int)rVertexShader->GetBufferSize();
-		Utils::Print("\nVertex Shader size is:");
-		Utils::Print(std::to_string(n).c_str());
-		Utils::Print("\n");
+		//Utils::Print("\nVertex Shader size is:");
+		//Utils::Print(std::to_string(n).c_str());
+		//Utils::Print("\n");
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 		psoDesc.InputLayout = rInputLayoutDesc;
 		//psoDesc.InputLayout = { mInputLayout.data(), (UINT)mInputLayout.size() };
@@ -108,6 +144,10 @@ namespace Renderer {
 		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPsoShadow)));
 
 
+	}
+
+	void CreateFrameResources() {
+		Graphics::gFrameResourceManager.CreateFrameResources(Graphics::gNumFrameResources);
 	}
 
 	
@@ -140,6 +180,66 @@ namespace Renderer {
 			}
 
 		}
+
+		UINT passCBByteSize = (sizeof(PassConstants) + 255) & ~255;
+		//pass CBVs 
+		for (int frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
+			auto passCB = Graphics::gFrameResourceManager.GetFrameResourceByIndex(frameIndex)->objCB->GetResource();
+
+			D3D12_GPU_VIRTUAL_ADDRESS cbAddress = passCB->GetGPUVirtualAddress();
+
+			//offset to each pass constant buffer
+			int heapIndex = frameIndex + objCount * Graphics::gNumFrameResources;
+			auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+			handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc; 
+			cbvDesc.BufferLocation = cbAddress;
+			cbvDesc.SizeInBytes = passCBByteSize;
+		}
+
+
+	}
+
+	void CreateDescriptorHeaps() {
+		//create rtv desc heap 
+		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
+		rtvHeapDesc.NumDescriptors =Graphics::gNumFrameBuffers;
+		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		rtvHeapDesc.NodeMask = 0;
+		BREAKIFFAILED(Graphics::gDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(Graphics::gRtvHeap.GetAddressOf())));
+
+		//create dsv desc heap (one dsv for each frame buffers and one for the scene)
+		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
+		dsvHeapDesc.NumDescriptors = Graphics::gNumFrameBuffers + 1;
+		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		dsvHeapDesc.NodeMask = 0;
+		BREAKIFFAILED(Graphics::gDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(Graphics::gDsvHeap.GetAddressOf())));
+
+		//create srv/cbv desc heap 
+		UINT numDescriptors = (EngineCore::eModel.numNodes + 1) * Graphics::gNumFrameResources;
+		D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc;
+		cbvSrvHeapDesc.NumDescriptors = 4096;
+		cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		cbvSrvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		cbvSrvHeapDesc.NodeMask = 0;
+		BREAKIFFAILED(Graphics::gDevice->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(Graphics::gCbvSrvHeap.GetAddressOf())));
+
+		//create sampler desc heap 
+		D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc;
+		samplerHeapDesc.NumDescriptors = 2048;
+		samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+		samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		samplerHeapDesc.NodeMask = 0;
+		BREAKIFFAILED(Graphics::gDevice->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(Graphics::gSamplerHeap.GetAddressOf())));
+
+	}
+
+
+	void DrawScene() {
+
 	}
 	
 

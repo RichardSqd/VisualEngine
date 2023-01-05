@@ -9,9 +9,11 @@ namespace Renderer {
 	extern void CreatePipelineState();
 	extern void CreateShadersAndInputLayout();
 	//extern void CreateDepthStencilState();
+	extern void CreateDescriptorHeaps();
 	extern void CreateFrameResources();
+	extern void CreateSwapChain();
 	extern void CreateConstantBufferViews();
-	//extern void DrawRenderItems();
+	extern void DrawScene();
 
 
 	extern ComPtr<ID3D12RootSignature> rRootSignature;
