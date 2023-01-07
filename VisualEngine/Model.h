@@ -77,6 +77,11 @@ namespace Scene {
 		DirectX::XMFLOAT3 scale;
 		DirectX::XMFLOAT3 translation;
 		UINT32 mesh;
+
+		UINT32 indexCount;
+		UINT32 ibOffset;
+		UINT32 vbOffset;
+
 		UINT32 numFrameDirty;
 	};
 
@@ -103,6 +108,7 @@ namespace Scene {
 		D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 		D3D12_INDEX_BUFFER_VIEW indexBufferView; 
 		//std::unique_ptr<Mesh> mesh;
+		D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	};
 
 

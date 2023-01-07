@@ -106,12 +106,12 @@ void CommandQueueManager::CreateCommandObjects(ComPtr<ID3D12Device> device) {
 
 std::shared_ptr<CommandContext> CommandContextManager::AllocateContext(D3D12_COMMAND_LIST_TYPE type) {
 	std::shared_ptr<CommandContext> context;
-	if (mContextPool.size() == 0) {
-		CreateCommandContext(mDevice, type);
-	}
+	
+	CreateCommandContext(mDevice, type);
+	
 
 	context = mContextPool.back();
-	mContextPool.pop_back();
+	//mContextPool.pop_back();
 	
 	return context;
 }

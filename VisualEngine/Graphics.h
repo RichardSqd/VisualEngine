@@ -6,8 +6,8 @@
 using Microsoft::WRL::ComPtr;
 namespace Graphics {
 
-	extern uint32_t gWidth;
-	extern uint32_t gHeight;
+	extern float gWidth;
+	extern float gHeight;
 	extern HWND ghWnd;
 	extern ComPtr<ID3D12Device> gDevice;
 	extern ComPtr<IDXGISwapChain3> gSwapChain;
@@ -28,10 +28,18 @@ namespace Graphics {
 	extern UINT gNumFrameBuffers;
 	extern UINT gFrameIndex;
 	extern UINT gPassCbvOffset;
+	extern UINT gObjectCBByteSize;
+	extern UINT gPassCBByteSize;
 	extern std::vector<std::unique_ptr<FrameResource>> gFrameResources;
 
-	void Init(bool EnableDXR);
+	extern D3D12_VIEWPORT gScreenViewport;
+	extern D3D12_RECT gScissorRect;
 
+	extern DXGI_FORMAT gBackBufferFormat;
+	extern DXGI_FORMAT gDepthStencilFormat;
+
+	void Init(bool EnableDXR);
+	extern float AspectRatio();
 
 
 	

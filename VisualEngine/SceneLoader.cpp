@@ -237,7 +237,7 @@ namespace Scene {
 		return 1;
 	}
 
-	int LoadTestScene(std::wstring filename, Model& model) {
+	int LoadTestScene(std::wstring filename, Model& model, ComPtr<ID3D12GraphicsCommandList> commandList) {
 
 		std::string filenamebyte = Utils::to_byte_str(filename);
 		std::ifstream fin(filenamebyte);
@@ -319,7 +319,7 @@ namespace Scene {
 		subresourceData.RowPitch = vbByteSize;
 		subresourceData.SlicePitch = vbByteSize;
 
-		auto commandList = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT).get()->getCommandList();
+		//auto commandList = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT).get()->getCommandList();
 
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(model.vertexBufferGPU.Get(),
 			D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
@@ -375,11 +375,13 @@ namespace Scene {
 		auto node = Node{};
 		XMStoreFloat4x4(&node.matrix, MathHelper::IdentityMatrix());
 		node.mesh = 0;
+		node.ibOffset = prim.ibOffset;
+		node.indexCount = prim.indexCount;
+		node.vbOffset = prim.vbOffset;
 
 		model.nodes.push_back(node);
 		model.numNodes = 1;
 		model.numMeshes = 1; 
-
 
 
 		model.vertexBufferView.BufferLocation = model.vertexBufferGPU->GetGPUVirtualAddress();

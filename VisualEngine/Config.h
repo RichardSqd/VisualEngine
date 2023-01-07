@@ -2,6 +2,7 @@
 
 namespace Config {
 	//Graphics Related
+	const int frameCount = 3;
 	const bool RAYTRACE = false;
 	const bool useGPUBasedValidation = true;
 	const DXGI_FORMAT BackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;

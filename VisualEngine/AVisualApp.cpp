@@ -41,7 +41,8 @@ void AVisualApp::InitApp() {
 
 void AVisualApp::Update() {
 
-	//check the status of GPU completion on current frame resources 
+	//advance the frame index, check the status of GPU completion on current frame resources 
+	Graphics::gFrameResourceManager.nextFrameResource();
 	FrameResource* currentFrameResource = Graphics::gFrameResourceManager.GetCurrentFrameResource();
 
 	auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
@@ -59,9 +60,8 @@ void AVisualApp::Update() {
 	//update time
 	Time::Tick();
 
-	//update scene 
-
-	//draw the scene 
+	Renderer::Update();
+	
 	
 
 }
@@ -70,6 +70,14 @@ void AVisualApp::Draw(void)
 {
 
 	auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
+	BREAKIFFAILED(Renderer::rCommandAlloc->Reset());
+
+
+	Renderer::Draw();
+
+
+
+
 
 	//fence move to new position and signal the new GPU fence value 
 	queue.AdvanceFenceValue();

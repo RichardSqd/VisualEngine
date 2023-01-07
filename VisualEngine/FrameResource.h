@@ -58,10 +58,13 @@ public:
 	~FrameResourceManager();
 	void CreateFrameResources(UINT numberOfFrameResources);
 	FrameResource* GetCurrentFrameResource();
+	void nextFrameResource();
+	UINT GetCurrentIndex();
 	FrameResource* GetFrameResourceByIndex(UINT index);
 
 private:
 	static UINT curFrameIndex ;
+	UINT numFrameResources;
 	std::vector<std::unique_ptr<FrameResource>> mFrameResources;
 
 

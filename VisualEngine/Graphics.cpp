@@ -11,8 +11,8 @@ using Microsoft::WRL::ComPtr;
 
 
 namespace Graphics {
-	uint32_t gWidth = 1280;
-	uint32_t gHeight = 720;
+	float gWidth = 1280.0;
+	float gHeight = 720.0;
 	HWND ghWnd = nullptr;
 	ComPtr<ID3D12Device> gDevice = nullptr;
 	ComPtr<IDXGISwapChain3> gSwapChain = nullptr;
@@ -30,9 +30,15 @@ namespace Graphics {
 	UINT gDSVDescriptorSize;
 	UINT gCbvSrvUavDescriptorSize;
 	UINT gSamplerDescriptorSize;
-	UINT gNumFrameResources = 3;
-	UINT gNumFrameBuffers = 3;
+	UINT gObjectCBByteSize;
+	UINT gPassCBByteSize;
+	UINT gNumFrameResources = Config::frameCount;
 	UINT gFrameIndex = 0;
+	DXGI_FORMAT gBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	DXGI_FORMAT gDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	D3D12_VIEWPORT gScreenViewport;
+
+	D3D12_RECT gScissorRect;
 
 	void Init(bool EnableDXR) {
 		ComPtr<ID3D12Device> device;
@@ -79,6 +85,17 @@ namespace Graphics {
 #if defined(DEBUG) || defined(_DEBUG)
 		gDevice->SetStablePowerState(1);
 #endif
+
+		//display port stats
+		gScreenViewport.TopLeftX = 0.0f;
+		gScreenViewport.TopLeftY = 0.0f;
+		gScreenViewport.Width = gWidth;
+		gScreenViewport.Height = gHeight;
+		gScreenViewport.MinDepth = 0.0f;
+		gScreenViewport.MaxDepth = 1.0f;
+		
+		gScissorRect = { 0, 0, static_cast<long>(gWidth), static_cast<long>(gHeight) };
+
 		//get descriptor sizes for each type 
 		gRTVDescriptorSize = gDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		gDSVDescriptorSize = gDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
@@ -89,7 +106,8 @@ namespace Graphics {
 		gCommandQueueManager.CreateCommandObjects(gDevice);
 		gCommandContextManager.CreateCommandContext(gDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
 		
-		
+		gObjectCBByteSize = (sizeof(ObjectConstants) + 255) & ~255;
+		gPassCBByteSize = (sizeof(PassConstants) + 255) & ~255;
 
 	}
 
@@ -100,8 +118,12 @@ namespace Graphics {
 #endif
 
 	//create command related components
-}
 
+	float AspectRatio()
+	{
+		return gWidth / gHeight;
+	}
+}
 
 
 

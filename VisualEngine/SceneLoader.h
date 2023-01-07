@@ -9,7 +9,7 @@
 namespace Scene {
 	extern int translate(tinygltf::Model& tinyModel, Scene::Model& model);
 	extern int LoadScene(std::wstring filename, Model& model);
-	extern int LoadTestScene(std::wstring filename, Model& model);
+	extern int LoadTestScene(std::wstring filename, Model& model, ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void SolveMeshs(tinygltf::Model& tinyModel, int meshIndex, Scene::Model& model, DirectX::XMMATRIX& localToObject);
 	extern void SolveNodes(tinygltf::Model& tinyModel, int nodeIndex, Scene::Model& model, DirectX::XMMATRIX& localToObject);
 }

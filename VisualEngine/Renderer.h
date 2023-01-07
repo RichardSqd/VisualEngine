@@ -8,13 +8,18 @@ namespace Renderer {
 	extern void CreateRootSigniture();
 	extern void CreatePipelineState();
 	extern void CreateShadersAndInputLayout();
-	//extern void CreateDepthStencilState();
+	extern void CreateRTVDSV();
 	extern void CreateDescriptorHeaps();
 	extern void CreateFrameResources();
 	extern void CreateSwapChain();
 	extern void CreateConstantBufferViews();
-	extern void DrawScene();
-
+	extern void Update();
+	extern void UpdateCamera();
+	extern void UpdateObjCBs();
+	extern void UpdatePassCB();
+	extern void Draw();
+	extern void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> rCommandList);
+	extern void OnResize();
 
 	extern ComPtr<ID3D12RootSignature> rRootSignature;
 	extern ComPtr<ID3DBlob> rVertexShader;
@@ -25,4 +30,12 @@ namespace Renderer {
 
 	extern ComPtr<ID3D12PipelineState> rPso;
 	extern ComPtr<ID3D12PipelineState> rPsoShadow;
+
+	extern ComPtr<ID3D12GraphicsCommandList> rCommandList;
+	extern ComPtr<ID3D12CommandAllocator> rCommandAlloc;
+
+	extern ComPtr<ID3D12Resource> rRenderTargetBuffer[Config::frameCount];
+	extern ComPtr<ID3D12Resource> rDepthStencilBuffer;
+
+	extern INT gCurRenderTarget;
 }

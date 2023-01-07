@@ -1,5 +1,7 @@
 #include "pch.h"
+#include "Graphics.h"
 #include "Math.h"
+const float MathHelper::PI = 3.1415926535f;
 
 inline DirectX::XMMATRIX MathHelper::IdentityMatrix() {
 	return DirectX::XMMATRIX( 1,0,0,0,
@@ -52,7 +54,9 @@ inline DirectX::XMMATRIX MathHelper::QuaternionToMatrix(const std::vector<double
 }
 
 
-extern inline DirectX::XMMATRIX MathHelper::Scale(const std::vector<double> v) {
+
+
+inline DirectX::XMMATRIX MathHelper::Scale(const std::vector<double> v) {
 	if (v.size() != 3)  return MathHelper::IdentityMatrix();
 
 	return DirectX::XMMATRIX(   v[0],       0,     0,    0,
@@ -60,8 +64,7 @@ extern inline DirectX::XMMATRIX MathHelper::Scale(const std::vector<double> v) {
 								   0,       0,  v[2],    0,
 								   0,       0,     0,  v[3]);
 }
-
-extern inline DirectX::XMMATRIX MathHelper::Trans(const std::vector<double> v) {
+inline DirectX::XMMATRIX MathHelper::Trans(const std::vector<double> v) {
 	if (v.size() != 3)  return MathHelper::IdentityMatrix();
 	
 	return DirectX::XMMATRIX(	   1,       0,     0,    v[0],
