@@ -1,5 +1,7 @@
 #pragma once
+#include "pch.h"
 
+using Microsoft::WRL::ComPtr;
 namespace Scene {
 	const D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
 	{
@@ -9,11 +11,15 @@ namespace Scene {
 		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 
-	class Vertex {
-	public:
+	struct Vertex {
+	
 		Vertex(
 
-		) {};
+		): position(0.0,0.0,0.0),
+			normal(0.0, 0.0, 0.0),
+			tangent(0.0, 0.0, 0.0),
+			texcoord(0.0, 0.0)
+		{};
 
 		Vertex(
 			const DirectX::XMFLOAT3& p,
@@ -34,48 +40,53 @@ namespace Scene {
 			tangent(tx,ty,tz),
 			texcoord(u,v){}
 
-	private:
+	
 		DirectX::XMFLOAT3 position;
 		DirectX::XMFLOAT3 normal;
 		DirectX::XMFLOAT2 texcoord;
 		DirectX::XMFLOAT3 tangent;
 	};
 
-	class Primitives {
-	public:
-		Primitives();
+	struct Primitive {
+	
+		Primitive();
 		
-		DXGI_FORMAT format;
-		int indexBuffer;
-		UINT32 indexCount;
+		DXGI_FORMAT iformat;
 		UINT32 ibOffset;
+		UINT32 indexBufferByteSize;
+		UINT32 indexCount;
 
-		int vertexBuffer;
-		UINT32 beginVertex;
 		UINT32 vbOffset;
+		UINT32 vertexBufferByteSize;
 	};
 
 
 
-	class Mesh {
-	public:
+	struct Mesh {
+	
 		Mesh();
 		
-		std::vector<Primitives> primitives;
+		std::vector<Primitive> primitives;
 		
 	};
 
-	class Node {
-	public:
+	struct Node {
+		
 		DirectX::XMFLOAT4X4 matrix;
 		DirectX::XMFLOAT4 rotation;
 		DirectX::XMFLOAT3 scale;
 		DirectX::XMFLOAT3 translation;
-		UINT mesh;
+		UINT32 mesh;
+
+		UINT32 indexCount;
+		UINT32 ibOffset;
+		UINT32 vbOffset;
+
+		UINT32 numFrameDirty;
 	};
 
-	class Model {
-	public:
+	struct Model {
+	
 		UINT32 numNodes;
 		UINT32 numMeshes;
 		UINT32 numMaterials;
@@ -89,25 +100,27 @@ namespace Scene {
 		std::vector<Node> nodes;
 
 		std::vector<std::vector<byte>> buffers;
+		ComPtr<ID3DBlob> vertexBufferCPU;
+		ComPtr<ID3DBlob> indexBufferCPU;
+		ComPtr<ID3D12Resource> vertexBufferGPU;
+		ComPtr<ID3D12Resource> indexBufferGPU;
 
-
+		D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+		D3D12_INDEX_BUFFER_VIEW indexBufferView; 
 		//std::unique_ptr<Mesh> mesh;
+		D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	};
 
 
-	class RenderItem {
+	struct RenderItem {
 		RenderItem() = default;
 		
 		DirectX::XMFLOAT4X4 world;
 		DirectX::XMFLOAT4X4 texTransform;
 
 		Model* model;
-		
-
-		//
-		UINT indexNum;
-		UINT indexPos;
-		UINT vertexPos;
+		UINT32 meshIndex;
+		std::vector<UINT32> primList;
 
 	};
 	

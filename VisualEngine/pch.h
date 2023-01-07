@@ -44,6 +44,7 @@
 #include "Utils.h"
 #include "Math.h"
 #include "Config.h"
+#include "Time.h"
 
 #ifdef _DEBUG
 #include <dxgidebug.h>

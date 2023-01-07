@@ -3,6 +3,8 @@
 #include <codecvt>
 
 namespace Utils {
+
+
 	typedef std::shared_ptr<std::vector<byte> > ByteArray;
 	
 	inline std::wstring to_wide_str(const std::string& input) {
@@ -47,5 +49,6 @@ namespace Utils {
 	Utils::Print("\nError at " __FILE__ " @ " TOSTRING(__LINE__) "\n"); \
 	__debugbreak();\
 	}\
+
 
 }

@@ -1,11 +1,12 @@
 #include "pch.h"
 #include "CommandListManager.h"
-
+#include "Graphics.h"
 
 CommandQueue::CommandQueue(D3D12_COMMAND_LIST_TYPE type) :
 mType(type),
 mQueue(nullptr),
 mCommandAllocatorPool(type)
+
 {
 
 }
@@ -33,6 +34,34 @@ void CommandQueue::Create(ComPtr<ID3D12Device> device) {
 	ASSERT(IsReady());
 }
 
+void CommandQueue::FlushCommandQueue() {
+	mCurentFence++;
+	BREAKIFFAILED(mQueue->Signal(mFence.Get(), mCurentFence));
+	if (mFence->GetCompletedValue() < mCurentFence) {
+
+		HANDLE eventHandle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
+		ASSERT(eventHandle)
+
+		BREAKIFFAILED(mFence->SetEventOnCompletion(mCurentFence, eventHandle));
+		
+		WaitForSingleObject(eventHandle, INFINITE);
+		CloseHandle(eventHandle);
+	}
+}
+
+void CommandQueue::SetEventOnCompletion(UINT64 value, HANDLE eventHandle)
+{
+	BREAKIFFAILED(mFence->SetEventOnCompletion(value,eventHandle));
+}
+
+void CommandQueue::AdvanceFenceValue() {
+	mCurentFence += 1;
+}
+
+void CommandQueue::SignalFencePoint() {
+	BREAKIFFAILED(mQueue->Signal(mFence.Get(), mCurentFence));	
+}
+
 bool CommandQueue::IsReady() {
 	return mQueue != nullptr;
 }
@@ -42,7 +71,18 @@ ComPtr<ID3D12CommandQueue> CommandQueue::GetQueue() {
 	return mQueue;
 }
 
-CommandListManager::CommandListManager() :
+UINT64 CommandQueue::GetCompletedFenceValue()
+{
+	return mFence->GetCompletedValue();
+}
+
+ComPtr<ID3D12CommandAllocator> CommandQueue::RequestAllocator() {
+	//TODO: find available allocators before creating a new one 
+	return mCommandAllocatorPool.ArrangeAllocator();
+}
+
+
+CommandQueueManager::CommandQueueManager() :
 	mDevice(nullptr),
 	mGraphicsQueue(D3D12_COMMAND_LIST_TYPE_DIRECT),
 	mComputeQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE),
@@ -52,10 +92,65 @@ CommandListManager::CommandListManager() :
 }
 
 
-void CommandListManager::CreateCommandObjects(ComPtr<ID3D12Device> device) {
+void CommandQueueManager::CreateCommandObjects(ComPtr<ID3D12Device> device) {
 	if (device == nullptr) PRINTERROR();
 	mDevice = device;
 	mGraphicsQueue.Create(mDevice);
 	mComputeQueue.Create(mDevice);
 	mCopyQueue.Create(mDevice);
+}
+
+
+
+//-----------------------------------------------------------
+
+std::shared_ptr<CommandContext> CommandContextManager::AllocateContext(D3D12_COMMAND_LIST_TYPE type) {
+	std::shared_ptr<CommandContext> context;
+	
+	CreateCommandContext(mDevice, type);
+	
+
+	context = mContextPool.back();
+	//mContextPool.pop_back();
+	
+	return context;
+}
+
+void CommandContextManager::CreateCommandContext(ComPtr<ID3D12Device> device, D3D12_COMMAND_LIST_TYPE type) {
+	if(device==nullptr) PRINTERROR();
+	mDevice = device;
+
+	ComPtr<ID3D12GraphicsCommandList> commandList;
+	
+	//TODO: For now the command queue manager creates a new allocator each time
+	ComPtr<ID3D12CommandAllocator> allocator = Graphics::gCommandQueueManager.GetGraphicsQueue().RequestAllocator();
+	BREAKIFFAILED(mDevice->CreateCommandList(0,
+		type,
+		allocator.Get(),
+		nullptr,
+		IID_PPV_ARGS(commandList.GetAddressOf())));
+
+	std::shared_ptr<CommandContext> cc(new CommandContext(commandList, allocator));
+	mContextPool.push_back(cc);
+
+
+
+}
+
+CommandContextManager::~CommandContextManager() {
+	
+	for (auto it = mContextPool.begin(); it != mContextPool.end(); ++it) {
+		(* it).reset();
+	}
+}
+
+
+//---------------------------------------------------------------
+
+ComPtr<ID3D12GraphicsCommandList> CommandContext::getCommandList() {
+	return mCommandList;
+}
+
+ComPtr<ID3D12CommandAllocator> CommandContext::getCommandAllocator() {
+	return mCommandAllocator;
 }

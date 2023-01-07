@@ -8,12 +8,10 @@ public:
 	AVisualApp(void);
 	void InitApp(void) override;
 	void Update(void) override;
+	void Draw(void) override;
 	void Run(void) override;
 	void ShutDown(void) override;
-	~AVisualApp()
-	{
-
-	}
+	~AVisualApp(void);
 
 private:
 	
