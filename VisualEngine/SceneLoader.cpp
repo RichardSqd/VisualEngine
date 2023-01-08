@@ -139,12 +139,12 @@ namespace Scene {
 		if ((tinyNode.mesh >= 0) && (tinyNode.mesh < tinyModel.meshes.size())) {
 
 			if (tinyNode.matrix.size() != 0) {
-				localToObject = MathHelper::VectorToMatrix(tinyNode.matrix) * localToObject;
+				localToObject = Math::VectorToMatrix(tinyNode.matrix) * localToObject;
 			}
 			else {
-				DirectX::XMMATRIX scale = MathHelper::Scale(tinyNode.scale);
-				DirectX::XMMATRIX translate = MathHelper::Trans(tinyNode.translation);
-				DirectX::XMMATRIX rotate = MathHelper::QuaternionToMatrix(tinyNode.rotation);
+				DirectX::XMMATRIX scale = Math::Scale(tinyNode.scale);
+				DirectX::XMMATRIX translate = Math::Trans(tinyNode.translation);
+				DirectX::XMMATRIX rotate = Math::QuaternionToMatrix(tinyNode.rotation);
 				DirectX::XMMATRIX m = translate * rotate * scale;
 				localToObject *= m;
 				
@@ -183,7 +183,7 @@ namespace Scene {
 
 		//iterate over all nodes 
 		for (UINT i = 0; i < scene.nodes.size(); i++) {
-			SolveNodes(tinyModel, scene.nodes[i], model, MathHelper::IdentityMatrix());
+			SolveNodes(tinyModel, scene.nodes[i], model, Math::IdentityMatrix());
 		}
 
 		return 1;
@@ -373,7 +373,7 @@ namespace Scene {
 		model.meshes[0].primitives.push_back(prim);
 		
 		auto node = Node{};
-		XMStoreFloat4x4(&node.matrix, MathHelper::IdentityMatrix());
+		XMStoreFloat4x4(&node.matrix, Math::IdentityMatrix());
 		node.mesh = 0;
 		node.ibOffset = prim.ibOffset;
 		node.indexCount = prim.indexCount;

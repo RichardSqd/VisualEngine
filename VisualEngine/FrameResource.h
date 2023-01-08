@@ -8,8 +8,8 @@ using Microsoft::WRL::ComPtr;
 class ObjectConstants {
 public:
 	ObjectConstants() {
-		XMStoreFloat4x4(&World, MathHelper::IdentityMatrix());
-		XMStoreFloat4x4(&WorldIT, MathHelper::IdentityMatrix());
+		XMStoreFloat4x4(&World, Math::IdentityMatrix());
+		XMStoreFloat4x4(&WorldIT, Math::IdentityMatrix());
 	}
 	DirectX::XMFLOAT4X4 World; 
 	DirectX::XMFLOAT4X4 WorldIT;
@@ -18,10 +18,10 @@ public:
 class PassConstants {
 public:
 	PassConstants() {
-		XMStoreFloat4x4(&ViewProjMatrix, MathHelper::IdentityMatrix());
-		XMStoreFloat4x4(&CameraPos, MathHelper::IdentityMatrix());
-		XMStoreFloat4x4(&NearZ, MathHelper::IdentityMatrix());
-		XMStoreFloat4x4(&FarZ, MathHelper::IdentityMatrix());
+		XMStoreFloat4x4(&ViewProjMatrix, Math::IdentityMatrix());
+		XMStoreFloat4x4(&CameraPos, Math::IdentityMatrix());
+		XMStoreFloat4x4(&NearZ, Math::IdentityMatrix());
+		XMStoreFloat4x4(&FarZ, Math::IdentityMatrix());
 
 	}
 
