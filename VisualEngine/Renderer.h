@@ -2,9 +2,11 @@
 #include "SceneLoader.h"
 #include "Graphics.h"
 #include "EngineCore.h"
+#include "Camera.h"
 
 namespace Renderer {
 	extern void Init();
+	extern void InitCamera();
 	extern void CreateRootSigniture();
 	extern void CreatePipelineState();
 	extern void CreateShadersAndInputLayout();
@@ -14,6 +16,7 @@ namespace Renderer {
 	extern void CreateSwapChain();
 	extern void CreateConstantBufferViews();
 	extern void Update();
+	extern void UpdateInput();
 	extern void UpdateCamera();
 	extern void UpdateObjCBs();
 	extern void UpdatePassCB();
@@ -38,4 +41,7 @@ namespace Renderer {
 	extern ComPtr<ID3D12Resource> rDepthStencilBuffer;
 
 	extern INT gCurRenderTarget;
+	extern Camera gMainCam;
+
+	extern DirectX::XMFLOAT4X4 gview;
 }

@@ -28,6 +28,10 @@ namespace Renderer {
 	D3D12_VIEWPORT gScreenViewport {};
 	INT gCurRenderTarget = 0;
 
+	DirectX::XMFLOAT4X4 gview{};
+
+	Camera gMainCam{};
+
 	void Init() {
 		//ASSERT(Scene::LoadScene(Config::gltfFilePath, EngineCore::eModel));
 		auto context = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT).get();
@@ -35,6 +39,7 @@ namespace Renderer {
 		rCommandAlloc = context->getCommandAllocator();
 
 		ASSERT(Scene::LoadTestScene(Config::testSceneFilePath, EngineCore::eModel, rCommandList));
+		InitCamera();
 		CreateSwapChain();
 		CreateDescriptorHeaps();
 		CreateShadersAndInputLayout();
@@ -42,6 +47,17 @@ namespace Renderer {
 		CreatePipelineState();	
 		CreateFrameResources();
 		CreateConstantBufferViews();
+	}
+
+	void InitCamera() {
+		gMainCam.camPhi = 0.2f * Math::PI;
+		gMainCam.camTheta = 1.5f * Math::PI;
+		gMainCam.camRadius = 10.0f;
+		XMStoreFloat4x4(&gMainCam.proj,Math::IdentityMatrix());
+		gMainCam.camPos.x = 0.0f;
+		gMainCam.camPos.y = 0.0f;
+		gMainCam.camPos.z = 0.0f;
+
 	}
 
 	void CreateSwapChain() {
@@ -344,27 +360,41 @@ namespace Renderer {
 		Graphics::gScissorRect = { 0,0,static_cast<long>(Graphics::gWidth), static_cast<long>(Graphics::gHeight) };
 
 		//update the projection matrix after the aspect ratio has been changed
-		DirectX::XMMATRIX P = DirectX::XMMatrixPerspectiveFovLH(0.25f * MathHelper::PI, Graphics::AspectRatio(), 1.0f, 1000.0f);
-		DirectX::XMStoreFloat4x4(&Camera::proj, P);
+		DirectX::XMMATRIX P = DirectX::XMMatrixPerspectiveFovLH(0.25f * Math::PI, Graphics::AspectRatio(), 1.0f, 1000.0f);
+		DirectX::XMStoreFloat4x4(&gMainCam.proj, P);
 
 
 	}
 
 	void CreateRTVDSV() {
+		
 
 	}
 
 	void Update() {
+		UpdateInput();
 		UpdateCamera();
 		UpdateObjCBs();
 		UpdatePassCB();
 
 	}
 
+	void UpdateInput() {
+
+	}
+
 	void UpdateCamera() {
-		//todo: get user keyboard input and update camera info
+		
+		gMainCam.camPos.x = gMainCam.camRadius * sinf(gMainCam.camPhi) * cosf(gMainCam.camTheta);
+		gMainCam.camPos.y = gMainCam.camRadius * cosf(gMainCam.camPhi);
+		gMainCam.camPos.z = gMainCam.camRadius * sinf(gMainCam.camPhi) * sinf(gMainCam.camTheta);
 
-
+		//view matrix
+		DirectX::XMVECTOR pos = DirectX::XMVectorSet(gMainCam.camPos.x, gMainCam.camPos.y, gMainCam.camPos.z, 1.0f);
+		DirectX::XMVECTOR target = DirectX::XMVectorZero();
+		DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+		DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(pos, target, up);
+		DirectX::XMStoreFloat4x4(&gview, view);
 	}
 	
 	void UpdateObjCBs() {

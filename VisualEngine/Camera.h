@@ -1,6 +1,11 @@
 #pragma once
 #include "pch.h"
 
-namespace Camera {
-	extern DirectX::XMFLOAT4X4 proj;
-}
+struct Camera {
+	DirectX::XMFLOAT4X4 proj;
+	DirectX::XMFLOAT3 camPos;
+	FLOAT camPhi;
+	FLOAT camTheta;
+	FLOAT camRadius;
+
+};
