@@ -374,8 +374,26 @@ namespace Renderer {
 	void Update() {
 		UpdateInput();
 		UpdateCamera();
-		UpdateObjCBs();
-		UpdatePassCB();
+
+		//advance the frame index, check the status of GPU completion on current frame resources 
+		Graphics::gFrameResourceManager.nextFrameResource();
+		FrameResource* currentFrameResource = Graphics::gFrameResourceManager.GetCurrentFrameResource();
+
+		auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
+		auto frameTargetCompletionValue = currentFrameResource->fence;
+
+		if (frameTargetCompletionValue > 0 && queue.GetCompletedFenceValue() < frameTargetCompletionValue) {
+			//must wait until the queue has completed its tasks for the current frame 
+			HANDLE eventHandle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
+			ASSERT(eventHandle);
+			queue.SetEventOnCompletion(frameTargetCompletionValue, eventHandle);
+			WaitForSingleObject(eventHandle, INFINITE);
+			CloseHandle(eventHandle);
+		}
+
+
+		UpdateObjCBs(currentFrameResource);
+		UpdatePassCB(currentFrameResource);
 
 	}
 
@@ -394,14 +412,43 @@ namespace Renderer {
 		DirectX::XMVECTOR target = DirectX::XMVectorZero();
 		DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 		DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(pos, target, up);
-		DirectX::XMStoreFloat4x4(&gview, view);
+		DirectX::XMStoreFloat4x4(&gMainCam.view, view);
 	}
 	
-	void UpdateObjCBs() {
+	void UpdateObjCBs(FrameResource* currentFrameResource) {
+		auto curFrameObjCB = currentFrameResource->objCB.get();
+		for (int i = 0; i < EngineCore::eModel.numNodes; i++) {
+			auto& node = EngineCore::eModel.nodes[i];
+			if (node.numFrameDirty > 0) {
+				DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&node.matrix);
 
+				ObjectConstants objConsts;
+				DirectX::XMStoreFloat4x4(&objConsts.World, world);
+				DirectX::XMStoreFloat4x4(&objConsts.WorldIT, DirectX::XMMatrixTranspose(world));
+				
+				curFrameObjCB->CopyData(i, &objConsts);
+
+				node.numFrameDirty--;
+				
+			}
+		}
 	}
 
-	void UpdatePassCB(){
+	void UpdatePassCB(FrameResource* currentFrameResource){
+		DirectX::XMMATRIX view = DirectX::XMLoadFloat4x4(&gMainCam.view);
+		DirectX::XMMATRIX proj = DirectX::XMLoadFloat4x4(&gMainCam.proj);
+		DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(view, proj);
+
+		//todo:
+		PassConstants passConsts;
+		DirectX::XMStoreFloat4x4(&passConsts.ViewProjMatrix, DirectX::XMMatrixTranspose(viewProj));
+		passConsts.NearZ = 1.0;
+		passConsts.FarZ = 1000.0;
+
+
+		auto curFramePassCB = currentFrameResource->passCB.get();
+		curFramePassCB->CopyData(0, &passConsts);
+
 
 	}
 

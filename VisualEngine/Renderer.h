@@ -18,8 +18,8 @@ namespace Renderer {
 	extern void Update();
 	extern void UpdateInput();
 	extern void UpdateCamera();
-	extern void UpdateObjCBs();
-	extern void UpdatePassCB();
+	extern void UpdateObjCBs(FrameResource* currentFrameResource);
+	extern void UpdatePassCB(FrameResource* currentFrameResource);
 	extern void Draw();
 	extern void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> rCommandList);
 	extern void OnResize();
