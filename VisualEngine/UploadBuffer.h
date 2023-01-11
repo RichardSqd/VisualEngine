@@ -16,7 +16,9 @@ public:
 
 	D3D12_GPU_VIRTUAL_ADDRESS GetGpuVirtualAddress() { mUploadBuffer->GetGPUVirtualAddress(); }
 
-	void* Map(); 
+
+	void Map(); 
+	void UploadBuffer::CopyData(int elementIndex, const void* data);
 
 
 private:
@@ -25,5 +27,5 @@ private:
 	size_t mBufferByteSize;
 	size_t mElementByteSize;
 	size_t mNumElement;
-;
+	BYTE* mMappedData;
 };

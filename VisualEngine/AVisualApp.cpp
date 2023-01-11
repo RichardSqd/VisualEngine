@@ -41,21 +41,7 @@ void AVisualApp::InitApp() {
 
 void AVisualApp::Update() {
 
-	//advance the frame index, check the status of GPU completion on current frame resources 
-	Graphics::gFrameResourceManager.nextFrameResource();
-	FrameResource* currentFrameResource = Graphics::gFrameResourceManager.GetCurrentFrameResource();
-
-	auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
-	auto frameTargetCompletionValue = currentFrameResource->fence;
-
-	if (frameTargetCompletionValue >0 && queue.GetCompletedFenceValue() < frameTargetCompletionValue) {
-		//must wait until the queue has completed its tasks for the current frame 
-		HANDLE eventHandle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
-		ASSERT(eventHandle);
-		queue.SetEventOnCompletion(frameTargetCompletionValue,eventHandle);
-		WaitForSingleObject(eventHandle, INFINITE);
-		CloseHandle(eventHandle);
-	}
+	
 
 	//update time
 	Time::Tick();

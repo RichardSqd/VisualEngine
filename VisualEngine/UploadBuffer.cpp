@@ -25,13 +25,16 @@ UploadBuffer::UploadBuffer(size_t elementSize,size_t numElement, bool isConstBuf
 		IID_PPV_ARGS(&mUploadBuffer)));
 
 	
-	
+	Map();
 
 }
 
 
-void* UploadBuffer::Map() {
-	void* mappedData;
-	BREAKIFFAILED(mUploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&mappedData)));
-	return mappedData;
+void UploadBuffer::Map() {
+
+	BREAKIFFAILED(mUploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&mMappedData)));
+}
+
+void UploadBuffer::CopyData(int elementIndex, const void* data) {
+	memcpy(&mMappedData[elementIndex * mElementByteSize], data, mElementByteSize);
 }
