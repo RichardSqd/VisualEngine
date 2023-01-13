@@ -55,9 +55,7 @@ void AVisualApp::Update() {
 void AVisualApp::Draw(void)
 {
 
-	auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
-	BREAKIFFAILED(Renderer::rCommandAlloc->Reset());
-
+	
 
 	Renderer::Draw();
 
@@ -65,9 +63,7 @@ void AVisualApp::Draw(void)
 
 
 
-	//fence move to new position and signal the new GPU fence value 
-	queue.AdvanceFenceValue();
-	queue.SignalFencePoint();
+	
 }
 
 void AVisualApp::Run() {

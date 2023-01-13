@@ -49,6 +49,10 @@ void CommandQueue::FlushCommandQueue() {
 	}
 }
 
+void CommandQueue::ExecuteCommandLists(UINT count, ID3D12CommandList** cmdLists) {
+	mQueue->ExecuteCommandLists(count, cmdLists);
+}
+
 void CommandQueue::SetEventOnCompletion(UINT64 value, HANDLE eventHandle)
 {
 	BREAKIFFAILED(mFence->SetEventOnCompletion(value,eventHandle));

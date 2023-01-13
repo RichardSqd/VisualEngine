@@ -44,7 +44,7 @@ FrameResource* FrameResourceManager::GetCurrentFrameResource()
 	return mFrameResources[curFrameIndex].get();
 }
 
-void FrameResourceManager::nextFrameResource()
+void FrameResourceManager::NextFrameResource()
 {
 	curFrameIndex = (curFrameIndex + 1) % numFrameResources;
 }

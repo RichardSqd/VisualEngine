@@ -75,3 +75,8 @@ inline DirectX::XMMATRIX Math::Trans(const std::vector<double> v) {
 								   0,       0,     0,    1);
 
 }
+
+extern DirectX::XMMATRIX Math::InverseTranspose(const DirectX::XMMATRIX matrix) {
+	DirectX::XMVECTOR det = DirectX::XMMatrixDeterminant(matrix);
+	return DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(&det, matrix));
+}

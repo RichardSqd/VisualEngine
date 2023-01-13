@@ -19,6 +19,7 @@ public:
 	void SetEventOnCompletion(UINT64 value, HANDLE eventHandle);
 	void AdvanceFenceValue();
 	void SignalFencePoint();
+	void ExecuteCommandLists(UINT count, ID3D12CommandList** cmdLists);
 
 private:
 	ComPtr<ID3D12CommandQueue> mQueue;

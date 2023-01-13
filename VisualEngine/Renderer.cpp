@@ -26,7 +26,7 @@ namespace Renderer {
 	ComPtr<ID3D12Resource> rDepthStencilBuffer;
 
 	D3D12_VIEWPORT gScreenViewport {};
-	INT gCurRenderTarget = 0;
+	INT gCurBackBufferIndex = 0;
 
 	DirectX::XMFLOAT4X4 gview{};
 
@@ -288,7 +288,7 @@ namespace Renderer {
 								Graphics::gWidth, Graphics::gHeight, 
 								Graphics::gBackBufferFormat, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
-		gCurRenderTarget = 0;
+		gCurBackBufferIndex = 0;
 
 		//create rtv on heap for render target buffers 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart());
@@ -376,7 +376,7 @@ namespace Renderer {
 		UpdateCamera();
 
 		//advance the frame index, check the status of GPU completion on current frame resources 
-		Graphics::gFrameResourceManager.nextFrameResource();
+		Graphics::gFrameResourceManager.NextFrameResource();
 		FrameResource* currentFrameResource = Graphics::gFrameResourceManager.GetCurrentFrameResource();
 
 		auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
@@ -424,7 +424,8 @@ namespace Renderer {
 
 				ObjectConstants objConsts;
 				DirectX::XMStoreFloat4x4(&objConsts.World, world);
-				DirectX::XMStoreFloat4x4(&objConsts.WorldIT, DirectX::XMMatrixTranspose(world));
+				
+				DirectX::XMStoreFloat4x4(&objConsts.WorldIT, Math::InverseTranspose(world));
 				
 				curFrameObjCB->CopyData(i, &objConsts);
 
@@ -440,14 +441,15 @@ namespace Renderer {
 		DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(view, proj);
 
 		//todo:
-		PassConstants passConsts;
-		DirectX::XMStoreFloat4x4(&passConsts.ViewProjMatrix, DirectX::XMMatrixTranspose(viewProj));
-		passConsts.NearZ = 1.0;
-		passConsts.FarZ = 1000.0;
+		PassConstants pConsts;
+		DirectX::XMStoreFloat4x4(&pConsts.ViewProjMatrix, DirectX::XMMatrixTranspose(viewProj));
+		pConsts.CameraPos = gMainCam.camPos;
+		pConsts.NearZ = 1.0;
+		pConsts.FarZ = 1000.0;
 
 
 		auto curFramePassCB = currentFrameResource->passCB.get();
-		curFramePassCB->CopyData(0, &passConsts);
+		curFramePassCB->CopyData(0, &pConsts);
 
 
 	}
@@ -455,21 +457,82 @@ namespace Renderer {
 
 	void Draw() {
 		
+		auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
+		//Reuse the command allocator 
 		
-		rCommandList->RSSetViewports(1, &Graphics::gScreenViewport);
-		rCommandList->RSSetScissorRects(1, &Graphics::gScissorRect);
 
-		//transition states
-		//rCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
-		//	D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET))
+		PopulateCommandList();
+		
+		//add the command list to queue
+		ID3D12CommandList* cmdsLists[] = { rCommandList.Get() };
+		queue.ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
+		//Swap back and front buffer 
+		BREAKIFFAILED(Graphics::gSwapChain->Present(1, 0));
+		gCurBackBufferIndex = (gCurBackBufferIndex + 1) % Graphics::gNumFrameResources;
+
+		//fence move to new position and signal the new GPU fence value 
+		queue.AdvanceFenceValue();
+		queue.SignalFencePoint();
 
 	}
 
+	void PopulateCommandList() {
+		//Reset and reuse command allocator
+		BREAKIFFAILED(Renderer::rCommandAlloc->Reset());
+
+		//Reset Command list and reuse the memory
+		BREAKIFFAILED(rCommandList->Reset(Renderer::rCommandAlloc.Get(), rPso.Get()));
+
+		rCommandList->RSSetViewports(1, &Graphics::gScreenViewport);
+		rCommandList->RSSetScissorRects(1, &Graphics::gScissorRect);
+
+		//back buffer transition state from present to render target 
+		rCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
+			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+		//clear back buffer and depth buffer
+		rCommandList->ClearRenderTargetView(
+			CD3DX12_CPU_DESCRIPTOR_HANDLE( Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
+				gCurBackBufferIndex, Graphics::gRTVDescriptorSize),
+			DirectX::Colors::Blue, 0, nullptr);
+		rCommandList->ClearDepthStencilView(
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()),
+			 D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+
+		//set the back buffer for rendering 
+		rCommandList->OMSetRenderTargets(1,
+			&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
+				gCurBackBufferIndex, Graphics::gRTVDescriptorSize),
+			true,
+			&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()));
+
+		//
+		ID3D12DescriptorHeap* descriptorHeaps[] = { Graphics::gCbvSrvHeap.Get() };
+		rCommandList->SetDescriptorHeaps(1, descriptorHeaps);
+		rCommandList->SetGraphicsRootSignature(rRootSignature.Get());
+
+		UINT curFrameIndex = Graphics::gFrameResourceManager.GetCurrentIndex();
+		int passCbvIndex = curFrameIndex + EngineCore::eModel.numNodes * Graphics::gNumFrameResources;
+		auto passCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+		passCbvHandle.Offset(passCbvIndex, Graphics::gCbvSrvUavDescriptorSize);
+		rCommandList->SetGraphicsRootDescriptorTable(1, passCbvHandle);
+
+		DrawRenderItems();
+
+		//back buffer transition state from render target back to present
+		rCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+
+		//finish populating commandlist
+		BREAKIFFAILED(rCommandList->Close());
+
+	}
 	
 
 
-	void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> v) {
+	void DrawRenderItems() {
 
 		Scene::Model& model = EngineCore::eModel;
 		UINT objCBByteSize = Graphics::gObjectCBByteSize;
@@ -491,9 +554,6 @@ namespace Renderer {
 
 			
 			rCommandList->SetGraphicsRootDescriptorTable(1, cbvHandle);
-
-			
-			
 
 			rCommandList->DrawIndexedInstanced(model.nodes[i].indexCount, 1, model.nodes[i].ibOffset, model.nodes[i].vbOffset,0);
 		}
