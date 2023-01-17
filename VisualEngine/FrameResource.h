@@ -20,6 +20,7 @@ public:
 	PassConstants() {
 		XMStoreFloat4x4(&ViewProjMatrix, Math::IdentityMatrix());
 		//XMStoreFloat4x4(&CameraPos, Math::IdentityMatrix());
+		CameraPos = {};
 		NearZ = 0.0;
 		FarZ = 0.0;
 
@@ -27,6 +28,7 @@ public:
 
 	DirectX::XMFLOAT4X4 ViewProjMatrix;
 	//DirectX::XMFLOAT4X4 CameraPos;
+	DirectX::XMFLOAT3 CameraPos;
 	float NearZ;
 	float FarZ;
 
@@ -58,7 +60,7 @@ public:
 	~FrameResourceManager();
 	void CreateFrameResources(UINT numberOfFrameResources);
 	FrameResource* GetCurrentFrameResource();
-	void nextFrameResource();
+	void NextFrameResource();
 	UINT GetCurrentIndex();
 	FrameResource* GetFrameResourceByIndex(UINT index);
 

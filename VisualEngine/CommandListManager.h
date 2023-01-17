@@ -19,6 +19,7 @@ public:
 	void SetEventOnCompletion(UINT64 value, HANDLE eventHandle);
 	void AdvanceFenceValue();
 	void SignalFencePoint();
+	void ExecuteCommandLists(UINT count, ID3D12CommandList** cmdLists);
 
 private:
 	ComPtr<ID3D12CommandQueue> mQueue;
@@ -34,7 +35,7 @@ class CommandQueueManager {
 public:
 	CommandQueueManager() ;
 	~CommandQueueManager() {};
-	void CreateCommandObjects(ComPtr<ID3D12Device> mDevice);
+	void CreateCommandQueueObjects(ComPtr<ID3D12Device> mDevice);
 	
 
 	CommandQueue& GetGraphicsQueue() { return mGraphicsQueue; }

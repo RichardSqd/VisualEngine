@@ -25,7 +25,6 @@ namespace Graphics {
 	extern UINT gCbvSrvUavDescriptorSize;
 	extern UINT gSamplerDescriptorSize;
 	extern UINT gNumFrameResources;
-	extern UINT gNumFrameBuffers;
 	extern UINT gFrameIndex;
 	extern UINT gPassCbvOffset;
 	extern UINT gObjectCBByteSize;

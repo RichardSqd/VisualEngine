@@ -103,7 +103,7 @@ namespace Graphics {
 		gSamplerDescriptorSize = gDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
 
-		gCommandQueueManager.CreateCommandObjects(gDevice);
+		gCommandQueueManager.CreateCommandQueueObjects(gDevice);
 		gCommandContextManager.CreateCommandContext(gDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
 		
 		gObjectCBByteSize = (sizeof(ObjectConstants) + 255) & ~255;

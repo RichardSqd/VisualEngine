@@ -15,10 +15,11 @@ FrameResource::FrameResource(UINT passCount, UINT objectCount) {
 
 }
 
-UINT FrameResourceManager::curFrameIndex = 0;
+UINT FrameResourceManager::curFrameIndex = Graphics::gNumFrameResources - 1;
 
 FrameResourceManager::FrameResourceManager()
 {
+	numFrameResources = 0;
 	mFrameResources.clear();
 }
 
@@ -44,7 +45,7 @@ FrameResource* FrameResourceManager::GetCurrentFrameResource()
 	return mFrameResources[curFrameIndex].get();
 }
 
-void FrameResourceManager::nextFrameResource()
+void FrameResourceManager::NextFrameResource()
 {
 	curFrameIndex = (curFrameIndex + 1) % numFrameResources;
 }

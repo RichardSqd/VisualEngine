@@ -8,5 +8,5 @@ namespace Math {
 	extern inline DirectX::XMMATRIX Trans(const std::vector<double> v);
 	extern inline float AspectRatio();
 	extern const float PI;
-	
+	extern DirectX::XMMATRIX InverseTranspose(const DirectX::XMMATRIX matrix);
 }

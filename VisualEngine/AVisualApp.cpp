@@ -20,13 +20,11 @@ void AVisualApp::InitApp() {
 	Graphics::Init(NODXR);
 	auto context = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT).get();
 	auto commandList = context->getCommandList();
+	/*CommandList Reset can be called while it's being executed
+	A typical pattern is to submit a command list and then immediately reset 
+	it to reuse the allocated memory for another command list.*/
 	commandList->Reset(context->getCommandAllocator().Get(), nullptr);
-	
-	Renderer::Init();
-
-	
-
-	
+	Renderer::Init(context);
 	BREAKIFFAILED(commandList->Close());
 	ID3D12CommandList* cmds[] = { commandList.Get() };
 	auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
@@ -35,6 +33,7 @@ void AVisualApp::InitApp() {
 	Time::Init();
 
 	queue.FlushCommandQueue();
+	Renderer::OnResize();
 
 
 }
@@ -55,9 +54,7 @@ void AVisualApp::Update() {
 void AVisualApp::Draw(void)
 {
 
-	auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
-	BREAKIFFAILED(Renderer::rCommandAlloc->Reset());
-
+	
 
 	Renderer::Draw();
 
@@ -65,9 +62,7 @@ void AVisualApp::Draw(void)
 
 
 
-	//fence move to new position and signal the new GPU fence value 
-	queue.AdvanceFenceValue();
-	queue.SignalFencePoint();
+	
 }
 
 void AVisualApp::Run() {

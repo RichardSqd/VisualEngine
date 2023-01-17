@@ -2,6 +2,7 @@
 #include "EngineCore.h"
 #include "AVisualApp.h"
 
+
 namespace EngineCore {
     using namespace DirectX;
     using namespace Graphics;
@@ -48,7 +49,7 @@ namespace EngineCore {
         ShowWindow(ghWnd, SW_SHOW);
         app->Run();
         app->ShutDown();
-
+        
         return 0;
     }
 
@@ -85,7 +86,7 @@ namespace EngineCore {
         AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, false);
 
         int width = rect.right - rect.left;
-        int height = rect.top - rect.bottom;
+        int height = rect.bottom - rect.top;
 
         ghWnd = CreateWindow(className, className, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
             width, height, nullptr, nullptr, hInstance, nullptr);
@@ -96,8 +97,8 @@ namespace EngineCore {
         }
 
 
-        ShowWindow(ghWnd, SW_SHOW);       
-        UpdateWindow(ghWnd);
+        //ShowWindow(ghWnd, SW_SHOW);       
+        //UpdateWindow(ghWnd);
     }
 
     bool UpdateApp() {
