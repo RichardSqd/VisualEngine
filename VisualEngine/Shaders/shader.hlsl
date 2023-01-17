@@ -41,8 +41,17 @@ float4 PSMain(VSOut vout) : SV_Target
 
 cbuffer cbPerObject : register(b0)
 {
-	float4x4 gWorldViewProj;
+	float4x4 WorldMatrix;
+	float4x4 WorldITMatrix;
 };
+
+cbuffer cbGlobal : register(b1)
+{
+	float4x4 WorldViewProjMatrix;
+	float3 CameraPos;
+	float NearZ;
+	float FarZ;
+}
 
 struct VertexIn
 {
@@ -50,13 +59,13 @@ struct VertexIn
 	float4 world : POSITION;
 	float3 normal : NORMAL;
 	float3 tex : TEXCOORD;
-	float3 tangent:TANGENT;
+	float3 tangent : TANGENT;
 };
 
 struct VertexOut
 {
-	float4 PosH  : SV_POSITION;
-	float4 Color : COLOR;
+	float4 position  : SV_POSITION;
+	//float3 normal : NORMAL;
 };
 
 VertexOut VS(VertexIn vin)
@@ -64,15 +73,14 @@ VertexOut VS(VertexIn vin)
 	VertexOut vout;
 
 	// Transform to homogeneous clip space.
-	vout.PosH = mul(float4(vin.world, 1.0f), gWorldViewProj);
+	vout.position = mul(vin.world, WorldViewProjMatrix);
 
-	// Just pass vertex color into the pixel shader.
-	vout.Color = float4(1.0f,0.0f,0.0f,0.5f);
+	//vout.normal = float3(1.0f, 1.0f, 1.0f);
 
 	return vout;
 }
 
 float4 PS(VertexOut pin) : SV_Target
 {
-	return pin.Color;
+	return float4(1.0f,0.0f,0.0f,0.5f);
 }

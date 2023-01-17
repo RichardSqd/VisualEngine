@@ -5,7 +5,7 @@
 #include "Camera.h"
 
 namespace Renderer {
-	extern void Init();
+	extern void Init(CommandContext* context);
 	extern void InitCamera();
 	extern void CreateRootSigniture();
 	extern void CreatePipelineState();
@@ -21,8 +21,8 @@ namespace Renderer {
 	extern void UpdateObjCBs(FrameResource* currentFrameResource);
 	extern void UpdatePassCB(FrameResource* currentFrameResource);
 	extern void Draw();
-	extern void PopulateCommandList();
-	extern void DrawRenderItems();
+	extern void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList> commandList);
+	extern void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void OnResize();
 
 	extern ComPtr<ID3D12RootSignature> rRootSignature;

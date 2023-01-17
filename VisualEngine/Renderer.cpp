@@ -32,9 +32,8 @@ namespace Renderer {
 
 	Camera gMainCam{};
 
-	void Init() {
+	void Init(CommandContext* context) {
 		//ASSERT(Scene::LoadScene(Config::gltfFilePath, EngineCore::eModel));
-		auto context = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT).get();
 		rCommandList = context->getCommandList();
 		rCommandAlloc = context->getCommandAllocator();
 
@@ -103,17 +102,19 @@ namespace Renderer {
 		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 		BREAKIFFAILED(Graphics::gDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)));
 
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[4] = {};
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[5] = {};
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse and normal textures, register t1,2 
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //1 constant buffer 
-		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); //shadow texture
-		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 2, 0);
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //object constant buffer
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //global constant buffer
+		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); //shadow texture
+		ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 2, 0);
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[4] = {};
+		CD3DX12_ROOT_PARAMETER1 rootParameters[5] = {};
 		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
 		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
-		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[3].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[4].InitAsDescriptorTable(1, &ranges[4], D3D12_SHADER_VISIBILITY_PIXEL);
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
@@ -134,9 +135,9 @@ namespace Renderer {
 		UINT compileFlags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 		ComPtr<ID3DBlob> errors;
-		BREAKIFFAILED(D3DCompileFromFile(Config::shaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VSMain", "vs_5_0", compileFlags, 0, &rVertexShader, &errors));
+		BREAKIFFAILED(D3DCompileFromFile(Config::shaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS", "vs_5_0", compileFlags, 0, &rVertexShader, &errors));
 		//Utils::Print((char*)errors->GetBufferPointer());
-		BREAKIFFAILED(D3DCompileFromFile(Config::shaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PSMain", "ps_5_0", compileFlags, 0, &rPixelShader, &errors));
+		BREAKIFFAILED(D3DCompileFromFile(Config::shaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS", "ps_5_0", compileFlags, 0, &rPixelShader, &errors));
 
 
 		rInputLayoutDesc.pInputElementDescs = Scene::inputLayoutDesc;
@@ -165,8 +166,8 @@ namespace Renderer {
 		psoDesc.SampleMask = UINT_MAX;
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.NumRenderTargets = 1;
-		psoDesc.RTVFormats[0] = Config::BackBufferFormat;
-		psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+		psoDesc.RTVFormats[0] = Graphics::gBackBufferFormat;
+		psoDesc.DSVFormat = Graphics::gDepthStencilFormat; // DXGI_FORMAT_D32_FLOAT;
 		psoDesc.SampleDesc.Count = 1; //no msaa for now 
 		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPso)));
 
@@ -195,6 +196,12 @@ namespace Renderer {
 			auto objCB = Graphics::gFrameResourceManager.GetFrameResourceByIndex(frameIndex)->objCB->GetResource();
 
 			for (UINT objIndex = 0; objIndex < objCount; objIndex++) {
+				
+				//Utils::Print(L"building object");
+				//Utils::Print(std::to_string(objIndex).c_str());
+				//Utils::Print(L"FRAME");
+				//Utils::Print(std::to_string(frameIndex).c_str());
+
 				D3D12_GPU_VIRTUAL_ADDRESS cbAddress = objCB->GetGPUVirtualAddress();
 
 				//offset to each object constant buffer
@@ -217,7 +224,7 @@ namespace Renderer {
 		UINT passCBByteSize = Graphics::gPassCBByteSize;
 		//pass CBVs 
 		for (int frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
-			auto passCB = Graphics::gFrameResourceManager.GetFrameResourceByIndex(frameIndex)->objCB->GetResource();
+			auto passCB = Graphics::gFrameResourceManager.GetFrameResourceByIndex(frameIndex)->passCB->GetResource();
 
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress = passCB->GetGPUVirtualAddress();
 
@@ -226,9 +233,16 @@ namespace Renderer {
 			auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 			handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 
+			//Utils::Print(L"building pass for frame ");
+			//Utils::Print(std::to_string(frameIndex).c_str());
+			//Utils::Print(L" with heapIndex ");
+			//Utils::Print(std::to_string(heapIndex).c_str());
+
+
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc; 
 			cbvDesc.BufferLocation = cbAddress;
 			cbvDesc.SizeInBytes = passCBByteSize;
+			Graphics::gDevice->CreateConstantBufferView(&cbvDesc, handle);
 		}
 
 
@@ -277,6 +291,7 @@ namespace Renderer {
 		auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
 
 		queue.FlushCommandQueue();
+		BREAKIFFAILED(rCommandList->Reset(Renderer::rCommandAlloc.Get(), nullptr));
 
 		for (int i = 0; i < Graphics::gNumFrameResources; i++) {
 			rRenderTargetBuffer->Reset();
@@ -328,7 +343,7 @@ namespace Renderer {
 			D3D12_RESOURCE_STATE_COMMON,
 			&optClear,
 			IID_PPV_ARGS(rDepthStencilBuffer.GetAddressOf()));
-
+		rDepthStencilBuffer->SetName(L"DepthStencilBuffer");
 
 		//create dsv
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
@@ -367,7 +382,9 @@ namespace Renderer {
 	}
 
 	void CreateRTVDSV() {
-		
+		//ASSERT(Graphics::gDevice);
+		//ASSERT(Graphics::gSwapChain);
+		//ASSERT(Renderer::rCommandAlloc);
 
 	}
 
@@ -458,13 +475,20 @@ namespace Renderer {
 	void Draw() {
 		
 		auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
-		//Reuse the command allocator 
-		
+		auto commandContext = Graphics::gFrameResourceManager.GetCurrentFrameResource()->comandContext;
+		auto allocator = commandContext->getCommandAllocator();
+		auto commandList = commandContext->getCommandList();
 
-		PopulateCommandList();
+		//Reuse the command allocator for the current frame, as we know 
+		//the last commands in queue has been completed for this frame 
+		
+		BREAKIFFAILED(allocator->Reset());
+		BREAKIFFAILED(commandList->Reset(allocator.Get(), rPso.Get()));
+		
+		PopulateCommandList(commandList);
 		
 		//add the command list to queue
-		ID3D12CommandList* cmdsLists[] = { rCommandList.Get() };
+		ID3D12CommandList* cmdsLists[] = { commandList.Get() };
 		queue.ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
 		//Swap back and front buffer 
@@ -477,32 +501,32 @@ namespace Renderer {
 
 	}
 
-	void PopulateCommandList() {
+	void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList> commandList) {
 		//Reset and reuse command allocator
-		BREAKIFFAILED(Renderer::rCommandAlloc->Reset());
+		//BREAKIFFAILED(Renderer::rCommandAlloc->Reset());
 
 		//Reset Command list and reuse the memory
-		BREAKIFFAILED(rCommandList->Reset(Renderer::rCommandAlloc.Get(), rPso.Get()));
+		//BREAKIFFAILED(rCommandList->Reset(Renderer::rCommandAlloc.Get(), rPso.Get()));
 
-		rCommandList->RSSetViewports(1, &Graphics::gScreenViewport);
-		rCommandList->RSSetScissorRects(1, &Graphics::gScissorRect);
+		commandList->RSSetViewports(1, &Graphics::gScreenViewport);
+		commandList->RSSetScissorRects(1, &Graphics::gScissorRect);
 
 		//back buffer transition state from present to render target 
-		rCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
+		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
 			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 		//clear back buffer and depth buffer
-		rCommandList->ClearRenderTargetView(
+		commandList->ClearRenderTargetView(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE( Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
 				gCurBackBufferIndex, Graphics::gRTVDescriptorSize),
 			DirectX::Colors::Blue, 0, nullptr);
-		rCommandList->ClearDepthStencilView(
+		commandList->ClearDepthStencilView(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()),
 			 D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 
 		//set the back buffer for rendering 
-		rCommandList->OMSetRenderTargets(1,
+		commandList->OMSetRenderTargets(1,
 			&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
 				gCurBackBufferIndex, Graphics::gRTVDescriptorSize),
 			true,
@@ -510,29 +534,29 @@ namespace Renderer {
 
 		//
 		ID3D12DescriptorHeap* descriptorHeaps[] = { Graphics::gCbvSrvHeap.Get() };
-		rCommandList->SetDescriptorHeaps(1, descriptorHeaps);
-		rCommandList->SetGraphicsRootSignature(rRootSignature.Get());
+		commandList->SetDescriptorHeaps(1, descriptorHeaps);
+		commandList->SetGraphicsRootSignature(rRootSignature.Get());
 
 		UINT curFrameIndex = Graphics::gFrameResourceManager.GetCurrentIndex();
 		int passCbvIndex = curFrameIndex + EngineCore::eModel.numNodes * Graphics::gNumFrameResources;
 		auto passCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 		passCbvHandle.Offset(passCbvIndex, Graphics::gCbvSrvUavDescriptorSize);
-		rCommandList->SetGraphicsRootDescriptorTable(1, passCbvHandle);
+		commandList->SetGraphicsRootDescriptorTable(2, passCbvHandle);
 
-		DrawRenderItems();
+		DrawRenderItems(commandList);
 
 		//back buffer transition state from render target back to present
-		rCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
+		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
 		//finish populating commandlist
-		BREAKIFFAILED(rCommandList->Close());
+		BREAKIFFAILED(commandList->Close());
 
 	}
 	
 
 
-	void DrawRenderItems() {
+	void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList) {
 
 		Scene::Model& model = EngineCore::eModel;
 		UINT objCBByteSize = Graphics::gObjectCBByteSize;
@@ -542,9 +566,9 @@ namespace Renderer {
 		for (int i = 0; i < EngineCore::eModel.numNodes; i++) {
 			
 			// set vertex/index for each render object(node)
-			rCommandList->IASetVertexBuffers(0, 1, &model.vertexBufferView);
-			rCommandList->IASetIndexBuffer(&model.indexBufferView);
-			rCommandList->IASetPrimitiveTopology(model.primitiveType);
+			commandList->IASetVertexBuffers(0, 1, &model.vertexBufferView);
+			commandList->IASetIndexBuffer(&model.indexBufferView);
+			commandList->IASetPrimitiveTopology(model.primitiveType);
 			
 			// set CBV in the descritpor heap for each node for the current frame resource
 			//todo: object constant buffer view index can be saved as a member of nodes
@@ -553,9 +577,9 @@ namespace Renderer {
 			cbvHandle.Offset(cbvIndex, Graphics::gCbvSrvUavDescriptorSize);
 
 			
-			rCommandList->SetGraphicsRootDescriptorTable(1, cbvHandle);
+			commandList->SetGraphicsRootDescriptorTable(1, cbvHandle);
 
-			rCommandList->DrawIndexedInstanced(model.nodes[i].indexCount, 1, model.nodes[i].ibOffset, model.nodes[i].vbOffset,0);
+			commandList->DrawIndexedInstanced(model.nodes[i].indexCount, 1, model.nodes[i].ibOffset, model.nodes[i].vbOffset,0);
 		}
 
 	}

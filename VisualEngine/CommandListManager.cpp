@@ -5,10 +5,9 @@
 CommandQueue::CommandQueue(D3D12_COMMAND_LIST_TYPE type) :
 mType(type),
 mQueue(nullptr),
+mCurentFence(0),
 mCommandAllocatorPool(type)
-
 {
-
 }
 
 void CommandQueue::Create(ComPtr<ID3D12Device> device) {
@@ -96,7 +95,7 @@ CommandQueueManager::CommandQueueManager() :
 }
 
 
-void CommandQueueManager::CreateCommandObjects(ComPtr<ID3D12Device> device) {
+void CommandQueueManager::CreateCommandQueueObjects(ComPtr<ID3D12Device> device) {
 	if (device == nullptr) PRINTERROR();
 	mDevice = device;
 	mGraphicsQueue.Create(mDevice);
@@ -111,9 +110,11 @@ void CommandQueueManager::CreateCommandObjects(ComPtr<ID3D12Device> device) {
 std::shared_ptr<CommandContext> CommandContextManager::AllocateContext(D3D12_COMMAND_LIST_TYPE type) {
 	std::shared_ptr<CommandContext> context;
 	
-	CreateCommandContext(mDevice, type);
-	
+	/*if (mContextPool.size() > 0) {
+		return mContextPool.back();
+	}*/
 
+	CreateCommandContext(mDevice, type);
 	context = mContextPool.back();
 	//mContextPool.pop_back();
 	
@@ -133,6 +134,7 @@ void CommandContextManager::CreateCommandContext(ComPtr<ID3D12Device> device, D3
 		allocator.Get(),
 		nullptr,
 		IID_PPV_ARGS(commandList.GetAddressOf())));
+	commandList->Close();
 
 	std::shared_ptr<CommandContext> cc(new CommandContext(commandList, allocator));
 	mContextPool.push_back(cc);

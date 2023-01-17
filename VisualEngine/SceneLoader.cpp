@@ -7,6 +7,10 @@
 using Microsoft::WRL::ComPtr;
 
 namespace Scene {
+
+	ComPtr<ID3D12Resource> vertexUploader;
+	ComPtr<ID3D12Resource> indexUploader;
+
 	void SolveMeshs(tinygltf::Model& tinyModel, int meshIndex , Scene::Model& model, DirectX::XMMATRIX& localToObject) {
 		
 		Mesh& mesh = model.meshes[meshIndex] = Mesh{};
@@ -296,7 +300,7 @@ namespace Scene {
 		
 		//first copy to upload buffer then transfer to the default buffer 
 		//default buffer has the maximum bandwidth for GPU, but not allow for CPU access
-		ComPtr<ID3D12Resource> vertexUploader;
+
 		BREAKIFFAILED(Graphics::gDevice->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
@@ -304,7 +308,7 @@ namespace Scene {
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(vertexUploader.GetAddressOf())));
-
+		vertexUploader->SetName(L"vertexUploader");
 		
 		BREAKIFFAILED(Graphics::gDevice->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -313,6 +317,7 @@ namespace Scene {
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(model.vertexBufferGPU.GetAddressOf())));
+		model.vertexBufferGPU->SetName(L"vertex_buffer");
 		
 		D3D12_SUBRESOURCE_DATA subresourceData = {};
 		subresourceData.pData =(const void*) vertices.data();
@@ -320,7 +325,7 @@ namespace Scene {
 		subresourceData.SlicePitch = vbByteSize;
 
 		//auto commandList = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT).get()->getCommandList();
-
+		
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(model.vertexBufferGPU.Get(),
 			D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
 		UpdateSubresources<1>(commandList.Get(), model.vertexBufferGPU.Get(), vertexUploader.Get(), 0, 0, 1, &subresourceData);
@@ -329,7 +334,7 @@ namespace Scene {
 
 		
 		//index data
-		ComPtr<ID3D12Resource> indexUploader;
+
 		BREAKIFFAILED(Graphics::gDevice->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
@@ -337,7 +342,7 @@ namespace Scene {
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(indexUploader.GetAddressOf())));
-
+		indexUploader->SetName(L"indexUploader");
 		BREAKIFFAILED(Graphics::gDevice->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
@@ -345,13 +350,14 @@ namespace Scene {
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(model.indexBufferGPU.GetAddressOf())));
-		
+		model.indexBufferGPU->SetName(L"index_buffer");
+
 		D3D12_SUBRESOURCE_DATA subresourceData_index = {};
 		subresourceData_index.pData = (const void*)indices.data();
 		subresourceData_index.RowPitch = ibByteSize;
 		subresourceData_index.SlicePitch = ibByteSize;
 
-
+		
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(model.indexBufferGPU.Get(),
 			D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
 		UpdateSubresources<1>(commandList.Get(), model.indexBufferGPU.Get(), vertexUploader.Get(), 0, 0, 1, &subresourceData_index);

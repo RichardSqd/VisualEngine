@@ -15,10 +15,11 @@ FrameResource::FrameResource(UINT passCount, UINT objectCount) {
 
 }
 
-UINT FrameResourceManager::curFrameIndex = 0;
+UINT FrameResourceManager::curFrameIndex = Graphics::gNumFrameResources - 1;
 
 FrameResourceManager::FrameResourceManager()
 {
+	numFrameResources = 0;
 	mFrameResources.clear();
 }
 
