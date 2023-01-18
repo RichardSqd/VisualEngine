@@ -77,6 +77,9 @@
     <ClCompile Include="UploadBuffer.cpp">
       <Filter>Source\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Control.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineCore.h">
@@ -146,6 +149,9 @@
       <Filter>Header Files\Core</Filter>
     </ClInclude>
     <ClInclude Include="UploadBuffer.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Control.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
   </ItemGroup>

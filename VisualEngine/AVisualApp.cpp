@@ -27,7 +27,7 @@ void AVisualApp::InitApp() {
 	Renderer::Init(context);
 	BREAKIFFAILED(commandList->Close());
 	ID3D12CommandList* cmds[] = { commandList.Get() };
-	auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
+	auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
 	queue.GetQueue()->ExecuteCommandLists(_countof(cmds),cmds);
 	
 	Time::Init();
