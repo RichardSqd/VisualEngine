@@ -66,6 +66,7 @@ struct VertexOut
 {
 	float4 position  : SV_POSITION;
 	//float3 normal : NORMAL;
+	float4 color : COLOR;
 };
 
 VertexOut VS(VertexIn vin)
@@ -74,7 +75,11 @@ VertexOut VS(VertexIn vin)
 
 	// Transform to homogeneous clip space.
 	vout.position = mul(vin.world, WorldViewProjMatrix);
-
+	float4 color2 = float4(1.0f, 0.0f, 0.0f, 1.0f);
+	float4 color1 = float4(0.0f, 0.0f, 1.0f, 1.0f);
+	float d = distance(float4(CameraPos, 0), vin.world);
+	float4 a = lerp(color1,color2, d);
+	vout.color = a; //float4(1.0f, 0.0f, 0.0f, 0.5f);
 	//vout.normal = float3(1.0f, 1.0f, 1.0f);
 
 	return vout;
@@ -82,5 +87,6 @@ VertexOut VS(VertexIn vin)
 
 float4 PS(VertexOut pin) : SV_Target
 {
-	return float4(1.0f,0.0f,0.0f,0.5f);
+	
+	return pin.color;
 }

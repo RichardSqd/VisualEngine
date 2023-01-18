@@ -288,7 +288,7 @@ namespace Renderer {
 		ASSERT(Graphics::gDevice);
 		ASSERT(Graphics::gSwapChain);
 		ASSERT(Renderer::rCommandAlloc);
-		auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
+		auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
 
 		queue.FlushCommandQueue();
 		BREAKIFFAILED(rCommandList->Reset(Renderer::rCommandAlloc.Get(), nullptr));
@@ -396,9 +396,11 @@ namespace Renderer {
 		Graphics::gFrameResourceManager.NextFrameResource();
 		FrameResource* currentFrameResource = Graphics::gFrameResourceManager.GetCurrentFrameResource();
 
-		auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
+		auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
+		
 		auto frameTargetCompletionValue = currentFrameResource->fence;
-
+		//std::wstring index = L"frame" + std::to_wstring(Graphics::gFrameResourceManager.GetCurrentIndex())+ L"  "+ std::to_wstring(queue.GetCurrentFenceValue()) + +L"\n";
+		//Utils::Print(index.c_str());
 		if (frameTargetCompletionValue > 0 && queue.GetCompletedFenceValue() < frameTargetCompletionValue) {
 			//must wait until the queue has completed its tasks for the current frame 
 			HANDLE eventHandle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
@@ -474,8 +476,8 @@ namespace Renderer {
 
 	void Draw() {
 		
-		auto queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
-		auto commandContext = Graphics::gFrameResourceManager.GetCurrentFrameResource()->comandContext;
+		auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
+		auto& commandContext = Graphics::gFrameResourceManager.GetCurrentFrameResource()->comandContext;
 		auto allocator = commandContext->getCommandAllocator();
 		auto commandList = commandContext->getCommandList();
 
@@ -497,6 +499,9 @@ namespace Renderer {
 
 		//fence move to new position and signal the new GPU fence value 
 		queue.AdvanceFenceValue();
+		Graphics::gFrameResourceManager.GetCurrentFrameResource()->fence = queue.GetCurrentFenceValue();
+		//std::wstring text = L"frame fence" + std::to_wstring(queue.GetCurrentFenceValue()) + L"  " +L"\n";
+		//Utils::Print(text.c_str());
 		queue.SignalFencePoint();
 
 	}

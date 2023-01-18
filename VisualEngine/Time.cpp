@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Time.h"
+#include "Graphics.h"
 
 namespace Time {
 	double tBaseTime;
@@ -39,16 +40,25 @@ namespace Time {
 	void CalcFPS() {
 		tNumFrames++;
 
-		if (tTimeElapsed - tDeltaTime >= 1.0) {
+		/*if (tTimeElapsed - tDeltaTime >= 1.0) {
 			tFPS = tNumFrames;
 			tDeltaTime += 1.0;
-		}
+			
+			
+			
+			tNumFrames = 0;
+			tTimeElapsed += 1.0;
+		}*/
 	}
 	void Tick() {
 		LARGE_INTEGER cur;
 		ASSERT(QueryPerformanceCounter(&cur));
 		tCurTime = (double)cur.QuadPart;
 		tTimeElapsed = (tCurTime - tBaseTime) * tFreq;
+
+		std::wstring fpsText = std::to_wstring(tTimeElapsed); //L"fps: " + std::to_wstring(tFPS);
+
+		SetWindowText(Graphics::ghWnd, fpsText.c_str());
 
 		CalcFPS();
 

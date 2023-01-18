@@ -36,6 +36,8 @@ void FrameResourceManager::CreateFrameResources(UINT numberOfFrameResources)
 	numFrameResources = numberOfFrameResources;
 	for (UINT i = 0; i < numberOfFrameResources; i++) {
 		mFrameResources.push_back(std::make_unique<FrameResource>(1, EngineCore::eModel.numNodes));
+		std::wstring allocatorName = L"Allocator for frame " + std::to_wstring(i);
+		mFrameResources.back()->comandContext->getCommandAllocator()->SetName(allocatorName.c_str());
 	}
 
 }

@@ -61,6 +61,10 @@ void CommandQueue::AdvanceFenceValue() {
 	mCurentFence += 1;
 }
 
+UINT64 CommandQueue::GetCurrentFenceValue() {
+	return mCurentFence;
+}
+
 void CommandQueue::SignalFencePoint() {
 	BREAKIFFAILED(mQueue->Signal(mFence.Get(), mCurentFence));	
 }
