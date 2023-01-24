@@ -11,8 +11,8 @@ using Microsoft::WRL::ComPtr;
 
 
 namespace Graphics {
-	float gWidth = 1280.0;
-	float gHeight = 720.0;
+	float gWidth = 800;
+	float gHeight = 600;
 	HWND ghWnd = nullptr;
 	ComPtr<ID3D12Device> gDevice = nullptr;
 	ComPtr<IDXGISwapChain3> gSwapChain = nullptr;
@@ -32,7 +32,8 @@ namespace Graphics {
 	UINT gSamplerDescriptorSize;
 	UINT gObjectCBByteSize;
 	UINT gPassCBByteSize;
-	UINT gNumFrameResources = Config::frameCount;
+	UINT gNumFrameResources = 3;//Config::frameCount;
+	UINT gSwapChainBufferCount = 2;
 	UINT gFrameIndex = 0;
 	DXGI_FORMAT gBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	DXGI_FORMAT gDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;

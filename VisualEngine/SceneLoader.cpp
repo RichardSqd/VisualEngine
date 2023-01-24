@@ -2,6 +2,7 @@
 #include "SceneLoader.h"
 #include "Graphics.h"
 #include "tiny_gltf.h"
+#include "Renderer.h"
 
 
 using Microsoft::WRL::ComPtr;
@@ -10,13 +11,13 @@ namespace Scene {
 
 	ComPtr<ID3D12Resource> vertexUploader;
 	ComPtr<ID3D12Resource> indexUploader;
-
+	
 	void SolveMeshs(tinygltf::Model& tinyModel, int meshIndex , Scene::Model& model, DirectX::XMMATRIX& localToObject) {
 		
 		Mesh& mesh = model.meshes[meshIndex] = Mesh{};
 		tinygltf::Mesh& tinyMesh = tinyModel.meshes[meshIndex];
 
-		/*
+		
 		for (UINT i = 0; i < tinyModel.bufferViews.size(); i++) {
 			const tinygltf::BufferView& tinyBufferView = tinyModel.bufferViews[i];
 			if (tinyBufferView.target == 0) {
@@ -28,7 +29,7 @@ namespace Scene {
 			size_t offset = tinyBufferView.byteOffset;
 
 			Utils::Print(("\ntarget:"+ tinyBufferView.name+"size:" + std::to_string(size) + ", offset:" + std::to_string(offset) + "\n").c_str());
-		}*/
+		}
 
 		mesh.primitives.resize(tinyMesh.primitives.size());
 		for (UINT i = 0; i < tinyMesh.primitives.size(); i++) {
@@ -40,7 +41,7 @@ namespace Scene {
 
 				ASSERT(indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
 				primitive.ibOffset = indexBufferview.buffer;
-				primitive.iformat = DXGI_FORMAT_R16_UINT;
+				primitive.iformat = DXGI_FORMAT_R32_UINT;
 				primitive.indexCount = indexAccessor.count;
 				primitive.ibOffset = indexAccessor.byteOffset + indexBufferview.byteOffset;
 			}
@@ -240,7 +241,7 @@ namespace Scene {
 		translate(tinyModel, model);
 		return 1;
 	}
-
+	
 	int LoadTestScene(std::wstring filename, Model& model, ComPtr<ID3D12GraphicsCommandList> commandList) {
 
 		std::string filenamebyte = Utils::to_byte_str(filename);
@@ -261,84 +262,61 @@ namespace Scene {
 		std::vector<Vertex> vertices(vcount);
 		for (UINT i = 0; i < vcount; ++i) {
 			fin >> vertices[i].position.x >> vertices[i].position.y >> vertices[i].position.z;
-			fin >> vertices[i].normal.x >> vertices[i].normal.y >> vertices[i].normal.z;
+			fin >> vertices[i].color.x >> vertices[i].color.y >> vertices[i].color.z;
 		}
 
 		fin >> ignore;
 		fin >> ignore;
 		fin >> ignore;
 
-		std::vector<std::int32_t> indices(3 * tcount);
+		std::vector<std::uint32_t> indices(3 * tcount);
 		for (UINT i = 0; i < tcount; ++i)
 		{
 			fin >> indices[i * 3 + 0] >> indices[i * 3 + 1] >> indices[i * 3 + 2];
 		}
-
 		fin.close();
 
-		const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
-		const UINT ibByteSize = (UINT)indices.size() * sizeof(std::int32_t);
+		const UINT vertexBufferSize = sizeof(Vertex) * (UINT)vertices.size();
+		const UINT indexBufferSize = sizeof(uint32_t) * (UINT)indices.size();
 
+		// Note: using upload heaps to transfer static data like vert buffers is not 
+		// recommended. Every time the GPU needs it, the upload heap will be marshalled 
+		// over. Please read up on Default Heap usage. An upload heap is used here for 
+		// code simplicity and because there are very few verts to actually transfer.
 
-		auto prim = Primitive{};
-		
-		
-
-		//Graphics::gDevice->CreateCommittedResource(
-		//	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		//	D3D12_HEAP_FLAG_NONE,
-		//	&CD3DX12_RESOURCE_DESC::Buffer(vbByteSize),
-		//	D3D12_RESOURCE_STATE_GENERIC_READ,
-		//	nullptr,
-		//	IID_PPV_ARGS(&model.vertexBuffer));
-		
-		//BREAKIFFAILED(D3DCreateBlob(vbByteSize, &model.vertexBufferCPU));
-		//memcpy(model.vertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
-
-		//BREAKIFFAILED(D3DCreateBlob(ibByteSize, &model.indexBufferCPU));
-		//memcpy(model.indexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
-		
-		//first copy to upload buffer then transfer to the default buffer 
-		//default buffer has the maximum bandwidth for GPU, but not allow for CPU access
 
 		BREAKIFFAILED(Graphics::gDevice->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(vbByteSize),
+			&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
-			IID_PPV_ARGS(vertexUploader.GetAddressOf())));
-		vertexUploader->SetName(L"vertexUploader");
-		
+			IID_PPV_ARGS(&vertexUploader)));
+
 		BREAKIFFAILED(Graphics::gDevice->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(vbByteSize),
+			&CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(model.vertexBufferGPU.GetAddressOf())));
-		model.vertexBufferGPU->SetName(L"vertex_buffer");
-		
-		D3D12_SUBRESOURCE_DATA subresourceData = {};
-		subresourceData.pData =(const void*) vertices.data();
-		subresourceData.RowPitch = vbByteSize;
-		subresourceData.SlicePitch = vbByteSize;
 
-		//auto commandList = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT).get()->getCommandList();
-		
+		D3D12_SUBRESOURCE_DATA subresourceData = {};
+		subresourceData.pData = vertices.data();
+		subresourceData.RowPitch = vertexBufferSize;
+		subresourceData.SlicePitch = vertexBufferSize;
+
+
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(model.vertexBufferGPU.Get(),
 			D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
 		UpdateSubresources<1>(commandList.Get(), model.vertexBufferGPU.Get(), vertexUploader.Get(), 0, 0, 1, &subresourceData);
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(model.vertexBufferGPU.Get(),
 			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
 
-		
-		//index data
-
 		BREAKIFFAILED(Graphics::gDevice->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(ibByteSize),
+			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(indexUploader.GetAddressOf())));
@@ -346,38 +324,54 @@ namespace Scene {
 		BREAKIFFAILED(Graphics::gDevice->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(ibByteSize),
+			&CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(model.indexBufferGPU.GetAddressOf())));
 		model.indexBufferGPU->SetName(L"index_buffer");
 
 		D3D12_SUBRESOURCE_DATA subresourceData_index = {};
-		subresourceData_index.pData = (const void*)indices.data();
-		subresourceData_index.RowPitch = ibByteSize;
-		subresourceData_index.SlicePitch = ibByteSize;
+		subresourceData_index.pData = indices.data();
+		subresourceData_index.RowPitch = indexBufferSize;
+		subresourceData_index.SlicePitch = indexBufferSize;
 
-		
+
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(model.indexBufferGPU.Get(),
 			D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
-		UpdateSubresources<1>(commandList.Get(), model.indexBufferGPU.Get(), vertexUploader.Get(), 0, 0, 1, &subresourceData_index);
+		UpdateSubresources<1>(commandList.Get(), model.indexBufferGPU.Get(), indexUploader.Get(), 0, 0, 1, &subresourceData_index);
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(model.indexBufferGPU.Get(),
 			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
 
-		
-		
+		// Copy the triangle data to the vertex buffer.
+		//UINT8* pVertexDataBegin;
+		//CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
+		//BREAKIFFAILED(vertexUploader->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
+		//memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
+		//vertexUploader->Unmap(0, nullptr);
+
+		// Initialize the vertex buffer view.
+		model.vertexBufferView = {};
+		model.vertexBufferView.BufferLocation = model.vertexBufferGPU->GetGPUVirtualAddress();
+		model.vertexBufferView.StrideInBytes = sizeof(Vertex);
+		model.vertexBufferView.SizeInBytes = vertexBufferSize;
+
+
+		model.indexBufferView = {};
+		model.indexBufferView.BufferLocation = model.indexBufferGPU->GetGPUVirtualAddress();
+		model.indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+		model.indexBufferView.SizeInBytes = indexBufferSize;
+
+		auto prim = Primitive{};
 		prim.iformat = DXGI_FORMAT_R32_UINT;
 		prim.ibOffset = 0;
-		prim.indexBufferByteSize = ibByteSize;
-		prim.indexCount = indices.size();
+		prim.indexBufferByteSize = indexBufferSize;
+		prim.indexCount = (UINT)indices.size();
 		prim.vbOffset = 0;
-		prim.vertexBufferByteSize = vbByteSize;
-
-		
+		prim.vertexBufferByteSize = vertexBufferSize;
 
 		model.meshes.push_back(Mesh{});
 		model.meshes[0].primitives.push_back(prim);
-		
+
 		auto node = Node{};
 		XMStoreFloat4x4(&node.matrix, Math::IdentityMatrix());
 		node.mesh = 0;
@@ -387,24 +381,7 @@ namespace Scene {
 
 		model.nodes.push_back(node);
 		model.numNodes = 1;
-		model.numMeshes = 1; 
-
-
-		model.vertexBufferView.BufferLocation = model.vertexBufferGPU->GetGPUVirtualAddress();
-		model.vertexBufferView.StrideInBytes = sizeof(Vertex);
-		model.vertexBufferView.SizeInBytes = prim.vertexBufferByteSize;
-
-		model.indexBufferView.BufferLocation = model.indexBufferGPU->GetGPUVirtualAddress();
-		model.indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-		model.indexBufferView.SizeInBytes = prim.indexBufferByteSize;
-
-		/*auto testRItem = std::make_unique<RenderItem>();
-		DirectX::XMStoreFloat4x4(&testRItem->world, DirectX::XMMatrixScaling(2.0f, 2.0f, 2.0f) * DirectX::XMMatrixTranslation(0.0f, 0.5f, 0.0f));
-		DirectX::XMStoreFloat4x4(&testRItem->texTransform, DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f));
-		
-		testRItem->model = &model;
-		testRItem->meshIndex = 0;
-		testRItem->primList.push_back(0);*/
+		model.numMeshes = 1;
 
 
 		//create texture 
@@ -414,4 +391,7 @@ namespace Scene {
 
 		return 1;
 	}
+
+	
+
 }

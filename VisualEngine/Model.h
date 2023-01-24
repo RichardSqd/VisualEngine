@@ -8,43 +8,57 @@ namespace Scene {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "NORMAL"  , 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD",0, DXGI_FORMAT_R32G32_FLOAT,     0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 44, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+	};
+
+	struct Vertex2
+	{
+		DirectX::XMFLOAT3 position;
+		DirectX::XMFLOAT4 color;
 	};
 
 	struct Vertex {
 	
 		Vertex(
 
-		): position(0.0,0.0,0.0),
+		) : position(0.0, 0.0, 0.0),
 			normal(0.0, 0.0, 0.0),
+			texcoord(0.0, 0.0),
 			tangent(0.0, 0.0, 0.0),
-			texcoord(0.0, 0.0)
+			color(0.0, 0.0, 0.0, 0.0)
+			
 		{};
 
 		Vertex(
 			const DirectX::XMFLOAT3& p,
 			const DirectX::XMFLOAT3& n,
 			const DirectX::XMFLOAT2& tex,
-			const DirectX::XMFLOAT3& tan
+			const DirectX::XMFLOAT3& tan,
+			const DirectX::XMFLOAT4& color
 		):  position(p),
 			normal(n),
 			tangent(tan),
-			texcoord(tex){}
+			texcoord(tex),
+			color(color){}
 
 		Vertex(float px, float py, float pz,
 			float nx, float ny, float nz,
 			float tx, float ty, float tz,
-			float u, float v): 
+			float u, float v,
+			float r, float g, float b, float a): 
 			position(px,py,pz),
 			normal(nx, ny, nz),
 			tangent(tx,ty,tz),
-			texcoord(u,v){}
+			texcoord(u,v),
+			color(r,g,b,a){}
 
 	
 		DirectX::XMFLOAT3 position;
 		DirectX::XMFLOAT3 normal;
 		DirectX::XMFLOAT2 texcoord;
 		DirectX::XMFLOAT3 tangent;
+		DirectX::XMFLOAT4 color;
 	};
 
 	struct Primitive {
@@ -105,8 +119,8 @@ namespace Scene {
 		ComPtr<ID3D12Resource> vertexBufferGPU;
 		ComPtr<ID3D12Resource> indexBufferGPU;
 
-		D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
-		D3D12_INDEX_BUFFER_VIEW indexBufferView; 
+		D3D12_VERTEX_BUFFER_VIEW vertexBufferView {};
+		D3D12_INDEX_BUFFER_VIEW indexBufferView {};
 		//std::unique_ptr<Mesh> mesh;
 		D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	};

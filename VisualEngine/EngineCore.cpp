@@ -1,7 +1,8 @@
 #include "pch.h"
 #include "EngineCore.h"
 #include "AVisualApp.h"
-
+#include <WindowsX.h>
+#include "Control.h"
 
 namespace EngineCore {
     using namespace DirectX;
@@ -15,7 +16,12 @@ namespace EngineCore {
     {
         switch (msg)
         {
+
         case WM_ACTIVATEAPP:
+            //Keyboard::ProcessMessage(msg, wParam, lParam);
+            //Mouse::ProcessMessage(msg, wParam, lParam);
+            break;
+            /*
         case WM_ACTIVATE:
         case WM_INPUT:
         case WM_MOUSEMOVE:
@@ -29,7 +35,26 @@ namespace EngineCore {
         case WM_XBUTTONDOWN:
         case WM_XBUTTONUP:
         case WM_MOUSEHOVER:
-            Mouse::ProcessMessage(msg, wParam, lParam);
+        */
+        case WM_LBUTTONDOWN:
+        case WM_MBUTTONDOWN:
+        case WM_RBUTTONDOWN:
+            Control::OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            return 0;
+        case WM_LBUTTONUP:
+        case WM_MBUTTONUP:
+        case WM_RBUTTONUP:
+            Control::OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            return 0;
+        case WM_MOUSEMOVE:
+            Control::OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            return 0;
+
+        case WM_KEYDOWN:
+        case WM_KEYUP:
+        case WM_SYSKEYUP:
+        case WM_SYSKEYDOWN:
+            //Keyboard::ProcessMessage(msg, wParam, lParam);
             break;
 
         case WM_DESTROY:
