@@ -2,6 +2,7 @@
 #include "AVisualApp.h"
 #include "Renderer.h"
 #include "FrameResource.h"
+#include "Control.h"
 
 #define NODXR false
 
@@ -18,6 +19,8 @@ AVisualApp::~AVisualApp() {
 void AVisualApp::InitApp() {
 	//TODO: handle input 
 	Graphics::Init(NODXR);
+	
+	Control::InitControl(Graphics::ghWnd);
 	auto context = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT).get();
 	auto commandList = context->getCommandList();
 	/*CommandList Reset can be called while it's being executed
@@ -71,9 +74,12 @@ void AVisualApp::Run() {
 		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
+			if (msg.message == WM_QUIT) {
+				return;
+			}
 		}
-		if (msg.message == WM_QUIT)
-			break;
+
+			
 	} while (EngineCore::UpdateApp());
 }
 

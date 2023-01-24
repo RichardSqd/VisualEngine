@@ -6,10 +6,11 @@ const float Math::PI = 3.1415926535f;
 
 
 inline DirectX::XMMATRIX Math::IdentityMatrix() {
-	return DirectX::XMMATRIX( 1,0,0,0,
-								0,1,0,0,
-								0,0,1,0,
-								0,0,0,1);
+	return DirectX::XMMATRIX(
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f);
 
 }
 
@@ -76,7 +77,13 @@ inline DirectX::XMMATRIX Math::Trans(const std::vector<double> v) {
 
 }
 
+float Math::Clamp(const float& x, const float& low, const float& high)
+{
+	return x < low ? low : (x > high ? high : x);
+}
+
 extern DirectX::XMMATRIX Math::InverseTranspose(const DirectX::XMMATRIX matrix) {
 	DirectX::XMVECTOR det = DirectX::XMMatrixDeterminant(matrix);
 	return DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(&det, matrix));
 }
+

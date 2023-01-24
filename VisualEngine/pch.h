@@ -50,6 +50,7 @@
 #include "CommonStates.h"
 #include "DDSTextureLoader.h"
 #include "DirectXHelpers.h"
+#include "SimpleMath.h"
 #include "Effects.h"
 #include "GamePad.h"
 #include "GeometricPrimitive.h"

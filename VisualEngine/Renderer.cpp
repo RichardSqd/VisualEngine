@@ -2,6 +2,8 @@
 #include "Renderer.h"
 #include "Model.h"
 #include "Camera.h"
+#include "Control.h"
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,12 +34,15 @@ namespace Renderer {
 
 	Camera gMainCam{};
 
+
 	void Init(CommandContext* context) {
 		//ASSERT(Scene::LoadScene(Config::gltfFilePath, EngineCore::eModel));
 		rCommandList = context->getCommandList();
 		rCommandAlloc = context->getCommandAllocator();
 
+		//ASSERT(Scene::LoadTestScene(Config::testSceneFilePath, EngineCore::eModel, rCommandList));
 		ASSERT(Scene::LoadTestScene(Config::testSceneFilePath, EngineCore::eModel, rCommandList));
+
 		InitCamera();
 		CreateSwapChain();
 		CreateDescriptorHeaps();
@@ -49,23 +54,21 @@ namespace Renderer {
 	}
 
 	void InitCamera() {
-		gMainCam.camPhi = 0.2f * Math::PI;
-		gMainCam.camTheta = 1.5f * Math::PI;
-		gMainCam.camRadius = 10.0f;
+		gMainCam.camPhi =  DirectX::XM_PIDIV4;
+		gMainCam.camTheta = 1.5f * DirectX::XM_PI;
+		gMainCam.camRadius = 15.0f;
 		XMStoreFloat4x4(&gMainCam.proj,Math::IdentityMatrix());
-		gMainCam.camPos.x = 0.0f;
-		gMainCam.camPos.y = 0.0f;
-		gMainCam.camPos.z = 0.0f;
+
 
 	}
 
 	void CreateSwapChain() {
 		ComPtr<IDXGISwapChain1> swapChain;
 		DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
-		swapChainDesc.Width = Graphics::gWidth;
-		swapChainDesc.Height = Graphics::gHeight;
-		swapChainDesc.Format = Config::BackBufferFormat;
-		swapChainDesc.BufferCount = Graphics::gNumFrameResources;
+		swapChainDesc.Width = (UINT) Graphics::gWidth;
+		swapChainDesc.Height = (UINT)Graphics::gHeight;
+		swapChainDesc.Format = Graphics::gBackBufferFormat;
+		swapChainDesc.BufferCount = Graphics::gSwapChainBufferCount;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		swapChainDesc.Scaling = DXGI_SCALING_NONE;
@@ -77,7 +80,6 @@ namespace Renderer {
 		//fsSwapChainDesc.Windowed = TRUE;
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 		swapChainDesc.Stereo = 0;
-
 		BREAKIFFAILED(Graphics::gdxgiFactory->CreateSwapChainForHwnd(
 			Graphics::gCommandQueueManager.GetGraphicsQueue().GetQueue().Get(),
 			Graphics::ghWnd,
@@ -161,6 +163,9 @@ namespace Renderer {
 		psoDesc.VS = CD3DX12_SHADER_BYTECODE(rVertexShader.Get());
 		psoDesc.PS = CD3DX12_SHADER_BYTECODE(rPixelShader.Get());
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+		if (Config::WIREFRAME_MODE) {
+			psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+		}
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 		psoDesc.SampleMask = UINT_MAX;
@@ -169,6 +174,7 @@ namespace Renderer {
 		psoDesc.RTVFormats[0] = Graphics::gBackBufferFormat;
 		psoDesc.DSVFormat = Graphics::gDepthStencilFormat; // DXGI_FORMAT_D32_FLOAT;
 		psoDesc.SampleDesc.Count = 1; //no msaa for now 
+
 		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPso)));
 
 		//shadow map pso
@@ -192,16 +198,11 @@ namespace Renderer {
 
 
 		//generate constant buffer views for all frame resources 
-		for (int frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
+		for (UINT frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
 			auto objCB = Graphics::gFrameResourceManager.GetFrameResourceByIndex(frameIndex)->objCB->GetResource();
 
 			for (UINT objIndex = 0; objIndex < objCount; objIndex++) {
 				
-				//Utils::Print(L"building object");
-				//Utils::Print(std::to_string(objIndex).c_str());
-				//Utils::Print(L"FRAME");
-				//Utils::Print(std::to_string(frameIndex).c_str());
-
 				D3D12_GPU_VIRTUAL_ADDRESS cbAddress = objCB->GetGPUVirtualAddress();
 
 				//offset to each object constant buffer
@@ -223,7 +224,7 @@ namespace Renderer {
 
 		UINT passCBByteSize = Graphics::gPassCBByteSize;
 		//pass CBVs 
-		for (int frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
+		for (UINT frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
 			auto passCB = Graphics::gFrameResourceManager.GetFrameResourceByIndex(frameIndex)->passCB->GetResource();
 
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress = passCB->GetGPUVirtualAddress();
@@ -238,7 +239,6 @@ namespace Renderer {
 			//Utils::Print(L" with heapIndex ");
 			//Utils::Print(std::to_string(heapIndex).c_str());
 
-
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc; 
 			cbvDesc.BufferLocation = cbAddress;
 			cbvDesc.SizeInBytes = passCBByteSize;
@@ -250,16 +250,16 @@ namespace Renderer {
 
 	void CreateDescriptorHeaps() {
 		//create rtv desc heap 
-		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
-		rtvHeapDesc.NumDescriptors =Graphics::gNumFrameResources;
+		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
+		rtvHeapDesc.NumDescriptors =Graphics::gSwapChainBufferCount;
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 		rtvHeapDesc.NodeMask = 0;
 		BREAKIFFAILED(Graphics::gDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(Graphics::gRtvHeap.GetAddressOf())));
 
 		//create dsv desc heap (one dsv for each frame buffers and one for the scene)
-		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-		dsvHeapDesc.NumDescriptors = Graphics::gNumFrameResources + 1;
+		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc{};
+		dsvHeapDesc.NumDescriptors =  1;
 		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 		dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 		dsvHeapDesc.NodeMask = 0;
@@ -267,20 +267,20 @@ namespace Renderer {
 
 		//create srv/cbv desc heap 
 		UINT numDescriptors = (EngineCore::eModel.numNodes + 1) * Graphics::gNumFrameResources;
-		D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc;
-		cbvSrvHeapDesc.NumDescriptors = 4096;
+		D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc{};
+		cbvSrvHeapDesc.NumDescriptors = numDescriptors;
 		cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		cbvSrvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		cbvSrvHeapDesc.NodeMask = 0;
 		BREAKIFFAILED(Graphics::gDevice->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(Graphics::gCbvSrvHeap.GetAddressOf())));
 
 		//create sampler desc heap 
-		D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc;
+		D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc{};
 		samplerHeapDesc.NumDescriptors = 2048;
 		samplerHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 		samplerHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		samplerHeapDesc.NodeMask = 0;
-		BREAKIFFAILED(Graphics::gDevice->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(Graphics::gSamplerHeap.GetAddressOf())));
+		BREAKIFFAILED(Graphics::gDevice->CreateDescriptorHeap(&samplerHeapDesc, IID_PPV_ARGS(Graphics::gSamplerHeap.GetAddressOf())));
 
 	}
 
@@ -293,14 +293,14 @@ namespace Renderer {
 		queue.FlushCommandQueue();
 		BREAKIFFAILED(rCommandList->Reset(Renderer::rCommandAlloc.Get(), nullptr));
 
-		for (int i = 0; i < Graphics::gNumFrameResources; i++) {
-			rRenderTargetBuffer->Reset();
+		for (UINT i = 0; i < Graphics::gSwapChainBufferCount; i++) {
+			rRenderTargetBuffer[i].Reset();
 			//Graphics::gSwapChain->GetBuffer
 		}
 		rDepthStencilBuffer.Reset();
 
-		BREAKIFFAILED(Graphics::gSwapChain->ResizeBuffers(Graphics::gNumFrameResources, 
-								Graphics::gWidth, Graphics::gHeight, 
+		BREAKIFFAILED(Graphics::gSwapChain->ResizeBuffers(Graphics::gSwapChainBufferCount,
+								(UINT)Graphics::gWidth, (UINT)Graphics::gHeight,
 								Graphics::gBackBufferFormat, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
 		gCurBackBufferIndex = 0;
@@ -308,7 +308,7 @@ namespace Renderer {
 		//create rtv on heap for render target buffers 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart());
 
-		for (int i = 0; i < Graphics::gNumFrameResources; i++) {
+		for (UINT i = 0; i < Graphics::gSwapChainBufferCount; i++) {
 
 			BREAKIFFAILED(Graphics::gSwapChain->GetBuffer(i,IID_PPV_ARGS(&rRenderTargetBuffer[i])));
 			Graphics::gDevice->CreateRenderTargetView(rRenderTargetBuffer[i].Get(), nullptr, rtvHeapHandle);
@@ -317,11 +317,11 @@ namespace Renderer {
 		}
 
 		//Create DS buffer and view 
-		D3D12_RESOURCE_DESC depthStencilDesc;
+		D3D12_RESOURCE_DESC depthStencilDesc {};
 		depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 		depthStencilDesc.Alignment = 0;
-		depthStencilDesc.Width = Graphics::gWidth;
-		depthStencilDesc.Height = Graphics::gHeight;
+		depthStencilDesc.Width = (UINT)Graphics::gWidth;
+		depthStencilDesc.Height = (UINT)Graphics::gHeight;
 		depthStencilDesc.DepthOrArraySize = 1;
 		depthStencilDesc.MipLevels = 1;
 		depthStencilDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
@@ -331,7 +331,7 @@ namespace Renderer {
 		depthStencilDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 		depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
-		D3D12_CLEAR_VALUE optClear;
+		D3D12_CLEAR_VALUE optClear {};
 		optClear.Format = Graphics::gDepthStencilFormat;
 		optClear.DepthStencil.Depth = 1.0f;
 		optClear.DepthStencil.Stencil = 0;
@@ -346,7 +346,7 @@ namespace Renderer {
 		rDepthStencilBuffer->SetName(L"DepthStencilBuffer");
 
 		//create dsv
-		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc {};
 		dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 		dsvDesc.Format = Graphics::gDepthStencilFormat;
@@ -372,9 +372,10 @@ namespace Renderer {
 		gScreenViewport.MinDepth = 0.0f;
 		gScreenViewport.MaxDepth = 1.0f;
 
-		Graphics::gScissorRect = { 0,0,static_cast<long>(Graphics::gWidth), static_cast<long>(Graphics::gHeight) };
+		Graphics::gScissorRect = { 0,0,static_cast<int>(Graphics::gWidth), static_cast<int>(Graphics::gHeight) };
 
 		//update the projection matrix after the aspect ratio has been changed
+		
 		DirectX::XMMATRIX P = DirectX::XMMatrixPerspectiveFovLH(0.25f * Math::PI, Graphics::AspectRatio(), 1.0f, 1000.0f);
 		DirectX::XMStoreFloat4x4(&gMainCam.proj, P);
 
@@ -417,28 +418,50 @@ namespace Renderer {
 	}
 
 	void UpdateInput() {
+		/*
+		auto kb = Control::m_keyboard->GetState();
+		auto mouse = Control::m_mouse->GetState();
+		
+		
+		float dx = DirectX::XMConvertToRadians(0.25f * static_cast<float>(mouse.x - Control::lastMousePos.x));
+		float dy = DirectX::XMConvertToRadians(0.25f * static_cast<float>(mouse.y - Control::lastMousePos.y));
 
+		gMainCam.camTheta += dx;
+		gMainCam.camPhi += dy;
+
+		
+		gMainCam.camPhi = Math::Clamp(gMainCam.camPhi, 0.1f, Math::PI - 0.1f);
+		
+		Control::lastMousePos.x = mouse.x;
+		Control::lastMousePos.x = mouse.y;
+		//update camera data based on mouse input 
+		std::wstring mouseData = L"\n x: "+ std::to_wstring(mouse.x) +L" y:"+ std::to_wstring(mouse.y) + L"\n";
+		Utils::Print(mouseData.c_str() );
+
+		*/
 	}
 
 	void UpdateCamera() {
-		
 		gMainCam.camPos.x = gMainCam.camRadius * sinf(gMainCam.camPhi) * cosf(gMainCam.camTheta);
 		gMainCam.camPos.y = gMainCam.camRadius * cosf(gMainCam.camPhi);
 		gMainCam.camPos.z = gMainCam.camRadius * sinf(gMainCam.camPhi) * sinf(gMainCam.camTheta);
 
-		//view matrix
+		//std::wstring text = L"\n "+ std::to_wstring(gMainCam.camPos.x) + L" " + std::to_wstring(gMainCam.camPos.y) + L" " + std::to_wstring(gMainCam.camPos.z)+L"\n ";
+		//Utils::Print(text.c_str());
+		//view matrix update
 		DirectX::XMVECTOR pos = DirectX::XMVectorSet(gMainCam.camPos.x, gMainCam.camPos.y, gMainCam.camPos.z, 1.0f);
-		DirectX::XMVECTOR target = DirectX::XMVectorZero();
+		DirectX::XMVECTOR lookat = DirectX::XMVectorZero();
 		DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-		DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(pos, target, up);
+		DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(pos, lookat, up);
 		DirectX::XMStoreFloat4x4(&gMainCam.view, view);
 	}
 	
 	void UpdateObjCBs(FrameResource* currentFrameResource) {
 		auto curFrameObjCB = currentFrameResource->objCB.get();
-		for (int i = 0; i < EngineCore::eModel.numNodes; i++) {
+		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
 			auto& node = EngineCore::eModel.nodes[i];
 			if (node.numFrameDirty > 0) {
+				//Utils::Print("Update OBJ CB LOOP");
 				DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&node.matrix);
 
 				ObjectConstants objConsts;
@@ -455,13 +478,14 @@ namespace Renderer {
 	}
 
 	void UpdatePassCB(FrameResource* currentFrameResource){
+		DirectX::XMMATRIX world = Math::IdentityMatrix();
 		DirectX::XMMATRIX view = DirectX::XMLoadFloat4x4(&gMainCam.view);
 		DirectX::XMMATRIX proj = DirectX::XMLoadFloat4x4(&gMainCam.proj);
-		DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(view, proj);
+		DirectX::XMMATRIX viewProj =world * view * proj;
 
 		//todo:
 		PassConstants pConsts;
-		DirectX::XMStoreFloat4x4(&pConsts.ViewProjMatrix, DirectX::XMMatrixTranspose(viewProj));
+		DirectX::XMStoreFloat4x4(&pConsts.ViewProjMatrix, XMMatrixTranspose(viewProj));
 		pConsts.CameraPos = gMainCam.camPos;
 		pConsts.NearZ = 1.0;
 		pConsts.FarZ = 1000.0;
@@ -495,7 +519,7 @@ namespace Renderer {
 
 		//Swap back and front buffer 
 		BREAKIFFAILED(Graphics::gSwapChain->Present(1, 0));
-		gCurBackBufferIndex = (gCurBackBufferIndex + 1) % Graphics::gNumFrameResources;
+		gCurBackBufferIndex = (gCurBackBufferIndex + 1) % Graphics::gSwapChainBufferCount;
 
 		//fence move to new position and signal the new GPU fence value 
 		queue.AdvanceFenceValue();
@@ -524,7 +548,7 @@ namespace Renderer {
 		commandList->ClearRenderTargetView(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE( Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
 				gCurBackBufferIndex, Graphics::gRTVDescriptorSize),
-			DirectX::Colors::Blue, 0, nullptr);
+			DirectX::Colors::LightGray, 0, nullptr);
 		commandList->ClearDepthStencilView(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()),
 			 D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
@@ -558,9 +582,9 @@ namespace Renderer {
 		BREAKIFFAILED(commandList->Close());
 
 	}
+
 	
-
-
+	
 	void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList) {
 
 		Scene::Model& model = EngineCore::eModel;
@@ -568,12 +592,12 @@ namespace Renderer {
 		auto objCB = Graphics::gFrameResourceManager.GetCurrentFrameResource()->objCB->GetResource();
 		
 		
-		for (int i = 0; i < EngineCore::eModel.numNodes; i++) {
+		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
 			
 			// set vertex/index for each render object(node)
 			commandList->IASetVertexBuffers(0, 1, &model.vertexBufferView);
 			commandList->IASetIndexBuffer(&model.indexBufferView);
-			commandList->IASetPrimitiveTopology(model.primitiveType);
+			commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			
 			// set CBV in the descritpor heap for each node for the current frame resource
 			//todo: object constant buffer view index can be saved as a member of nodes
@@ -583,8 +607,7 @@ namespace Renderer {
 
 			
 			commandList->SetGraphicsRootDescriptorTable(1, cbvHandle);
-
-			commandList->DrawIndexedInstanced(model.nodes[i].indexCount, 1, model.nodes[i].ibOffset, model.nodes[i].vbOffset,0);
+			commandList->DrawIndexedInstanced(model.nodes[i].indexCount, 1, 0, 0, 0);
 		}
 
 	}

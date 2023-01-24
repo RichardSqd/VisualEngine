@@ -1,13 +1,15 @@
 #pragma once
 
+
+
 namespace Config {
 	//Graphics Related
 	const int frameCount = 3;
 	const bool RAYTRACE = false;
 	const bool useGPUBasedValidation = true;
-	const DXGI_FORMAT BackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
 	const std::wstring gltfFilePath = L"Models\\Avocado\\glTF\\Avocado.gltf";
 	const std::wstring testSceneFilePath = L"Models\\skull.txt";
 	const std::wstring testShaderPath = L"Shaders\\testshader.hlsl";
 	const std::wstring shaderFilePath = L"Shaders\\shader.hlsl";
+	const bool WIREFRAME_MODE = false;
 }

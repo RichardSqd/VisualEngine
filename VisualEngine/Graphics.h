@@ -20,6 +20,7 @@ namespace Graphics {
 	extern CommandContextManager gCommandContextManager;
 	extern FrameResourceManager gFrameResourceManager;
 
+	extern UINT gSwapChainBufferCount;
 	extern UINT gRTVDescriptorSize;
 	extern UINT gDSVDescriptorSize;
 	extern UINT gCbvSrvUavDescriptorSize;

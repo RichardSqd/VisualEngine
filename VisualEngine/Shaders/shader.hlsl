@@ -47,7 +47,7 @@ cbuffer cbPerObject : register(b0)
 
 cbuffer cbGlobal : register(b1)
 {
-	float4x4 WorldViewProjMatrix;
+	float4x4 ViewProjMatrix;
 	float3 CameraPos;
 	float NearZ;
 	float FarZ;
@@ -56,16 +56,17 @@ cbuffer cbGlobal : register(b1)
 struct VertexIn
 {
 
-	float4 world : POSITION;
+	float3 pos : POSITION;
 	float3 normal : NORMAL;
-	float3 tex : TEXCOORD;
+	float2 tex : TEXCOORD;
 	float3 tangent : TANGENT;
+	float4 color : COLOR;
 };
 
 struct VertexOut
 {
 	float4 position  : SV_POSITION;
-	//float3 normal : NORMAL;
+	float3 normal : NORMAL;
 	float4 color : COLOR;
 };
 
@@ -74,12 +75,13 @@ VertexOut VS(VertexIn vin)
 	VertexOut vout;
 
 	// Transform to homogeneous clip space.
-	vout.position = mul(vin.world, WorldViewProjMatrix);
-	float4 color2 = float4(1.0f, 0.0f, 0.0f, 1.0f);
-	float4 color1 = float4(0.0f, 0.0f, 1.0f, 1.0f);
-	float d = distance(float4(CameraPos, 0), vin.world);
-	float4 a = lerp(color1,color2, d);
-	vout.color = a; //float4(1.0f, 0.0f, 0.0f, 0.5f);
+	vout.position = mul(float4(vin.pos,1.0), ViewProjMatrix);
+	vout.normal = vin.normal;
+	//float4 color2 = float4(1.0f, 0.0f, 0.0f, 1.0f);
+	//float4 color1 = float4(0.0f, 0.0f, 1.0f, 1.0f);
+	//float d = distance(float4(CameraPos, 0), vin.world);
+	//float4 a = lerp(color1,color2, d);
+	vout.color = vin.color; //float4(1.0f, 0.0f, 0.0f, 0.5f);
 	//vout.normal = float3(1.0f, 1.0f, 1.0f);
 
 	return vout;
