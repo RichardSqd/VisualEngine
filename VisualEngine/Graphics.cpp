@@ -32,7 +32,7 @@ namespace Graphics {
 	UINT gSamplerDescriptorSize;
 	UINT gObjectCBByteSize;
 	UINT gPassCBByteSize;
-	UINT gNumFrameResources = 3;//Config::frameCount;
+	UINT gNumFrameResources = Config::frameCount;
 	UINT gSwapChainBufferCount = 2;
 	UINT gFrameIndex = 0;
 	DXGI_FORMAT gBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;

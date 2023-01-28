@@ -75,13 +75,14 @@ VertexOut VS(VertexIn vin)
 	VertexOut vout;
 
 	// Transform to homogeneous clip space.
-	vout.position = mul(float4(vin.pos,1.0), ViewProjMatrix);
+	vout.position = mul(float4(vin.pos, 1.0), WorldMatrix);
+	vout.position = mul(vout.position, ViewProjMatrix);
 	vout.normal = vin.normal;
 	//float4 color2 = float4(1.0f, 0.0f, 0.0f, 1.0f);
 	//float4 color1 = float4(0.0f, 0.0f, 1.0f, 1.0f);
 	//float d = distance(float4(CameraPos, 0), vin.world);
 	//float4 a = lerp(color1,color2, d);
-	vout.color = vin.color; //float4(1.0f, 0.0f, 0.0f, 0.5f);
+	vout.color = float4(1.0f, 0.0f, 0.0f, 0.5f);
 	//vout.normal = float3(1.0f, 1.0f, 1.0f);
 
 	return vout;

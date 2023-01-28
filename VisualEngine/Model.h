@@ -3,6 +3,7 @@
 
 using Microsoft::WRL::ComPtr;
 namespace Scene {
+	/*
 	const D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -10,6 +11,40 @@ namespace Scene {
 		{ "TEXCOORD",0, DXGI_FORMAT_R32G32_FLOAT,     0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 44, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+	};*/
+
+	const D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "NORMAL"  , 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD",0, DXGI_FORMAT_R32G32_FLOAT,     2, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 3, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+	};
+
+	struct VertexPos 
+	{
+		DirectX::XMFLOAT3 position;
+	};
+
+	struct VertexNormal
+	{
+		DirectX::XMFLOAT3 normal;
+	};
+
+	struct VertexTexCord
+	{
+		DirectX::XMFLOAT2 texcoord;
+	};
+
+	struct VertexTangent
+	{
+		DirectX::XMFLOAT3 tangent;
+	};
+
+	struct VertexColor
+	{
+		DirectX::XMFLOAT4 color;
 	};
 
 	struct Vertex2
@@ -72,6 +107,7 @@ namespace Scene {
 
 		UINT32 vbOffset;
 		UINT32 vertexBufferByteSize;
+		UINT32 vertexCount;
 	};
 
 
@@ -113,30 +149,41 @@ namespace Scene {
 		std::vector<Mesh> meshes;
 		std::vector<Node> nodes;
 
-		std::vector<std::vector<byte>> buffers;
-		ComPtr<ID3DBlob> vertexBufferCPU;
-		ComPtr<ID3DBlob> indexBufferCPU;
-		ComPtr<ID3D12Resource> vertexBufferGPU;
+		//std::vector<std::vector<byte>> buffers;
+		std::vector<byte> vertexPosBufferCPU;
+		std::vector<byte> vertexNormalBufferCPU;
+		std::vector<byte> vertexTexCordBufferCPU;
+		std::vector<byte> vertexTangentBufferCPU;
+		std::vector<byte> vertexColorBufferCPU;
+
+		std::vector<byte> indexBufferCPU;
+
+		ComPtr<ID3D12Resource> vertexPosBufferGPU;
+		ComPtr<ID3D12Resource> vertexNormalBufferGPU;
+		ComPtr<ID3D12Resource> vertexTexCordBufferGPU;
+		ComPtr<ID3D12Resource> vertexTangentBufferGPU;
+		ComPtr<ID3D12Resource> vertexColorBufferGPU;
 		ComPtr<ID3D12Resource> indexBufferGPU;
 
-		D3D12_VERTEX_BUFFER_VIEW vertexBufferView {};
+		D3D12_VERTEX_BUFFER_VIEW vertexPosBufferView {};
+		D3D12_VERTEX_BUFFER_VIEW vertexNormalBufferView{};
+		D3D12_VERTEX_BUFFER_VIEW vertexTexCordBufferView{};
+		D3D12_VERTEX_BUFFER_VIEW vertexTangentBufferView{};
+		D3D12_VERTEX_BUFFER_VIEW vertexColorBufferView{};
+
 		D3D12_INDEX_BUFFER_VIEW indexBufferView {};
+
+		UINT indexBufferByteSize;
+		UINT vertexPosBufferByteSize;
+		UINT vertexNormalBufferByteSize;
+		UINT vertexTexCordBufferByteSize;
+		UINT vertexTangentBufferByteSize;
+		UINT vertexColorBufferByteSize;
+
 		//std::unique_ptr<Mesh> mesh;
 		D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	};
 
-
-	struct RenderItem {
-		RenderItem() = default;
-		
-		DirectX::XMFLOAT4X4 world;
-		DirectX::XMFLOAT4X4 texTransform;
-
-		Model* model;
-		UINT32 meshIndex;
-		std::vector<UINT32> primList;
-
-	};
 	
 	struct TextureResource {
 		UINT width;
