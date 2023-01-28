@@ -36,12 +36,11 @@ namespace Renderer {
 
 
 	void Init(CommandContext* context) {
-		//ASSERT(Scene::LoadScene(Config::gltfFilePath, EngineCore::eModel));
 		rCommandList = context->getCommandList();
 		rCommandAlloc = context->getCommandAllocator();
 
+		ASSERT(Scene::LoadScene(Config::gltfFilePath, EngineCore::eModel, rCommandList));
 		//ASSERT(Scene::LoadTestScene(Config::testSceneFilePath, EngineCore::eModel, rCommandList));
-		ASSERT(Scene::LoadTestScene(Config::testSceneFilePath, EngineCore::eModel, rCommandList));
 
 		InitCamera();
 		CreateSwapChain();
@@ -56,7 +55,7 @@ namespace Renderer {
 	void InitCamera() {
 		gMainCam.camPhi =  DirectX::XM_PIDIV4;
 		gMainCam.camTheta = 1.5f * DirectX::XM_PI;
-		gMainCam.camRadius = 15.0f;
+		gMainCam.camRadius = 5.0f;
 		XMStoreFloat4x4(&gMainCam.proj,Math::IdentityMatrix());
 
 
@@ -174,6 +173,8 @@ namespace Renderer {
 		psoDesc.RTVFormats[0] = Graphics::gBackBufferFormat;
 		psoDesc.DSVFormat = Graphics::gDepthStencilFormat; // DXGI_FORMAT_D32_FLOAT;
 		psoDesc.SampleDesc.Count = 1; //no msaa for now 
+
+		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 
 		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPso)));
 
@@ -461,7 +462,7 @@ namespace Renderer {
 		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
 			auto& node = EngineCore::eModel.nodes[i];
 			if (node.numFrameDirty > 0) {
-				//Utils::Print("Update OBJ CB LOOP");
+				Utils::Print("Update OBJ CB LOOP");
 				DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&node.matrix);
 
 				ObjectConstants objConsts;
@@ -478,10 +479,9 @@ namespace Renderer {
 	}
 
 	void UpdatePassCB(FrameResource* currentFrameResource){
-		DirectX::XMMATRIX world = Math::IdentityMatrix();
 		DirectX::XMMATRIX view = DirectX::XMLoadFloat4x4(&gMainCam.view);
 		DirectX::XMMATRIX proj = DirectX::XMLoadFloat4x4(&gMainCam.proj);
-		DirectX::XMMATRIX viewProj =world * view * proj;
+		DirectX::XMMATRIX viewProj = view * proj;
 
 		//todo:
 		PassConstants pConsts;
@@ -595,7 +595,8 @@ namespace Renderer {
 		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
 			
 			// set vertex/index for each render object(node)
-			commandList->IASetVertexBuffers(0, 1, &model.vertexBufferView);
+			commandList->IASetVertexBuffers(0, 1, &model.vertexPosBufferView);
+			//commandList->IASetVertexBuffers(4, 1, &model.vertexColorBufferView);
 			commandList->IASetIndexBuffer(&model.indexBufferView);
 			commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			
