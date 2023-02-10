@@ -6,6 +6,7 @@
 #include <iterator>
 #include <vector>
 #include "DDSTextureLoader.h"
+#include "ResourceUploadBatch.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -242,7 +243,7 @@ namespace Scene {
 
 	}
 
-	void SolveMaterials(tinygltf::Model& tinyModel, Scene::Model& model) {
+	void SolveMaterials(tinygltf::Model& tinyModel, Scene::Model& model, ComPtr<ID3D12GraphicsCommandList> commandList) {
 		auto& materials  = tinyModel.materials;
 
 		for (UINT i = 0; i < materials.size(); i++) {
@@ -259,60 +260,91 @@ namespace Scene {
 
 			//extract texture data  
 			//diffuse map  
-			/*
+			
 			auto diffuseTex = std::make_unique<Texture>();
 			int diffuseIndex = tinyMat.pbrMetallicRoughness.baseColorTexture.index;
+
 			tinygltf::Texture& tinyDiffuseTex = tinyModel.textures[diffuseIndex];
 			tinygltf::Image& tinyDiffuseTexImg = tinyModel.images[tinyDiffuseTex.source]; 
 			diffuseTex->name = tinyDiffuseTex.name;
+			mat->texDiffuseMap = tinyDiffuseTex.name;
 			diffuseTex->uri = tinyDiffuseTexImg.uri;
 			diffuseTex->width = tinyDiffuseTexImg.width;
 			diffuseTex->height = tinyDiffuseTexImg.height;
 			diffuseTex->component = tinyDiffuseTexImg.component;
 			diffuseTex->bits = tinyDiffuseTexImg.bits;
-			*/
-			//DirectX::CreateWICTextureFromMemory(Graphics::gDevice, tinyDiffuseTexImg.image.data(), tinyDiffuseTexImg.image.size(), diffuseTex->texture,)
-			//CreateWICTextureFromMemory()
 			
 			
+			D3D12_SUBRESOURCE_DATA subresource;
+			BREAKIFFAILED(
+				DirectX::LoadWICTextureFromMemory(
+					Graphics::gDevice.Get(),
+					tinyDiffuseTexImg.image.data(),
+					tinyDiffuseTexImg.image.size(),
+					diffuseTex->textureResource.ReleaseAndGetAddressOf(),
+					diffuseTex->decodedData,
+					subresource));
+
+			
+			UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), diffuseTex->textureResource, diffuseTex->textureUploader, subresource);
+			model.textures[diffuseTex->name] = std::move(diffuseTex);
+
+			//roughnessMetallic
+			auto roughnessMetallicTex = std::make_unique<Texture>();
+			int roughnessMetallicIndex = tinyMat.pbrMetallicRoughness.metallicRoughnessTexture.index;
+
+			tinygltf::Texture& tinyRoughnessMetallicTex = tinyModel.textures[roughnessMetallicIndex];
+			tinygltf::Image& tinyRoughnessMetallicImg = tinyModel.images[tinyRoughnessMetallicTex.source];
+			roughnessMetallicTex->name = tinyRoughnessMetallicTex.name;
+			mat->texroughnessMetallicMap = tinyRoughnessMetallicTex.name;
+			roughnessMetallicTex->uri = tinyRoughnessMetallicImg.uri;
+			roughnessMetallicTex->width = tinyRoughnessMetallicImg.width;
+			roughnessMetallicTex->height = tinyRoughnessMetallicImg.height;
+			roughnessMetallicTex->component = tinyRoughnessMetallicImg.component;
+			roughnessMetallicTex->bits = tinyRoughnessMetallicImg.bits;
+
+			BREAKIFFAILED(
+				DirectX::LoadWICTextureFromMemory(
+					Graphics::gDevice.Get(),
+					tinyRoughnessMetallicImg.image.data(),
+					tinyRoughnessMetallicImg.image.size(),
+					roughnessMetallicTex->textureResource.ReleaseAndGetAddressOf(),
+					roughnessMetallicTex->decodedData,
+					subresource));
+			UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), roughnessMetallicTex->textureResource, roughnessMetallicTex->textureUploader, subresource);
+			model.textures[roughnessMetallicTex->name] = std::move(roughnessMetallicTex);
 
 
+			//normal 
+			auto normalTex = std::make_unique<Texture>();
+			int normalIndex = tinyMat.normalTexture.index;
 
-			//mat->texDiffuse = tinyMat.pbrMetallicRoughness.baseColorTexture.index;
-
-			//model.materials[mat->name] = std::move(mat);
-
-
-			//std::vector<double> baseColorFactor;  // len = 4. default [1,1,1,1]
-			//TextureInfo baseColorTexture;
-			//double metallicFactor;   // default 1
-			//double roughnessFactor;  // default 1
-			//TextureInfo metallicRoughnessTexture;
-			/// <summary>
-			/// 
-			/// </summary>
-
-			//std::vector<double> emissiveFactor;  // length 3. default [0, 0, 0]
-			//std::string alphaMode;               // default "OPAQUE"
-			//double alphaCutoff;                  // default 0.5
-			//bool doubleSided;                    // default false;
-
-			//PbrMetallicRoughness pbrMetallicRoughness;
-
-			//NormalTextureInfo normalTexture;
-			//OcclusionTextureInfo occlusionTexture;
-			//TextureInfo emissiveTexture;
-
-
+			tinygltf::Texture& tinyNormalTex = tinyModel.textures[normalIndex];
+			tinygltf::Image& tinyNormalTexImg = tinyModel.images[tinyNormalTex.source];
+			normalTex->name = tinyNormalTex.name;
+			mat->texNormalMap = tinyNormalTex.name;
+			normalTex->uri = tinyNormalTexImg.uri;
+			normalTex->width = tinyNormalTexImg.width;
+			normalTex->height = tinyNormalTexImg.height;
+			normalTex->component = tinyNormalTexImg.component;
+			normalTex->bits = tinyNormalTexImg.bits;
+			BREAKIFFAILED(
+				DirectX::LoadWICTextureFromMemory(
+					Graphics::gDevice.Get(),
+					tinyNormalTexImg.image.data(),
+					tinyNormalTexImg.image.size(),
+					normalTex->textureResource.ReleaseAndGetAddressOf(),
+					normalTex->decodedData,
+					subresource));
+			UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), normalTex->textureResource, normalTex->textureUploader, subresource);
+			model.textures[normalTex->name] = std::move(normalTex);
 
 		}
 
 		
-
-		
 	}
 
-	int translate(tinygltf::Model& tinyModel, Scene::Model& model) {
+	int translate(tinygltf::Model& tinyModel, Scene::Model& model, ComPtr<ID3D12GraphicsCommandList> commandList) {
 		const tinygltf::Scene& scene = tinyModel.scenes[tinyModel.defaultScene];
 		//model.buffers.resize(tinyModel.buffers.size());
 		model.meshes.resize(tinyModel.meshes.size());
@@ -336,7 +368,7 @@ namespace Scene {
 			SolveNodes(tinyModel, scene.nodes[i], model, Math::IdentityMatrix());
 		}
 
-		SolveMaterials(tinyModel, model);
+		SolveMaterials(tinyModel, model, commandList);
 
 		
 		return 1;
@@ -386,7 +418,7 @@ namespace Scene {
 			return 0;
 		}
 		Utils::Print(tinyModel.meshes[0].name.c_str());
-		translate(tinyModel, model);
+		translate(tinyModel, model, commandList);
 
 		model.indexBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.indexBufferCPU.data(), model.indexBufferByteSize, indexUploader);
 		model.vertexPosBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexPosBufferCPU.data(), model.vertexPosBufferByteSize, vertexPosUploader);
@@ -516,6 +548,33 @@ namespace Scene {
 		model.materials[tempMat->name] = (std::move(tempMat));
 
 		return 1;
+	}
+
+	void UploadToDefaultBuffer(
+		ID3D12Device* device,
+		ID3D12GraphicsCommandList* cmdList,
+		Microsoft::WRL::ComPtr<ID3D12Resource>& defaultBuffer,
+		Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer,
+		D3D12_SUBRESOURCE_DATA& subResourceData) {
+
+		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(defaultBuffer.Get(), 0, 1);
+		CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
+		auto desc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
+		BREAKIFFAILED(
+		device->CreateCommittedResource(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
+
+		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
+			D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
+		UpdateSubresources(cmdList, defaultBuffer.Get(), uploadBuffer.Get(),
+			0, 0, 1, &subResourceData);
+		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
+			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
 	}
 
 

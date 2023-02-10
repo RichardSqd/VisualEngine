@@ -23,7 +23,7 @@ struct Material
 	std::string texNormalMap;
 	std::string texLightmapMap;
 	std::string texReflectionMap;
-
+	std::string texroughnessMetallicMap;
 	std::string name;
 
 
@@ -42,7 +42,9 @@ struct Texture
 	int height;
 	int component;
 	int bits;
-	ComPtr<ID3D12Resource>& texture;
-	ComPtr<ID3D12Resource>& textureUploadHeap;
+	std::unique_ptr<uint8_t[]> decodedData;
+	ComPtr<ID3D12Resource> textureResource;
+	ComPtr<ID3D12Resource> textureUploader;
+	
 };
 

@@ -20,7 +20,7 @@ void AVisualApp::InitApp() {
 	//TODO: handle input 
 	Graphics::Init(NODXR);
 	
-	//Control::InitControl(Graphics::ghWnd);
+	Control::InitControl(Graphics::ghWnd);
 	auto context = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT).get();
 	auto commandList = context->getCommandList();
 	/*CommandList Reset can be called while it's being executed

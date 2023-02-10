@@ -6,19 +6,19 @@
 using namespace DirectX;
 
 namespace Control {
-	//std::unique_ptr<DirectX::Keyboard> m_keyboard;
-	//std::unique_ptr<DirectX::Mouse> m_mouse;
+	std::unique_ptr<DirectX::Keyboard> m_keyboard;
+	std::unique_ptr<DirectX::Mouse> m_mouse;
 	const float ROTATION_GAIN = 0.004f;
 	const float MOVEMENT_GAIN = 0.07f;
 	POINT lastMousePos {};
-    /*
+    
 	void InitControl(HWND hwnd) {
 
 		m_keyboard = std::make_unique<Keyboard>();
 		m_mouse = std::make_unique<Mouse>();
 		m_mouse->SetWindow(hwnd);
 
-	}*/
+	}
 
 	void OnMouseDown(WPARAM btnState, int x, int y) {
         
