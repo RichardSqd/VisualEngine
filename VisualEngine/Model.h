@@ -1,5 +1,7 @@
 #pragma once
 #include "pch.h"
+#include "Material.h"
+#include <unordered_map>
 
 using Microsoft::WRL::ComPtr;
 namespace Scene {
@@ -149,6 +151,10 @@ namespace Scene {
 		std::vector<Mesh> meshes;
 		std::vector<Node> nodes;
 
+
+		std::unordered_map<std::string, std::unique_ptr<Material>> materials;
+		std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
+
 		//std::vector<std::vector<byte>> buffers;
 		std::vector<byte> vertexPosBufferCPU;
 		std::vector<byte> vertexNormalBufferCPU;
@@ -180,7 +186,8 @@ namespace Scene {
 		UINT vertexTangentBufferByteSize;
 		UINT vertexColorBufferByteSize;
 
-		//std::unique_ptr<Mesh> mesh;
+		
+
 		D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	};
 

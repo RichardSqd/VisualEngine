@@ -34,13 +34,22 @@ public:
 
 };
 
+class MaterialConstants {
+
+public:
+	MaterialConstants(){
+	}
+	DirectX::XMFLOAT4 diffuseFactor;
+	DirectX::XMFLOAT3 roughnessFactor;
+};
+
 
 
 
 class FrameResource {
 public:
 	FrameResource();
-	FrameResource(UINT32 passCount, UINT32 objectCount);
+	FrameResource(UINT32 passCount, UINT32 objectCount, UINT32 materialCount);
 	//FrameResource& operator=(const FrameResource rhs);
 
 
@@ -49,7 +58,7 @@ public:
 
 	std::unique_ptr<UploadBuffer> objCB = nullptr;
 	std::unique_ptr<UploadBuffer> passCB = nullptr;
-
+	std::unique_ptr<UploadBuffer> matCB = nullptr;
 	UINT64 fence = 0;
 
 };

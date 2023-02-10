@@ -39,9 +39,8 @@ namespace Renderer {
 		rCommandList = context->getCommandList();
 		rCommandAlloc = context->getCommandAllocator();
 
-		ASSERT(Scene::LoadScene(Config::gltfFilePath, EngineCore::eModel, rCommandList));
-		//ASSERT(Scene::LoadTestScene(Config::testSceneFilePath, EngineCore::eModel, rCommandList));
-
+		//ASSERT(Scene::LoadScene(Config::gltfFilePath, EngineCore::eModel, rCommandList));
+		ASSERT(Scene::LoadTestScene(Config::testSceneFilePath, EngineCore::eModel, rCommandList));
 		InitCamera();
 		CreateSwapChain();
 		CreateDescriptorHeaps();
@@ -50,6 +49,7 @@ namespace Renderer {
 		CreatePipelineState();	
 		CreateFrameResources();
 		CreateConstantBufferViews();
+		
 	}
 
 	void InitCamera() {
@@ -63,7 +63,7 @@ namespace Renderer {
 
 	void CreateSwapChain() {
 		ComPtr<IDXGISwapChain1> swapChain;
-		DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
+		DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 		swapChainDesc.Width = (UINT) Graphics::gWidth;
 		swapChainDesc.Height = (UINT)Graphics::gHeight;
 		swapChainDesc.Format = Graphics::gBackBufferFormat;
@@ -103,26 +103,29 @@ namespace Renderer {
 		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 		BREAKIFFAILED(Graphics::gDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)));
 
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[5] = {};
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[4] = {};
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse and normal textures, register t1,2 
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //object constant buffer
 		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //global constant buffer
 		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); //shadow texture
-		ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 2, 0);
+		//ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[5] = {};
+		CD3DX12_ROOT_PARAMETER1 rootParameters[4] = {};
 		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
 		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[3].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_PIXEL);
-		rootParameters[4].InitAsDescriptorTable(1, &ranges[4], D3D12_SHADER_VISIBILITY_PIXEL);
+		//rootParameters[4].InitAsDescriptorTable(1, &ranges[4], D3D12_SHADER_VISIBILITY_PIXEL);
 
-		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+		auto staticSamplers = GetStaticSamplers();
+
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 		ComPtr<ID3DBlob> serializedRootSig;
 		ComPtr<ID3DBlob> err;
 		BREAKIFFAILED(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &serializedRootSig, &err));
+		
 		
 		BREAKIFFAILED(Graphics::gDevice->CreateRootSignature(0, serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(), IID_PPV_ARGS(rRootSignature.GetAddressOf())));
 	}
@@ -245,6 +248,8 @@ namespace Renderer {
 			cbvDesc.SizeInBytes = passCBByteSize;
 			Graphics::gDevice->CreateConstantBufferView(&cbvDesc, handle);
 		}
+
+		//create material views 
 
 
 	}
@@ -414,6 +419,7 @@ namespace Renderer {
 
 
 		UpdateObjCBs(currentFrameResource);
+		UpdateMaterialCBs(currentFrameResource);
 		UpdatePassCB(currentFrameResource);
 
 	}
@@ -477,6 +483,11 @@ namespace Renderer {
 			}
 		}
 	}
+
+	void UpdateMaterialCBs(FrameResource* currentFrameResource) {
+
+	}
+
 
 	void UpdatePassCB(FrameResource* currentFrameResource){
 		DirectX::XMMATRIX view = DirectX::XMLoadFloat4x4(&gMainCam.view);
@@ -608,9 +619,65 @@ namespace Renderer {
 
 			
 			commandList->SetGraphicsRootDescriptorTable(1, cbvHandle);
-			commandList->DrawIndexedInstanced(model.nodes[i].indexCount, 1, 0, 0, 0);
+			commandList->DrawIndexedInstanced(model.nodes[i].indexCount, 1, model.nodes[i].ibOffset, model.nodes[i].vbOffset, 0);
 		}
 
+	}
+
+	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> Renderer::GetStaticSamplers()
+	{
+
+
+		const CD3DX12_STATIC_SAMPLER_DESC pointWrap(
+			0, // shaderRegister
+			D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+		const CD3DX12_STATIC_SAMPLER_DESC pointClamp(
+			1, // shaderRegister
+			D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+		const CD3DX12_STATIC_SAMPLER_DESC linearWrap(
+			2, // shaderRegister
+			D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+		const CD3DX12_STATIC_SAMPLER_DESC linearClamp(
+			3, // shaderRegister
+			D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+		const CD3DX12_STATIC_SAMPLER_DESC anisotropicWrap(
+			4, // shaderRegister
+			D3D12_FILTER_ANISOTROPIC, // filter
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressW
+			0.0f,                             // mipLODBias
+			8);                               // maxAnisotropy
+
+		const CD3DX12_STATIC_SAMPLER_DESC anisotropicClamp(
+			5, // shaderRegister
+			D3D12_FILTER_ANISOTROPIC, // filter
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+			D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressW
+			0.0f,                              // mipLODBias
+			8);                                // maxAnisotropy
+
+		return {
+			pointWrap, pointClamp,
+			linearWrap, linearClamp,
+			anisotropicWrap, anisotropicClamp };
 	}
 	
 

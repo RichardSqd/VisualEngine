@@ -11,6 +11,7 @@ namespace Control {
 	const float ROTATION_GAIN = 0.004f;
 	const float MOVEMENT_GAIN = 0.07f;
 	POINT lastMousePos {};
+    
 	void InitControl(HWND hwnd) {
 
 		m_keyboard = std::make_unique<Keyboard>();

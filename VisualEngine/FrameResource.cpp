@@ -8,11 +8,11 @@ FrameResource::FrameResource() {
 
 }
 
-FrameResource::FrameResource(UINT passCount, UINT objectCount) {
+FrameResource::FrameResource(UINT passCount, UINT objectCount, UINT materialCount) {
 	comandContext = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	passCB = std::make_unique<UploadBuffer>(sizeof(PassConstants), passCount, true);
 	objCB = std::make_unique<UploadBuffer>(sizeof(ObjectConstants),objectCount, true);
-
+	matCB = std::make_unique<UploadBuffer>(sizeof(MaterialConstants), materialCount, true);
 }
 
 UINT FrameResourceManager::curFrameIndex = Graphics::gNumFrameResources - 1;
@@ -35,7 +35,7 @@ void FrameResourceManager::CreateFrameResources(UINT numberOfFrameResources)
 {
 	numFrameResources = numberOfFrameResources;
 	for (UINT i = 0; i < numberOfFrameResources; i++) {
-		mFrameResources.push_back(std::make_unique<FrameResource>(1, EngineCore::eModel.numNodes));
+		mFrameResources.push_back(std::make_unique<FrameResource>(1, EngineCore::eModel.numNodes, EngineCore::eModel.materials.size()));
 		std::wstring allocatorName = L"Allocator for frame " + std::to_wstring(i);
 		mFrameResources.back()->comandContext->getCommandAllocator()->SetName(allocatorName.c_str());
 	}
