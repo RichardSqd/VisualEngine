@@ -5,6 +5,7 @@
 #include "Renderer.h"
 #include <iterator>
 #include <vector>
+#include "DDSTextureLoader.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -241,6 +242,76 @@ namespace Scene {
 
 	}
 
+	void SolveMaterials(tinygltf::Model& tinyModel, Scene::Model& model) {
+		auto& materials  = tinyModel.materials;
+
+		for (UINT i = 0; i < materials.size(); i++) {
+			auto& tinyMat = materials[i];
+			auto mat = std::make_unique<Material>();
+			mat->name = tinyMat.name;
+
+			//material properties 
+			auto& baseColorFactor =  tinyMat.pbrMetallicRoughness.baseColorFactor;
+			mat->diffuse = { (float)baseColorFactor[0],  (float)baseColorFactor[1],  (float)baseColorFactor[2] };
+			mat->emissive= { (float)tinyMat.emissiveFactor[0],  (float)tinyMat.emissiveFactor[1],  (float)tinyMat.emissiveFactor[2] };
+			mat->metalness = tinyMat.pbrMetallicRoughness.metallicFactor;
+			mat->roughness = tinyMat.pbrMetallicRoughness.roughnessFactor;
+
+			//extract texture data  
+			//diffuse map  
+			/*
+			auto diffuseTex = std::make_unique<Texture>();
+			int diffuseIndex = tinyMat.pbrMetallicRoughness.baseColorTexture.index;
+			tinygltf::Texture& tinyDiffuseTex = tinyModel.textures[diffuseIndex];
+			tinygltf::Image& tinyDiffuseTexImg = tinyModel.images[tinyDiffuseTex.source]; 
+			diffuseTex->name = tinyDiffuseTex.name;
+			diffuseTex->uri = tinyDiffuseTexImg.uri;
+			diffuseTex->width = tinyDiffuseTexImg.width;
+			diffuseTex->height = tinyDiffuseTexImg.height;
+			diffuseTex->component = tinyDiffuseTexImg.component;
+			diffuseTex->bits = tinyDiffuseTexImg.bits;
+			*/
+			//DirectX::CreateWICTextureFromMemory(Graphics::gDevice, tinyDiffuseTexImg.image.data(), tinyDiffuseTexImg.image.size(), diffuseTex->texture,)
+			//CreateWICTextureFromMemory()
+			
+			
+
+
+
+			//mat->texDiffuse = tinyMat.pbrMetallicRoughness.baseColorTexture.index;
+
+			//model.materials[mat->name] = std::move(mat);
+
+
+			//std::vector<double> baseColorFactor;  // len = 4. default [1,1,1,1]
+			//TextureInfo baseColorTexture;
+			//double metallicFactor;   // default 1
+			//double roughnessFactor;  // default 1
+			//TextureInfo metallicRoughnessTexture;
+			/// <summary>
+			/// 
+			/// </summary>
+
+			//std::vector<double> emissiveFactor;  // length 3. default [0, 0, 0]
+			//std::string alphaMode;               // default "OPAQUE"
+			//double alphaCutoff;                  // default 0.5
+			//bool doubleSided;                    // default false;
+
+			//PbrMetallicRoughness pbrMetallicRoughness;
+
+			//NormalTextureInfo normalTexture;
+			//OcclusionTextureInfo occlusionTexture;
+			//TextureInfo emissiveTexture;
+
+
+
+		}
+
+		
+
+		
+	}
+
 	int translate(tinygltf::Model& tinyModel, Scene::Model& model) {
 		const tinygltf::Scene& scene = tinyModel.scenes[tinyModel.defaultScene];
 		//model.buffers.resize(tinyModel.buffers.size());
@@ -264,6 +335,8 @@ namespace Scene {
 		for (UINT i = 0; i < scene.nodes.size(); i++) {
 			SolveNodes(tinyModel, scene.nodes[i], model, Math::IdentityMatrix());
 		}
+
+		SolveMaterials(tinyModel, model);
 
 		
 		return 1;
@@ -433,10 +506,14 @@ namespace Scene {
 		model.numMeshes = 1;
 
 
-		//create texture 
-
-
-		
+		//create testing material  
+		auto tempMat = std::make_unique<Material>();
+		tempMat->name = "brick";
+		tempMat->MatCBIndex = 0;
+		tempMat->diffuse = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
+		tempMat->roughness = 0.2f;
+		tempMat->metalness = 0.0f;
+		model.materials[tempMat->name] = (std::move(tempMat));
 
 		return 1;
 	}

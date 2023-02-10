@@ -82,8 +82,10 @@ float Math::Clamp(const float& x, const float& low, const float& high)
 	return x < low ? low : (x > high ? high : x);
 }
 
-extern DirectX::XMMATRIX Math::InverseTranspose(const DirectX::XMMATRIX matrix) {
-	DirectX::XMVECTOR det = DirectX::XMMatrixDeterminant(matrix);
-	return DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(&det, matrix));
+extern DirectX::XMMATRIX Math::InverseTranspose(const DirectX::CXMMATRIX matrix) {
+	DirectX::XMMATRIX A = matrix;
+	A.r[3] = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);;
+	DirectX::XMVECTOR det = DirectX::XMMatrixDeterminant(A);
+	return DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(&det, A));
 }
 
