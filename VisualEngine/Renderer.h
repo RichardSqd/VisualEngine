@@ -15,6 +15,7 @@ namespace Renderer {
 	extern void CreateFrameResources();
 	extern void CreateSwapChain();
 	extern void CreateConstantBufferViews();
+	extern void CreateShaderResourceViews();
 	extern void Update();
 	extern void UpdateInput();
 	extern void UpdateCamera();

@@ -32,6 +32,7 @@ namespace Graphics {
 	UINT gSamplerDescriptorSize;
 	UINT gObjectCBByteSize;
 	UINT gPassCBByteSize;
+	UINT gMatCBByteSize;
 	UINT gNumFrameResources = Config::frameCount;
 	UINT gSwapChainBufferCount = 2;
 	UINT gFrameIndex = 0;
@@ -109,7 +110,7 @@ namespace Graphics {
 		
 		gObjectCBByteSize = (sizeof(ObjectConstants) + 255) & ~255;
 		gPassCBByteSize = (sizeof(PassConstants) + 255) & ~255;
-
+		gMatCBByteSize = (sizeof(MaterialConstants) + 255) & ~255;
 	}
 
 

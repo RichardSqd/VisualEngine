@@ -38,9 +38,11 @@ class MaterialConstants {
 
 public:
 	MaterialConstants(){
+		diffuseFactor = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+		roughnessFactor = 0.2f;
 	}
 	DirectX::XMFLOAT4 diffuseFactor;
-	DirectX::XMFLOAT3 roughnessFactor;
+	float roughnessFactor;
 };
 
 

@@ -273,22 +273,53 @@ namespace Scene {
 			diffuseTex->height = tinyDiffuseTexImg.height;
 			diffuseTex->component = tinyDiffuseTexImg.component;
 			diffuseTex->bits = tinyDiffuseTexImg.bits;
-			
-			
-			D3D12_SUBRESOURCE_DATA subresource;
-			BREAKIFFAILED(
-				DirectX::LoadWICTextureFromMemory(
-					Graphics::gDevice.Get(),
-					tinyDiffuseTexImg.image.data(),
-					tinyDiffuseTexImg.image.size(),
-					diffuseTex->textureResource.ReleaseAndGetAddressOf(),
-					diffuseTex->decodedData,
-					subresource));
 
 			
+			D3D12_RESOURCE_DESC txtDesc = {};
+			txtDesc.MipLevels = txtDesc.DepthOrArraySize = 1;
+			if(diffuseTex->bits==8 && diffuseTex->component == 4)
+				txtDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			txtDesc.Width = tinyDiffuseTexImg.width;
+			txtDesc.Height = tinyDiffuseTexImg.height;
+			txtDesc.SampleDesc.Count = 1;
+			txtDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			
+
+			CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+			Graphics::gDevice->CreateCommittedResource(
+					&heapProps,
+					D3D12_HEAP_FLAG_NONE,
+					&txtDesc,
+					D3D12_RESOURCE_STATE_COPY_DEST,
+					nullptr,
+					IID_PPV_ARGS(diffuseTex->textureResource.ReleaseAndGetAddressOf()));
+			
+			std::unique_ptr<uint8_t[]> decodedData;
+			D3D12_SUBRESOURCE_DATA subresource = {};
+			subresource.pData = tinyDiffuseTexImg.image.data();
+			subresource.RowPitch = static_cast<LONG_PTR>(tinyDiffuseTexImg.width) * diffuseTex->component;
+			subresource.SlicePitch = subresource.RowPitch * tinyDiffuseTexImg.height;
+			/*
+			
+			std::unique_ptr<uint8_t[]> wicData;
+			BREAKIFFAILED(
+				DirectX::LoadWICTextureFromFile(
+					Graphics::gDevice.Get(),
+					L"Models\\Avocado\\glTF\\Avocado_baseColor.png",
+					diffuseTex->textureResource.ReleaseAndGetAddressOf(),
+					wicData,
+					subresource
+
+				));
+			
+			*/
+
 			UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), diffuseTex->textureResource, diffuseTex->textureUploader, subresource);
+			diffuseTex->textureUploader->SetName(L"diffuseTexUploader");
+			diffuseTex->textureResource->SetName(L"diffuseTexDefault");
 			model.textures[diffuseTex->name] = std::move(diffuseTex);
 
+			/*
 			//roughnessMetallic
 			auto roughnessMetallicTex = std::make_unique<Texture>();
 			int roughnessMetallicIndex = tinyMat.pbrMetallicRoughness.metallicRoughnessTexture.index;
@@ -328,6 +359,9 @@ namespace Scene {
 			normalTex->height = tinyNormalTexImg.height;
 			normalTex->component = tinyNormalTexImg.component;
 			normalTex->bits = tinyNormalTexImg.bits;
+
+			
+
 			BREAKIFFAILED(
 				DirectX::LoadWICTextureFromMemory(
 					Graphics::gDevice.Get(),
@@ -338,7 +372,9 @@ namespace Scene {
 					subresource));
 			UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), normalTex->textureResource, normalTex->textureUploader, subresource);
 			model.textures[normalTex->name] = std::move(normalTex);
+			*/
 
+			model.materials[mat->name] = std::move(mat);
 		}
 
 		
@@ -569,12 +605,11 @@ namespace Scene {
 			nullptr,
 			IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
 
-		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
-			D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
+		
 		UpdateSubresources(cmdList, defaultBuffer.Get(), uploadBuffer.Get(),
 			0, 0, 1, &subResourceData);
 		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(),
-			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
+			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
 	}
 
 
