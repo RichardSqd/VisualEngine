@@ -6,7 +6,7 @@ namespace Scene {
 
 	}
 
-	Primitive::Primitive(): vbOffset(0), vertexBufferByteSize(0), indexCount(0), ibOffset(0), indexBufferByteSize(0), iformat(DXGI_FORMAT_R32_UINT) {}
+	Primitive::Primitive(): vbPosOffset(0), vertexBufferPosByteSize(0), indexCount(0), ibOffset(0), indexBufferByteSize(0), iformat(DXGI_FORMAT_R32_UINT) {}
 
 
 }

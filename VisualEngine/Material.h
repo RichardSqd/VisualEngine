@@ -27,7 +27,11 @@ struct Material
 	std::string name;
 
 
-	UINT MatCBIndex = -1;
+	UINT matCBIndex = -1;
+	UINT diffuseMapSrvHeapIndex = -1;
+	UINT roughnessMetallicMapSrvHeaIndex = -1;
+	UINT normalMapSrvHeapIndex = -1;
+
 
 	int numFrameDirty = Graphics::gNumFrameResources;
 

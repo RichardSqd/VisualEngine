@@ -7,7 +7,8 @@ namespace Config {
 	const int frameCount = 3;
 	const bool RAYTRACE = false;
 	const bool useGPUBasedValidation = true;
-	const std::wstring gltfFilePath = L"Models\\Avocado\\glTF\\Avocado.gltf";
+	const std::wstring gltfFileDirectory  = L"Models\\Avocado\\glTF";
+	const std::wstring gltfFileName = L"Avocado.gltf";
 	const std::wstring testSceneFilePath = L"Models\\skull.txt";
 	const std::wstring testShaderPath = L"Shaders\\testshader.hlsl";
 	const std::wstring shaderFilePath = L"Shaders\\shader.hlsl";
