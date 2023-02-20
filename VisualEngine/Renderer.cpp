@@ -38,9 +38,8 @@ namespace Renderer {
 	void Init(CommandContext* context) {
 		rCommandList = context->getCommandList();
 		rCommandAlloc = context->getCommandAllocator();
-
-		ASSERT(Scene::LoadScene(Config::gltfFilePath, EngineCore::eModel, rCommandList));
-		//ASSERT(Scene::LoadTestScene(Config::testSceneFilePath, EngineCore::eModel, rCommandList));
+		std::wstring filepath = Config::gltfFileDirectory + L"\\" + Config::gltfFileName;
+		ASSERT(Scene::LoadScene(filepath, EngineCore::eModel, rCommandList));
 		InitCamera();
 		CreateSwapChain();
 		CreateDescriptorHeaps();
@@ -105,7 +104,7 @@ namespace Renderer {
 		BREAKIFFAILED(Graphics::gDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)));
 
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[5] = {};
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse, normal  and metalicroughness textures, register t1,2,3 
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse, normal  and metalicroughness textures, register t1,2,3 
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //object constant buffer
 		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //global constant buffer
 		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //mat constant buffer
@@ -201,7 +200,7 @@ namespace Renderer {
 
 	void CreateConstantBufferViews() {
 		UINT objectCBByteSize = Graphics::gObjectCBByteSize;
-		UINT objCount = EngineCore::eModel.numNodes;
+		UINT objCount = EngineCore::eModel.numPrimitives;
 
 
 		//generate constant buffer views for all frame resources 
@@ -267,6 +266,7 @@ namespace Renderer {
 				int heapIndex = (objCount + 1) * Graphics::gNumFrameResources + 
 								frameIndex * matCount + matIndex;
 				//Utils::Print(std::to_wstring(heapIndex).c_str());
+				
 				auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 
@@ -284,7 +284,7 @@ namespace Renderer {
 
 	void CreateShaderResourceViews() {
 		//create texture heap descriptors and associate them with loaded resources
-		UINT objCount = EngineCore::eModel.numNodes;
+		UINT objCount = EngineCore::eModel.numPrimitives;
 		UINT matCount = EngineCore::eModel.materials.size();
 		UINT textureCount = EngineCore::eModel.textures.size();
 		auto& textures = EngineCore::eModel.textures;
@@ -296,14 +296,28 @@ namespace Renderer {
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
 		//1xpass + objCount for each frame resource and matCount for each materials 
 		int heapIndex = (1 + objCount + matCount) * Graphics::gNumFrameResources ;
 
-		for (auto& i : EngineCore::eModel.materials) {
-			if (!i.second->texDiffuseMap.empty()) {
-				i.second->diffuseMapSrvHeapIndex = heapIndex;
-				auto& texResource = textures[i.second->texDiffuseMap]->textureResource;
+		for (UINT i = 0; i < EngineCore::eModel.materials.size(); i++) {
+			auto& mat = EngineCore::eModel.materials[i];
+			if (!mat->texDiffuseMap.empty()) {
+				mat->diffuseMapSrvHeapIndex = heapIndex;
+				auto& texResource = textures[mat->texDiffuseMap]->textureResource;
+				auto des = texResource->GetDesc();
+				srvDesc.Format = des.Format;
+				srvDesc.Texture2D.MipLevels = texResource->GetDesc().MipLevels;
+				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				Graphics::gDevice->CreateShaderResourceView(texResource.Get(), &srvDesc, handle);
+				
+				heapIndex++;
+			}
+
+			if (!mat->texroughnessMetallicMap.empty()) {
+				mat->roughnessMetallicMapSrvHeaIndex = heapIndex;
+				auto& texResource = textures[mat->texroughnessMetallicMap]->textureResource;
 				srvDesc.Format = texResource->GetDesc().Format;
 				srvDesc.Texture2D.MipLevels = texResource->GetDesc().MipLevels;
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
@@ -312,20 +326,9 @@ namespace Renderer {
 				heapIndex++;
 			}
 
-			if (!i.second->texroughnessMetallicMap.empty()) {
-				i.second->roughnessMetallicMapSrvHeaIndex = heapIndex;
-				auto& texResource = textures[i.second->texroughnessMetallicMap]->textureResource;
-				srvDesc.Format = texResource->GetDesc().Format;
-				srvDesc.Texture2D.MipLevels = texResource->GetDesc().MipLevels;
-				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
-				Graphics::gDevice->CreateShaderResourceView(texResource.Get(), &srvDesc, handle);
-				
-				heapIndex++;
-			}
-
-			if (!i.second->texNormalMap.empty()) {
-				i.second->normalMapSrvHeapIndex = heapIndex;
-				auto& texResource = textures[i.second->texNormalMap]->textureResource;
+			if (!mat->texNormalMap.empty()) {
+				mat->normalMapSrvHeapIndex = heapIndex;
+				auto& texResource = textures[mat->texNormalMap]->textureResource;
 				srvDesc.Format = texResource->GetDesc().Format;
 				srvDesc.Texture2D.MipLevels = texResource->GetDesc().MipLevels;
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
@@ -355,7 +358,7 @@ namespace Renderer {
 		BREAKIFFAILED(Graphics::gDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(Graphics::gDsvHeap.GetAddressOf())));
 
 		//create srv/cbv desc heap 
-		UINT numDescriptors = (static_cast<unsigned long long>(EngineCore::eModel.numNodes) 
+		UINT numDescriptors = (static_cast<unsigned long long>(EngineCore::eModel.numPrimitives) 
 			+ 1 + EngineCore::eModel.materials.size()) * Graphics::gNumFrameResources + EngineCore::eModel.textures.size();
 		D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc{};
 		cbvSrvHeapDesc.NumDescriptors = numDescriptors;
@@ -569,6 +572,22 @@ namespace Renderer {
 	}
 
 	void UpdateMaterialCBs(FrameResource* currentFrameResource) {
+		auto curFrameMatCB = currentFrameResource->matCB.get();
+		auto& model = EngineCore::eModel;
+		for (UINT i = 0; i < model.materials.size(); i++) {
+			auto& mat = model.materials[i];
+			if (mat->numFrameDirty > 0) {
+				Utils::Print("Update MAT CB LOOP");
+
+
+				MaterialConstants materialConsts = {};
+				materialConsts.diffuseFactor = mat->diffuse;
+				materialConsts.roughnessFactor = mat->roughness;
+				curFrameMatCB->CopyData(i, &materialConsts);
+				mat->numFrameDirty--;
+			}
+		}
+
 
 	}
 
@@ -687,36 +706,75 @@ namespace Renderer {
 	void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList) {
 
 		Scene::Model& model = EngineCore::eModel;
-		UINT objCBByteSize = Graphics::gObjectCBByteSize;
-		auto objCB = Graphics::gFrameResourceManager.GetCurrentFrameResource()->objCB->GetResource();
+		UINT objCount = model.numNodes;
+		UINT matCount = model.numMaterials;
 		
-
-		
-		
+		UINT curFrameIndex = Graphics::gFrameResourceManager.GetCurrentIndex();
 		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
-			
-			// set vertex/index for each render object(node)
-			commandList->IASetVertexBuffers(0, 1, &model.vertexPosBufferView);
-			//commandList->IASetVertexBuffers(4, 1, &model.vertexColorBufferView);
-			commandList->IASetIndexBuffer(&model.indexBufferView);
-			commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			
+
+			auto& node = model.nodes[i];
+			auto& primitives = model.meshes[node.mesh].primitives;
+
+
 			// set obj CBV in the descritpor heap for each node for the current frame resource
 			//todo: object constant buffer view index can be saved as a member of nodes
-			UINT cbvIndex = Graphics::gFrameResourceManager.GetCurrentIndex()* EngineCore::eModel.numNodes + i;
+			UINT cbvIndex = curFrameIndex * EngineCore::eModel.numNodes + i;
 			auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 			cbvHandle.Offset(cbvIndex, Graphics::gCbvSrvUavDescriptorSize);
+			commandList->SetGraphicsRootDescriptorTable(1, cbvHandle);
+
+
+			D3D12_VERTEX_BUFFER_VIEW vbvPos = {}; 
+			D3D12_VERTEX_BUFFER_VIEW vbvTex = {};
+			D3D12_INDEX_BUFFER_VIEW ivb = {};
+
+			ivb.BufferLocation = model.indexBufferGPU->GetGPUVirtualAddress();
+
+			vbvPos.BufferLocation = model.vertexPosBufferGPU->GetGPUVirtualAddress();
+			vbvPos.StrideInBytes = sizeof(Scene::VertexPos);
+
+			vbvTex.BufferLocation = model.vertexTexCordBufferGPU->GetGPUVirtualAddress();
+			vbvTex.StrideInBytes = sizeof(Scene::VertexTexCord);
+
+			
+
+			for (auto& prim : primitives) {
+				//set mat 
+				//curMat = model.materials[ prim.matName]->
+				UINT matvIndex = (model.numNodes + 1) * Graphics::gNumFrameResources +
+					curFrameIndex * model.numMaterials + prim.matIndex;  // Graphics::gFrameResourceManager.GetCurrentIndex() * EngineCore::eModel.numNodes + i;
+				auto matCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+				matCbvHandle.Offset(matvIndex, Graphics::gCbvSrvUavDescriptorSize);
+				commandList->SetGraphicsRootDescriptorTable(3, matCbvHandle);
+
+
+				//set texture buffer  
+				int texheapIndex = (1 + objCount + matCount) * Graphics::gNumFrameResources;
+				auto texCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+				texCbvHandle.Offset(texheapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				commandList->SetGraphicsRootDescriptorTable(0, texCbvHandle);
+
+				// set vertex/index for each render object
+				ivb.Format = DXGI_FORMAT_R16_UINT;
+				ivb.SizeInBytes = prim.indexBufferByteSize;
+	
+				vbvPos.SizeInBytes = prim.vertexBufferPosByteSize;
+				commandList->IASetVertexBuffers(0, 1, &vbvPos);
+
+				vbvTex.SizeInBytes = prim.vertexBufferTexCordByteSize;
+				commandList->IASetVertexBuffers(2, 1, &vbvTex);
+					
+				commandList->IASetIndexBuffer(&ivb);
+				commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				commandList->DrawIndexedInstanced(prim.indexCount, 1, prim.ibOffset, prim.vbPosOffset, 0);
+			
+			}
+			
+			//commandList->IASetVertexBuffers(4, 1, &model.vertexColorBufferView);	
 
 			//set mat cbv in the descritpor heap for each node for the current frame resource
-			//UINT matCbvIndex = (1 + EngineCore::eModel.numNodes) * Graphics::gNumFrameResources +
-			//					Graphics::gFrameResourceManager.GetCurrentIndex() * EngineCore::eModel.numMaterials + i;
-			//auto matCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-			//matCbvHandle.Offset(matCbvIndex, Graphics::gCbvSrvUavDescriptorSize);
 			
-			
-			commandList->SetGraphicsRootDescriptorTable(1, cbvHandle);
 			//commandList->SetGraphicsRootDescriptorTable(3, matCbvHandle);
-			commandList->DrawIndexedInstanced(model.nodes[i].indexCount, 1, model.nodes[i].ibOffset, model.nodes[i].vbOffset, 0);
 		}
 
 	}

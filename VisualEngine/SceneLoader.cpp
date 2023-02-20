@@ -5,8 +5,8 @@
 #include "Renderer.h"
 #include <iterator>
 #include <vector>
-#include "DDSTextureLoader.h"
 #include "ResourceUploadBatch.h"
+#include "pix3.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -40,9 +40,14 @@ namespace Scene {
 		}
 
 		mesh.primitives.resize(tinyMesh.primitives.size());
+		model.numPrimitives += tinyMesh.primitives.size();
 		for (UINT i = 0; i < tinyMesh.primitives.size(); i++) {
 			tinygltf::Primitive& tinyPrimitive = tinyMesh.primitives[i];
 			Primitive& primitive = mesh.primitives[i];
+
+			//set material 
+			primitive.matIndex = tinyPrimitive.material;
+
 			{	
 				//Index buffer
 				tinygltf::Accessor indexAccessor = tinyModel.accessors[tinyPrimitive.indices];
@@ -54,7 +59,7 @@ namespace Scene {
 				//concadinate primitives index buffers into one buffer
 				UINT ibOffset = model.indexBufferCPU.size();
 				auto& indexDataBuffer = tinyModel.buffers[indexBufferview.buffer].data;
-				Utils::Print(std::to_string(indexDataBuffer.size()).c_str());
+				//Utils::Print(std::to_string(indexDataBuffer.size()).c_str());
 				auto itBegin = std::next(tinyModel.buffers[indexBufferview.buffer].data.begin(), indexAccessor.byteOffset + indexBufferview.byteOffset);
 				auto itEnd = std::next(tinyModel.buffers[indexBufferview.buffer].data.begin(), indexAccessor.byteOffset + indexBufferview.byteOffset + indexBufferview.byteLength);
 				model.indexBufferCPU.insert(model.indexBufferCPU.end(), 
@@ -67,8 +72,15 @@ namespace Scene {
 				primitive.indexBufferByteSize = indexBufferview.byteLength;
 				primitive.indexCount = (UINT)indexAccessor.count;
 
+
+				//primitive.indexBufferView = {};
+				//primitive.indexBufferView.BufferLocation = model.indexBufferGPU->GetGPUVirtualAddress();
+				//primitive.indexBufferView.BufferLocation.
+				//primitive.indexBufferView.Format = DXGI_FORMAT_R16_UINT;
+				//primitive.indexBufferView.SizeInBytes = indexBufferview.byteLength;
+
 				model.indexBufferByteSize += indexBufferview.byteLength;
-				node.indexCount = (UINT)indexAccessor.count;
+				//node.indexCount = (UINT)indexAccessor.count;
 
 				//prim.vbOffset = 0;
 				//prim.vertexBufferByteSize = vertexBufferSize;
@@ -103,14 +115,17 @@ namespace Scene {
 						make_move_iterator(vbBegin),
 						make_move_iterator(vbEnd));
 
-					primitive.vertexCount = accessor.count;
+					primitive.vertexCount = (UINT)accessor.count;
 
-					//primitive.vbOffset = vbOffset;
-					//primitive.vertexBufferByteSize = vaBufferview.byteLength;
-					//primitive.vertexCount = (UINT)accessor.count;
+					primitive.vbPosOffset = vbOffset;
+					primitive.vertexBufferPosByteSize = vaBufferview.byteLength;
 
-					model.vertexPosBufferByteSize = vaBufferview.byteLength;
-					 
+					model.vertexPosBufferByteSize += vaBufferview.byteLength;
+
+					//primitive.vertexPosBufferView = {};
+					//primitive.vertexPosBufferView.BufferLocation = model.vertexPosBufferGPU->GetGPUVirtualAddress();
+					//primitive.vertexPosBufferView.StrideInBytes = sizeof(VertexPos);
+					//primitive.vertexPosBufferView.SizeInBytes = model.vertexPosBufferByteSize;
 				} 
 
 				else if (attribute.first.compare("NORMAL") == 0) {
@@ -123,7 +138,7 @@ namespace Scene {
 						make_move_iterator(vbBegin),
 						make_move_iterator(vbEnd));
 
-					model.vertexNormalBufferByteSize = vaBufferview.byteLength;
+					//model.vertexNormalBufferByteSize += vaBufferview.byteLength;
 				} 
 				else if (attribute.first.compare("TEXCOORD_0") == 0) {
 					ASSERT(accessor.type == TINYGLTF_TYPE_VEC2);
@@ -134,7 +149,11 @@ namespace Scene {
 					model.vertexTexCordBufferCPU.insert(model.vertexTexCordBufferCPU.end(),
 						make_move_iterator(vbBegin),
 						make_move_iterator(vbEnd));
-					model.vertexTexCordBufferByteSize = vaBufferview.byteLength;
+					primitive.vbTexOffset = vbOffset;
+					primitive.vertexBufferTexCordByteSize = vaBufferview.byteLength;
+
+					model.vertexTexCordBufferByteSize += vaBufferview.byteLength;
+					//model.vertexTexCordBufferByteSize += vaBufferview.byteLength;
 
 				}
 				else if (attribute.first.compare("TANGENT") == 0) {
@@ -146,7 +165,7 @@ namespace Scene {
 					model.vertexTangentBufferCPU.insert(model.vertexTangentBufferCPU.end(),
 						make_move_iterator(vbBegin),
 						make_move_iterator(vbEnd));
-					model.vertexTangentBufferByteSize = vaBufferview.byteLength;
+					//model.vertexTangentBufferByteSize += vaBufferview.byteLength;
 				}
 				Utils::Print(attribute.first.c_str());
 				
@@ -210,7 +229,7 @@ namespace Scene {
 	void SolveNodes(tinygltf::Model& tinyModel, int nodeIndex, Scene::Model& model, DirectX::XMMATRIX& localToObject) {
 
 		model.nodes[nodeIndex] = Node{};
-		model.nodes[nodeIndex].numFrameDirty = 3;
+		model.nodes[nodeIndex].numFrameDirty = Graphics::gNumFrameResources;
 		tinygltf::Node& tinyNode = tinyModel.nodes[nodeIndex];
 		//validate current mesh
 		
@@ -220,7 +239,7 @@ namespace Scene {
 				localToObject = Math::VectorToMatrix(tinyNode.matrix) * localToObject;
 			}
 			else {
-				DirectX::XMMATRIX scale = DirectX::XMMatrixScaling(10,10,10); //Math::Scale(tinyNode.scale);
+				DirectX::XMMATRIX scale =  DirectX::XMMatrixScaling(10,10,10); //Math::Scale(tinyNode.scale);
 
 				DirectX::XMMATRIX translate = Math::Trans(tinyNode.translation);
 				DirectX::XMMATRIX rotate = Math::QuaternionToMatrix(tinyNode.rotation);
@@ -266,8 +285,8 @@ namespace Scene {
 
 			tinygltf::Texture& tinyDiffuseTex = tinyModel.textures[diffuseIndex];
 			tinygltf::Image& tinyDiffuseTexImg = tinyModel.images[tinyDiffuseTex.source]; 
-			diffuseTex->name = tinyDiffuseTex.name;
-			mat->texDiffuseMap = tinyDiffuseTex.name;
+			diffuseTex->name = tinyMat.name+"_diffuse";
+			mat->texDiffuseMap = tinyMat.name + "_diffuse";
 			diffuseTex->uri = tinyDiffuseTexImg.uri;
 			diffuseTex->width = tinyDiffuseTexImg.width;
 			diffuseTex->height = tinyDiffuseTexImg.height;
@@ -284,7 +303,7 @@ namespace Scene {
 			txtDesc.SampleDesc.Count = 1;
 			txtDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 			
-
+			/*
 			CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
 			Graphics::gDevice->CreateCommittedResource(
 					&heapProps,
@@ -293,26 +312,26 @@ namespace Scene {
 					D3D12_RESOURCE_STATE_COPY_DEST,
 					nullptr,
 					IID_PPV_ARGS(diffuseTex->textureResource.ReleaseAndGetAddressOf()));
-			
+			*/
 			std::unique_ptr<uint8_t[]> decodedData;
 			D3D12_SUBRESOURCE_DATA subresource = {};
-			subresource.pData = tinyDiffuseTexImg.image.data();
-			subresource.RowPitch = static_cast<LONG_PTR>(tinyDiffuseTexImg.width) * diffuseTex->component;
-			subresource.SlicePitch = subresource.RowPitch * tinyDiffuseTexImg.height;
-			/*
+			//subresource.pData = tinyDiffuseTexImg.image.data();
+			//subresource.RowPitch = static_cast<LONG_PTR>(tinyDiffuseTexImg.width) * diffuseTex->component;
+			//subresource.SlicePitch = subresource.RowPitch * tinyDiffuseTexImg.height;
 			
+			std::wstring filepath = Config::gltfFileDirectory + L"\\" + Utils::to_wide_str(diffuseTex->uri) ;
 			std::unique_ptr<uint8_t[]> wicData;
 			BREAKIFFAILED(
 				DirectX::LoadWICTextureFromFile(
 					Graphics::gDevice.Get(),
-					L"Models\\Avocado\\glTF\\Avocado_baseColor.png",
+					filepath.c_str(),
 					diffuseTex->textureResource.ReleaseAndGetAddressOf(),
 					wicData,
 					subresource
 
 				));
 			
-			*/
+			
 
 			UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), diffuseTex->textureResource, diffuseTex->textureUploader, subresource);
 			diffuseTex->textureUploader->SetName(L"diffuseTexUploader");
@@ -374,7 +393,7 @@ namespace Scene {
 			model.textures[normalTex->name] = std::move(normalTex);
 			*/
 
-			model.materials[mat->name] = std::move(mat);
+			model.materials[i] = std::move(mat);
 		}
 
 		
@@ -385,6 +404,7 @@ namespace Scene {
 		//model.buffers.resize(tinyModel.buffers.size());
 		model.meshes.resize(tinyModel.meshes.size());
 		model.nodes.resize(tinyModel.nodes.size());
+		model.materials.resize(tinyModel.materials.size());
 
 		model.numNodes = tinyModel.nodes.size();
 		model.numMeshes = tinyModel.meshes.size();
@@ -458,134 +478,14 @@ namespace Scene {
 
 		model.indexBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.indexBufferCPU.data(), model.indexBufferByteSize, indexUploader);
 		model.vertexPosBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexPosBufferCPU.data(), model.vertexPosBufferByteSize, vertexPosUploader);
-
-		model.vertexPosBufferView = {};
-		model.vertexPosBufferView.BufferLocation = model.vertexPosBufferGPU->GetGPUVirtualAddress();
-		model.vertexPosBufferView.StrideInBytes = sizeof(VertexPos);
-		model.vertexPosBufferView.SizeInBytes = model.vertexPosBufferByteSize;
-
-		model.indexBufferView = {};
-		model.indexBufferView.BufferLocation = model.indexBufferGPU->GetGPUVirtualAddress();
-		model.indexBufferView.Format = DXGI_FORMAT_R16_UINT;
-		model.indexBufferView.SizeInBytes = model.indexBufferByteSize;
+		
+		model.vertexTexCordBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexTexCordBufferCPU.data(), model.vertexTexCordBufferByteSize, vertexTexCordUploader);
+		
 
 
 		return 1;
 	}
 	
-	int LoadTestScene(std::wstring filename, Model& model, ComPtr<ID3D12GraphicsCommandList> commandList) {
-
-		std::string filenamebyte = Utils::to_byte_str(filename);
-		std::ifstream fin(filenamebyte);
-		if (!fin) {
-			Utils::Print("Test File Not Found");
-		}
-
-		UINT vcount = 0;
-		UINT tcount = 0;
-		std::string ignore;
-
-		fin >> ignore >> vcount;
-		fin >> ignore >> tcount;
-		fin >> ignore >> ignore >> ignore >> ignore;
-
-
-		std::vector<VertexPos> verticesPos(vcount);
-		std::vector<VertexColor> verticesColor(vcount);
-		for (UINT i = 0; i < vcount; ++i) {
-			fin >> verticesPos[i].position.x >> verticesPos[i].position.y >> verticesPos[i].position.z;
-			fin >> verticesColor[i].color.x >> verticesColor[i].color.y >> verticesColor[i].color.z;
-		}
-
-		fin >> ignore;
-		fin >> ignore;
-		fin >> ignore;
-
-		std::vector<std::uint16_t> indices(3 * tcount);
-		for (UINT i = 0; i < tcount; ++i)
-		{
-			fin >> indices[i * 3 + 0] >> indices[i * 3 + 1] >> indices[i * 3 + 2];
-		}
-		fin.close();
-
-		const UINT vertexPosBufferSize = sizeof(VertexPos) * (UINT)verticesPos.size();
-		const UINT vertexColorBufferSize = sizeof(VertexColor) * (UINT)verticesColor.size();
-		const UINT indexBufferSize = sizeof(uint16_t) * (UINT)indices.size();
-
-		// Note: using upload heaps to transfer static data like vert buffers is not 
-		// recommended. Every time the GPU needs it, the upload heap will be marshalled 
-		// over. Please read up on Default Heap usage. An upload heap is used here for 
-		// code simplicity and because there are very few verts to actually transfer.
-
-		model.vertexPosBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), verticesPos.data(), vertexPosBufferSize, vertexPosUploader);
-		model.vertexColorBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), verticesColor.data(), vertexColorBufferSize, vertexColorUploader);
-				
-
-		model.indexBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), indices.data(), indexBufferSize, indexUploader);
-		
-		
-		// Copy the triangle data to the vertex buffer.
-		//UINT8* pVertexDataBegin;
-		//CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
-		//BREAKIFFAILED(vertexUploader->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
-		//memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
-		//vertexUploader->Unmap(0, nullptr);
-
-		// Initialize the vertex buffer view.
-		model.vertexPosBufferView = {};
-		model.vertexPosBufferView.BufferLocation = model.vertexPosBufferGPU->GetGPUVirtualAddress();
-		model.vertexPosBufferView.StrideInBytes = sizeof(VertexPos);
-		model.vertexPosBufferView.SizeInBytes = vertexPosBufferSize;
-
-		model.vertexColorBufferView = {};
-		model.vertexColorBufferView.BufferLocation = model.vertexColorBufferGPU->GetGPUVirtualAddress();
-		model.vertexColorBufferView.StrideInBytes = sizeof(VertexColor);
-		model.vertexColorBufferView.SizeInBytes = vertexColorBufferSize;
-
-		model.indexBufferView = {};
-		model.indexBufferView.BufferLocation = model.indexBufferGPU->GetGPUVirtualAddress();
-		model.indexBufferView.Format = DXGI_FORMAT_R16_UINT;
-		model.indexBufferView.SizeInBytes = indexBufferSize;
-
-		auto prim = Primitive{};
-		prim.iformat = DXGI_FORMAT_R16_UINT;
-		prim.ibOffset = 0;
-		prim.indexBufferByteSize = indexBufferSize;
-		prim.indexCount = (UINT)indices.size();
-		prim.vbOffset = 0;
-		//prim.vertexBufferByteSize = vertexBufferSize;
-		//prim.vertexCount = (UINT)vertices.size();
-
-		model.meshes.push_back(Mesh{});
-		model.meshes[0].primitives.push_back(prim);
-
-		auto node = Node{};
-		auto matrix = Math::IdentityMatrix();
-		
-		XMStoreFloat4x4(&node.matrix, Math::IdentityMatrix());
-		node.mesh = 0;
-		node.ibOffset = prim.ibOffset;
-		node.indexCount = prim.indexCount;
-		node.vbOffset = prim.vbOffset;
-		node.numFrameDirty = 3;
-
-		model.nodes.push_back(node);
-		model.numNodes = 1;
-		model.numMeshes = 1;
-
-
-		//create testing material  
-		auto tempMat = std::make_unique<Material>();
-		tempMat->name = "brick";
-		tempMat->MatCBIndex = 0;
-		tempMat->diffuse = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
-		tempMat->roughness = 0.2f;
-		tempMat->metalness = 0.0f;
-		model.materials[tempMat->name] = (std::move(tempMat));
-
-		return 1;
-	}
-
 	void UploadToDefaultBuffer(
 		ID3D12Device* device,
 		ID3D12GraphicsCommandList* cmdList,

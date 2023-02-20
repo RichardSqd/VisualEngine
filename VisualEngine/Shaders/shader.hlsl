@@ -1,11 +1,13 @@
 
-SamplerState gsamPointWrap	 : register(s0);
-SamplerState gsamPointClamp  : register(s1);
-SamplerState gsamLinearWrap	 : register(s2);
-SamplerState gsamLinearClamp : register(s3);
-SamplerState gsamAnisotropicWrap : register(s4);
-SamplerState gsamAnisotropicClamp : register(s5);
+SamplerState samPointWrap	 : register(s0);
+SamplerState samPointClamp  : register(s1);
+SamplerState samLinearWrap	 : register(s2);
+SamplerState samLinearClamp : register(s3);
+SamplerState samAnisotropicWrap : register(s4);
+SamplerState samAnisotropicClamp : register(s5);
 
+
+Texture2D diffuseMap : register(t1);
 
 cbuffer cbPerObject : register(b0)
 {
@@ -23,8 +25,8 @@ cbuffer cbGlobal : register(b1)
 
 cbuffer cbMaterial : register(b2)
 {
-	float4 diffuseFactor;
-	float3 roughness;
+	float3 diffuseFactor;
+	float roughness;
 
 }
 
@@ -45,7 +47,7 @@ struct VertexOut
 	float4 color : COLOR;
 	float3 positionWorld: POSITION;
 	float3 normal : NORMAL;
-	float2 uv: TEXCOORD0;
+	float2 uv: TEXCOORD;
 	
 };
 
@@ -59,13 +61,16 @@ VertexOut VS(VertexIn vin)
 	//normal vector transformation 
 	vout.normal = mul(WorldITMatrix, vin.normal*2-1);
 	vout.tangent = mul(WorldITMatrix, vin.tangent*2-1);
-	
-	vout.color = float4(1.0f, 0.0f, 0.0f, 0.5f);
+	vout.uv = vin.tex;
+	//vout.color = float4(1.0f, 0.0f, 0.0f, 0.5f);
 	return vout;
 }
 
 float4 PS(VertexOut pin) : SV_Target
 {
+	float4 diffuseAlbedo = diffuseMap.Sample(samAnisotropicClamp, pin.uv);
+	float4 ambientLight = float4(0.25f, 0.25f, 0.35f, 1.0f);
 	
-	return pin.color;
+	
+	return  diffuseAlbedo;
 }

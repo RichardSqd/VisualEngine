@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "Material.h"
 #include <unordered_map>
+#include <string>
 
 using Microsoft::WRL::ComPtr;
 namespace Scene {
@@ -103,13 +104,25 @@ namespace Scene {
 		Primitive();
 		
 		DXGI_FORMAT iformat;
-		UINT32 ibOffset;
-		UINT32 indexBufferByteSize;
-		UINT32 indexCount;
+		UINT ibOffset;
+		UINT indexBufferByteSize;
+		UINT indexCount;
 
-		UINT32 vbOffset;
-		UINT32 vertexBufferByteSize;
-		UINT32 vertexCount;
+		UINT vbPosOffset;
+		UINT vertexBufferPosByteSize;
+		UINT vertexCount;
+
+		UINT vbTexOffset; 
+		UINT vertexBufferTexCordByteSize;
+
+		////D3D12_VERTEX_BUFFER_VIEW vertexPosBufferView{};
+		//D3D12_VERTEX_BUFFER_VIEW vertexNormalBufferView{};
+		//D3D12_VERTEX_BUFFER_VIEW vertexTexCordBufferView{};
+		//D3D12_VERTEX_BUFFER_VIEW vertexTangentBufferView{};
+		//D3D12_VERTEX_BUFFER_VIEW vertexColorBufferView{};
+		//D3D12_INDEX_BUFFER_VIEW indexBufferView{};
+
+		UINT matIndex;
 	};
 
 
@@ -150,9 +163,8 @@ namespace Scene {
 
 		std::vector<Mesh> meshes;
 		std::vector<Node> nodes;
+		std::vector<std::unique_ptr<Material>> materials;
 
-
-		std::unordered_map<std::string, std::unique_ptr<Material>> materials;
 		std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
 
 		//std::vector<std::vector<byte>> buffers;
@@ -171,22 +183,12 @@ namespace Scene {
 		ComPtr<ID3D12Resource> vertexColorBufferGPU;
 		ComPtr<ID3D12Resource> indexBufferGPU;
 
-		D3D12_VERTEX_BUFFER_VIEW vertexPosBufferView {};
-		D3D12_VERTEX_BUFFER_VIEW vertexNormalBufferView{};
-		D3D12_VERTEX_BUFFER_VIEW vertexTexCordBufferView{};
-		D3D12_VERTEX_BUFFER_VIEW vertexTangentBufferView{};
-		D3D12_VERTEX_BUFFER_VIEW vertexColorBufferView{};
 
-		D3D12_INDEX_BUFFER_VIEW indexBufferView {};
+		UINT numPrimitives = 0;
+		long long indexBufferByteSize;
+		long long vertexPosBufferByteSize;
 
-		UINT indexBufferByteSize;
-		UINT vertexPosBufferByteSize;
-		UINT vertexNormalBufferByteSize;
-		UINT vertexTexCordBufferByteSize;
-		UINT vertexTangentBufferByteSize;
-		UINT vertexColorBufferByteSize;
-
-		
+		long long vertexTexCordBufferByteSize;
 
 		D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	};
