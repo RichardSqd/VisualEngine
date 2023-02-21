@@ -5,7 +5,7 @@
 
 struct Material 
 {
-	DirectX::XMFLOAT3 diffuse;
+	DirectX::XMFLOAT4 diffuse;
 	DirectX::XMFLOAT3 specular;
 	DirectX::XMFLOAT3 ambient;
 	DirectX::XMFLOAT3 emissive;

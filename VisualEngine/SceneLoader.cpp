@@ -138,8 +138,14 @@ namespace Scene {
 						make_move_iterator(vbBegin),
 						make_move_iterator(vbEnd));
 
-					//model.vertexNormalBufferByteSize += vaBufferview.byteLength;
+					primitive.vbNormalOffset = vbOffset;
+					primitive.vbNormalBufferByteSize = vaBufferview.byteLength;
+
+					model.vertexNormalBufferByteSize += vaBufferview.byteLength;
+
 				} 
+
+
 				else if (attribute.first.compare("TEXCOORD_0") == 0) {
 					ASSERT(accessor.type == TINYGLTF_TYPE_VEC2);
 					ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
@@ -166,6 +172,10 @@ namespace Scene {
 						make_move_iterator(vbBegin),
 						make_move_iterator(vbEnd));
 					//model.vertexTangentBufferByteSize += vaBufferview.byteLength;
+
+					primitive.vbTangentOffset = vbOffset;
+					primitive.vbTangentBufferByteSize = vaBufferview.byteLength;
+					model.vertexTangentBufferByteSize += vaBufferview.byteLength;
 				}
 				Utils::Print(attribute.first.c_str());
 				
@@ -272,7 +282,7 @@ namespace Scene {
 
 			//material properties 
 			auto& baseColorFactor =  tinyMat.pbrMetallicRoughness.baseColorFactor;
-			mat->diffuse = { (float)baseColorFactor[0],  (float)baseColorFactor[1],  (float)baseColorFactor[2] };
+			mat->diffuse = { (float)baseColorFactor[0],  (float)baseColorFactor[1],  (float)baseColorFactor[2], (float)baseColorFactor[3] };
 			mat->emissive= { (float)tinyMat.emissiveFactor[0],  (float)tinyMat.emissiveFactor[1],  (float)tinyMat.emissiveFactor[2] };
 			mat->metalness = tinyMat.pbrMetallicRoughness.metallicFactor;
 			mat->roughness = tinyMat.pbrMetallicRoughness.roughnessFactor;
@@ -293,7 +303,7 @@ namespace Scene {
 			diffuseTex->component = tinyDiffuseTexImg.component;
 			diffuseTex->bits = tinyDiffuseTexImg.bits;
 
-			
+			/*
 			D3D12_RESOURCE_DESC txtDesc = {};
 			txtDesc.MipLevels = txtDesc.DepthOrArraySize = 1;
 			if(diffuseTex->bits==8 && diffuseTex->component == 4)
@@ -302,7 +312,7 @@ namespace Scene {
 			txtDesc.Height = tinyDiffuseTexImg.height;
 			txtDesc.SampleDesc.Count = 1;
 			txtDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-			
+			*/
 			/*
 			CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
 			Graphics::gDevice->CreateCommittedResource(
@@ -313,20 +323,20 @@ namespace Scene {
 					nullptr,
 					IID_PPV_ARGS(diffuseTex->textureResource.ReleaseAndGetAddressOf()));
 			*/
-			std::unique_ptr<uint8_t[]> decodedData;
+			//std::unique_ptr<uint8_t[]> decodedData;
 			D3D12_SUBRESOURCE_DATA subresource = {};
 			//subresource.pData = tinyDiffuseTexImg.image.data();
 			//subresource.RowPitch = static_cast<LONG_PTR>(tinyDiffuseTexImg.width) * diffuseTex->component;
 			//subresource.SlicePitch = subresource.RowPitch * tinyDiffuseTexImg.height;
 			
 			std::wstring filepath = Config::gltfFileDirectory + L"\\" + Utils::to_wide_str(diffuseTex->uri) ;
-			std::unique_ptr<uint8_t[]> wicData;
+			std::unique_ptr<uint8_t[]> wicDiffuseData;
 			BREAKIFFAILED(
 				DirectX::LoadWICTextureFromFile(
 					Graphics::gDevice.Get(),
 					filepath.c_str(),
 					diffuseTex->textureResource.ReleaseAndGetAddressOf(),
-					wicData,
+					wicDiffuseData,
 					subresource
 
 				));
@@ -338,32 +348,38 @@ namespace Scene {
 			diffuseTex->textureResource->SetName(L"diffuseTexDefault");
 			model.textures[diffuseTex->name] = std::move(diffuseTex);
 
-			/*
-			//roughnessMetallic
+			
+			//roughnessMetallic texture
 			auto roughnessMetallicTex = std::make_unique<Texture>();
 			int roughnessMetallicIndex = tinyMat.pbrMetallicRoughness.metallicRoughnessTexture.index;
-
+			
 			tinygltf::Texture& tinyRoughnessMetallicTex = tinyModel.textures[roughnessMetallicIndex];
 			tinygltf::Image& tinyRoughnessMetallicImg = tinyModel.images[tinyRoughnessMetallicTex.source];
-			roughnessMetallicTex->name = tinyRoughnessMetallicTex.name;
-			mat->texroughnessMetallicMap = tinyRoughnessMetallicTex.name;
+			roughnessMetallicTex->name = tinyMat.name + "_roughnessMetallic";
+			mat->texroughnessMetallicMap = tinyMat.name + "_roughnessMetallic";
 			roughnessMetallicTex->uri = tinyRoughnessMetallicImg.uri;
 			roughnessMetallicTex->width = tinyRoughnessMetallicImg.width;
 			roughnessMetallicTex->height = tinyRoughnessMetallicImg.height;
 			roughnessMetallicTex->component = tinyRoughnessMetallicImg.component;
 			roughnessMetallicTex->bits = tinyRoughnessMetallicImg.bits;
 
+			filepath = Config::gltfFileDirectory + L"\\" + Utils::to_wide_str(roughnessMetallicTex->uri);
+			std::unique_ptr<uint8_t[]> wicRoughnessMetallicData;
 			BREAKIFFAILED(
-				DirectX::LoadWICTextureFromMemory(
+				DirectX::LoadWICTextureFromFile(
 					Graphics::gDevice.Get(),
-					tinyRoughnessMetallicImg.image.data(),
-					tinyRoughnessMetallicImg.image.size(),
+					filepath.c_str(),
 					roughnessMetallicTex->textureResource.ReleaseAndGetAddressOf(),
-					roughnessMetallicTex->decodedData,
-					subresource));
+					wicRoughnessMetallicData,
+					subresource
+				));
+
+
+
+			
 			UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), roughnessMetallicTex->textureResource, roughnessMetallicTex->textureUploader, subresource);
 			model.textures[roughnessMetallicTex->name] = std::move(roughnessMetallicTex);
-
+			
 
 			//normal 
 			auto normalTex = std::make_unique<Texture>();
@@ -371,27 +387,30 @@ namespace Scene {
 
 			tinygltf::Texture& tinyNormalTex = tinyModel.textures[normalIndex];
 			tinygltf::Image& tinyNormalTexImg = tinyModel.images[tinyNormalTex.source];
-			normalTex->name = tinyNormalTex.name;
-			mat->texNormalMap = tinyNormalTex.name;
+			normalTex->name = tinyMat.name + "_normal";
+			mat->texNormalMap = tinyMat.name + "_normal";
 			normalTex->uri = tinyNormalTexImg.uri;
 			normalTex->width = tinyNormalTexImg.width;
 			normalTex->height = tinyNormalTexImg.height;
 			normalTex->component = tinyNormalTexImg.component;
 			normalTex->bits = tinyNormalTexImg.bits;
 
-			
+			filepath = Config::gltfFileDirectory + L"\\" + Utils::to_wide_str(normalTex->uri);
 
+
+			std::unique_ptr<uint8_t[]> wicNormalData;
 			BREAKIFFAILED(
-				DirectX::LoadWICTextureFromMemory(
+				DirectX::LoadWICTextureFromFile(
 					Graphics::gDevice.Get(),
-					tinyNormalTexImg.image.data(),
-					tinyNormalTexImg.image.size(),
+					filepath.c_str(),
 					normalTex->textureResource.ReleaseAndGetAddressOf(),
-					normalTex->decodedData,
-					subresource));
+					wicNormalData,
+					subresource
+				));
+
 			UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), normalTex->textureResource, normalTex->textureUploader, subresource);
 			model.textures[normalTex->name] = std::move(normalTex);
-			*/
+			
 
 			model.materials[i] = std::move(mat);
 		}
@@ -478,9 +497,9 @@ namespace Scene {
 
 		model.indexBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.indexBufferCPU.data(), model.indexBufferByteSize, indexUploader);
 		model.vertexPosBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexPosBufferCPU.data(), model.vertexPosBufferByteSize, vertexPosUploader);
-		
+		model.vertexNormalBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexNormalBufferCPU.data(), model.vertexNormalBufferByteSize, vertexNormalUploader);
 		model.vertexTexCordBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexTexCordBufferCPU.data(), model.vertexTexCordBufferByteSize, vertexTexCordUploader);
-		
+		model.vertexTangentBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexTangentBufferCPU.data(), model.vertexTangentBufferByteSize, vertexTangentUploader);
 
 
 		return 1;

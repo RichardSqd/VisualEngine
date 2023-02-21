@@ -78,8 +78,8 @@ namespace EngineCore {
         
         if (!XMVerifyCPUSupport())
             return 1;
-        //Windows::Foundation::Initialize();
-        //Microsoft::WRL::Wrappers::RoInitializeWrapper InitializeWinRT(RO_INIT_MULTITHREADED);
+        Windows::Foundation::Initialize();
+        Microsoft::WRL::Wrappers::RoInitializeWrapper InitializeWinRT(RO_INIT_MULTITHREADED);
         
         InitWindow(hInstance, L"Wnd");
         app = InitAppBasedOnConfig();

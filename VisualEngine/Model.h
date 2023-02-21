@@ -115,12 +115,12 @@ namespace Scene {
 		UINT vbTexOffset; 
 		UINT vertexBufferTexCordByteSize;
 
-		////D3D12_VERTEX_BUFFER_VIEW vertexPosBufferView{};
-		//D3D12_VERTEX_BUFFER_VIEW vertexNormalBufferView{};
-		//D3D12_VERTEX_BUFFER_VIEW vertexTexCordBufferView{};
-		//D3D12_VERTEX_BUFFER_VIEW vertexTangentBufferView{};
-		//D3D12_VERTEX_BUFFER_VIEW vertexColorBufferView{};
-		//D3D12_INDEX_BUFFER_VIEW indexBufferView{};
+		UINT vbNormalOffset;
+		UINT vbNormalBufferByteSize;
+
+		UINT vbTangentOffset;
+		UINT vbTangentBufferByteSize;
+		
 
 		UINT matIndex;
 	};
@@ -187,8 +187,9 @@ namespace Scene {
 		UINT numPrimitives = 0;
 		long long indexBufferByteSize;
 		long long vertexPosBufferByteSize;
-
+		long long vertexNormalBufferByteSize;
 		long long vertexTexCordBufferByteSize;
+		long long vertexTangentBufferByteSize;
 
 		D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	};

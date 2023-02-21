@@ -289,7 +289,7 @@ namespace Renderer {
 		UINT textureCount = EngineCore::eModel.textures.size();
 		auto& textures = EngineCore::eModel.textures;
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+		
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		
@@ -309,6 +309,7 @@ namespace Renderer {
 				auto des = texResource->GetDesc();
 				srvDesc.Format = des.Format;
 				srvDesc.Texture2D.MipLevels = texResource->GetDesc().MipLevels;
+				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				Graphics::gDevice->CreateShaderResourceView(texResource.Get(), &srvDesc, handle);
 				
@@ -318,8 +319,10 @@ namespace Renderer {
 			if (!mat->texroughnessMetallicMap.empty()) {
 				mat->roughnessMetallicMapSrvHeaIndex = heapIndex;
 				auto& texResource = textures[mat->texroughnessMetallicMap]->textureResource;
-				srvDesc.Format = texResource->GetDesc().Format;
+				auto des = texResource->GetDesc();
+				srvDesc.Format = des.Format;
 				srvDesc.Texture2D.MipLevels = texResource->GetDesc().MipLevels;
+				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				Graphics::gDevice->CreateShaderResourceView(texResource.Get(), &srvDesc, handle);
 				
@@ -331,6 +334,7 @@ namespace Renderer {
 				auto& texResource = textures[mat->texNormalMap]->textureResource;
 				srvDesc.Format = texResource->GetDesc().Format;
 				srvDesc.Texture2D.MipLevels = texResource->GetDesc().MipLevels;
+				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				Graphics::gDevice->CreateShaderResourceView(texResource.Get(), &srvDesc, handle);
 				
@@ -581,7 +585,8 @@ namespace Renderer {
 
 
 				MaterialConstants materialConsts = {};
-				materialConsts.diffuseFactor = mat->diffuse;
+				materialConsts.diffuseFactor =  mat->diffuse;
+				materialConsts.metallicFactor = mat->metalness;
 				materialConsts.roughnessFactor = mat->roughness;
 				curFrameMatCB->CopyData(i, &materialConsts);
 				mat->numFrameDirty--;
@@ -725,7 +730,9 @@ namespace Renderer {
 
 
 			D3D12_VERTEX_BUFFER_VIEW vbvPos = {}; 
+			D3D12_VERTEX_BUFFER_VIEW vbvNormal = {};
 			D3D12_VERTEX_BUFFER_VIEW vbvTex = {};
+			D3D12_VERTEX_BUFFER_VIEW vbvTangent = {};
 			D3D12_INDEX_BUFFER_VIEW ivb = {};
 
 			ivb.BufferLocation = model.indexBufferGPU->GetGPUVirtualAddress();
@@ -733,9 +740,15 @@ namespace Renderer {
 			vbvPos.BufferLocation = model.vertexPosBufferGPU->GetGPUVirtualAddress();
 			vbvPos.StrideInBytes = sizeof(Scene::VertexPos);
 
+			vbvNormal.BufferLocation = model.vertexNormalBufferGPU->GetGPUVirtualAddress();
+			vbvNormal.StrideInBytes = sizeof(Scene::VertexNormal);
+
+
 			vbvTex.BufferLocation = model.vertexTexCordBufferGPU->GetGPUVirtualAddress();
 			vbvTex.StrideInBytes = sizeof(Scene::VertexTexCord);
 
+			vbvTangent.BufferLocation = model.vertexTangentBufferGPU->GetGPUVirtualAddress();
+			vbvTangent.StrideInBytes = sizeof(Scene::VertexTangent);
 			
 
 			for (auto& prim : primitives) {

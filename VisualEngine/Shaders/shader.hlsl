@@ -8,6 +8,8 @@ SamplerState samAnisotropicClamp : register(s5);
 
 
 Texture2D diffuseMap : register(t1);
+//Texture2D metallicRoughnessMap : register();
+
 
 cbuffer cbPerObject : register(b0)
 {
@@ -25,8 +27,9 @@ cbuffer cbGlobal : register(b1)
 
 cbuffer cbMaterial : register(b2)
 {
-	float3 diffuseFactor;
-	float roughness;
+	float4 diffuseFactor;
+	float metallicFactor;
+	float roughnessFactor;
 
 }
 
@@ -44,8 +47,7 @@ struct VertexOut
 {
 	float4 position  : SV_POSITION;
 	float4 tangent: TANGENT;
-	float4 color : COLOR;
-	float3 positionWorld: POSITION;
+	float4 positionWorld: POSITION;
 	float3 normal : NORMAL;
 	float2 uv: TEXCOORD;
 	
@@ -56,11 +58,11 @@ VertexOut VS(VertexIn vin)
 	VertexOut vout;
 
 	// Transform to homogeneous clip space.
-	vout.positionWorld = mul(vin.pos, WorldMatrix);
-	vout.position = mul(float4(vout.positionWorld,1), ViewProjMatrix);
+	vout.positionWorld = mul(float4(vin.pos,1), WorldMatrix);
+	vout.position = mul(vout.positionWorld, ViewProjMatrix);
 	//normal vector transformation 
-	vout.normal = mul(WorldITMatrix, vin.normal*2-1);
-	vout.tangent = mul(WorldITMatrix, vin.tangent*2-1);
+	vout.normal = mul(WorldITMatrix, float4(vin.normal,1)*2-1).xyz;
+	vout.tangent = mul(WorldITMatrix, float4(vin.tangent, 1) *2-1);
 	vout.uv = vin.tex;
 	//vout.color = float4(1.0f, 0.0f, 0.0f, 0.5f);
 	return vout;
@@ -68,7 +70,10 @@ VertexOut VS(VertexIn vin)
 
 float4 PS(VertexOut pin) : SV_Target
 {
-	float4 diffuseAlbedo = diffuseMap.Sample(samAnisotropicClamp, pin.uv);
+	float4 diffuseAlbedo = diffuseFactor * diffuseMap.Sample(samLinearClamp, pin.uv);
+	//float2 metallicRoughnessFactor = float2(metallicFactor, roughnessFactor);
+	//float2 metallicRoughness = metallicRoughnessFactor * 
+
 	float4 ambientLight = float4(0.25f, 0.25f, 0.35f, 1.0f);
 	
 	
