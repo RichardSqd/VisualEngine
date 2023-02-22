@@ -1,4 +1,6 @@
 
+#include "Common.hlsli"
+
 SamplerState samPointWrap	 : register(s0);
 SamplerState samPointClamp  : register(s1);
 SamplerState samLinearWrap	 : register(s2);
@@ -8,8 +10,9 @@ SamplerState samAnisotropicClamp : register(s5);
 
 
 Texture2D diffuseMap : register(t1);
-//Texture2D metallicRoughnessMap : register();
-
+Texture2D metallicRoughnessMap : register(t2);
+Texture2D normalMap : register(t3);
+Texture2D occlusionMap: register(t4);
 
 cbuffer cbPerObject : register(b0)
 {
@@ -27,10 +30,14 @@ cbuffer cbGlobal : register(b1)
 
 cbuffer cbMaterial : register(b2)
 {
-	float4 diffuseFactor;
-	float metallicFactor;
-	float roughnessFactor;
+	float4 DiffuseFactor;
+	float MetallicFactor;
+	float RoughnessFactor;
 
+	bool HasDiffuseTexture; 
+	bool HasMetallicRoughnessTexture;
+	bool HasNormalTexture; 
+	bool HasOcclusionTexture; 
 }
 
 struct VertexIn
@@ -70,9 +77,9 @@ VertexOut VS(VertexIn vin)
 
 float4 PS(VertexOut pin) : SV_Target
 {
-	float4 diffuseAlbedo = diffuseFactor * diffuseMap.Sample(samLinearClamp, pin.uv);
-	//float2 metallicRoughnessFactor = float2(metallicFactor, roughnessFactor);
-	//float2 metallicRoughness = metallicRoughnessFactor * 
+	float4 diffuseAlbedo = DiffuseFactor * diffuseMap.Sample(samLinearClamp, pin.uv);
+	float2 metallicRoughnessFactor = float2(MetallicFactor, RoughnessFactor);
+	float2 metallicRoughness = metallicRoughnessFactor * metallicRoughnessMap.Sample(samLinearClamp, pin.uv).bg;
 
 	float4 ambientLight = float4(0.25f, 0.25f, 0.35f, 1.0f);
 	

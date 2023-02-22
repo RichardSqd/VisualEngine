@@ -24,6 +24,7 @@ struct Material
 	std::string texLightmapMap;
 	std::string texReflectionMap;
 	std::string texroughnessMetallicMap;
+	std::string texOcclusionMap;
 	std::string name;
 
 
@@ -31,6 +32,7 @@ struct Material
 	UINT diffuseMapSrvHeapIndex = -1;
 	UINT roughnessMetallicMapSrvHeaIndex = -1;
 	UINT normalMapSrvHeapIndex = -1;
+	UINT occlusionMapSrvHeapIndex = -1;
 
 
 	int numFrameDirty = Graphics::gNumFrameResources;

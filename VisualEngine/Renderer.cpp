@@ -104,7 +104,7 @@ namespace Renderer {
 		BREAKIFFAILED(Graphics::gDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)));
 
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[5] = {};
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse, normal  and metalicroughness textures, register t1,2,3 
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse,metalicroughness, normal, AO textures, register t1,2,3 
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //object constant buffer
 		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //global constant buffer
 		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //mat constant buffer
@@ -122,7 +122,7 @@ namespace Renderer {
 		auto staticSamplers = GetStaticSamplers();
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+		rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 		ComPtr<ID3DBlob> serializedRootSig;
 		ComPtr<ID3DBlob> err;
@@ -252,7 +252,7 @@ namespace Renderer {
 
 		 
 		UINT matCBByteSize = Graphics::gMatCBByteSize;
-		UINT matCount = EngineCore::eModel.materials.size();
+		UINT matCount = (UINT)EngineCore::eModel.materials.size();
 
 		//create material views
 		for (UINT frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
@@ -285,8 +285,8 @@ namespace Renderer {
 	void CreateShaderResourceViews() {
 		//create texture heap descriptors and associate them with loaded resources
 		UINT objCount = EngineCore::eModel.numPrimitives;
-		UINT matCount = EngineCore::eModel.materials.size();
-		UINT textureCount = EngineCore::eModel.textures.size();
+		UINT matCount = (UINT)EngineCore::eModel.materials.size();
+		UINT textureCount = (UINT)EngineCore::eModel.textures.size();
 		auto& textures = EngineCore::eModel.textures;
 
 		
@@ -313,8 +313,13 @@ namespace Renderer {
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				Graphics::gDevice->CreateShaderResourceView(texResource.Get(), &srvDesc, handle);
 				
-				heapIndex++;
 			}
+			else {
+				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				Graphics::gDevice->CreateShaderResourceView(nullptr, &srvDesc, handle);
+			}
+			heapIndex++;
 
 			if (!mat->texroughnessMetallicMap.empty()) {
 				mat->roughnessMetallicMapSrvHeaIndex = heapIndex;
@@ -326,8 +331,14 @@ namespace Renderer {
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				Graphics::gDevice->CreateShaderResourceView(texResource.Get(), &srvDesc, handle);
 				
-				heapIndex++;
+				
 			}
+			else {
+				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				Graphics::gDevice->CreateShaderResourceView(nullptr, &srvDesc, handle);
+			}
+			heapIndex++;
 
 			if (!mat->texNormalMap.empty()) {
 				mat->normalMapSrvHeapIndex = heapIndex;
@@ -338,8 +349,32 @@ namespace Renderer {
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				Graphics::gDevice->CreateShaderResourceView(texResource.Get(), &srvDesc, handle);
 				
-				heapIndex++;
+				
 			}
+			else {
+				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				Graphics::gDevice->CreateShaderResourceView(nullptr, &srvDesc, handle);
+			}
+
+			heapIndex++;
+			if (!mat->texOcclusionMap.empty()) {
+				mat->occlusionMapSrvHeapIndex = heapIndex;
+				auto& texResource = textures[mat->texOcclusionMap]->textureResource;
+				srvDesc.Format = texResource->GetDesc().Format;
+				srvDesc.Texture2D.MipLevels = texResource->GetDesc().MipLevels;
+				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				Graphics::gDevice->CreateShaderResourceView(texResource.Get(), &srvDesc, handle);
+
+
+			}
+			else {
+				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				Graphics::gDevice->CreateShaderResourceView(nullptr, &srvDesc, handle);
+			}
+			heapIndex++;
 
 		}
 	}
@@ -363,7 +398,8 @@ namespace Renderer {
 
 		//create srv/cbv desc heap 
 		UINT numDescriptors = (static_cast<unsigned long long>(EngineCore::eModel.numPrimitives) 
-			+ 1 + EngineCore::eModel.materials.size()) * Graphics::gNumFrameResources + EngineCore::eModel.textures.size();
+			+ 1 + (UINT)EngineCore::eModel.materials.size()) * Graphics::gNumFrameResources + 
+			static_cast<unsigned long long>((UINT)EngineCore::eModel.materials.size()) * 4;
 		D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc{};
 		cbvSrvHeapDesc.NumDescriptors = numDescriptors;
 		cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -588,6 +624,10 @@ namespace Renderer {
 				materialConsts.diffuseFactor =  mat->diffuse;
 				materialConsts.metallicFactor = mat->metalness;
 				materialConsts.roughnessFactor = mat->roughness;
+				materialConsts.hasDiffuseTexture = mat->diffuseMapSrvHeapIndex >= 0;
+				materialConsts.hasMetallicRoughnessTexture = mat->roughnessMetallicMapSrvHeaIndex >= 0;
+				materialConsts.hasNormalTexture = mat->normalMapSrvHeapIndex >= 0;
+				materialConsts.hasOcclusionTexture = mat->occlusionMapSrvHeapIndex >= 0;
 				curFrameMatCB->CopyData(i, &materialConsts);
 				mat->numFrameDirty--;
 			}
@@ -731,7 +771,7 @@ namespace Renderer {
 
 			D3D12_VERTEX_BUFFER_VIEW vbvPos = {}; 
 			D3D12_VERTEX_BUFFER_VIEW vbvNormal = {};
-			D3D12_VERTEX_BUFFER_VIEW vbvTex = {};
+			D3D12_VERTEX_BUFFER_VIEW vbvTexCord = {};
 			D3D12_VERTEX_BUFFER_VIEW vbvTangent = {};
 			D3D12_INDEX_BUFFER_VIEW ivb = {};
 
@@ -744,8 +784,8 @@ namespace Renderer {
 			vbvNormal.StrideInBytes = sizeof(Scene::VertexNormal);
 
 
-			vbvTex.BufferLocation = model.vertexTexCordBufferGPU->GetGPUVirtualAddress();
-			vbvTex.StrideInBytes = sizeof(Scene::VertexTexCord);
+			vbvTexCord.BufferLocation = model.vertexTexCordBufferGPU->GetGPUVirtualAddress();
+			vbvTexCord.StrideInBytes = sizeof(Scene::VertexTexCord);
 
 			vbvTangent.BufferLocation = model.vertexTangentBufferGPU->GetGPUVirtualAddress();
 			vbvTangent.StrideInBytes = sizeof(Scene::VertexTangent);
@@ -755,17 +795,20 @@ namespace Renderer {
 				//set mat 
 				//curMat = model.materials[ prim.matName]->
 				UINT matvIndex = (model.numNodes + 1) * Graphics::gNumFrameResources +
-					curFrameIndex * model.numMaterials + prim.matIndex;  // Graphics::gFrameResourceManager.GetCurrentIndex() * EngineCore::eModel.numNodes + i;
+					curFrameIndex * model.numMaterials + prim.matIndex;  
 				auto matCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 				matCbvHandle.Offset(matvIndex, Graphics::gCbvSrvUavDescriptorSize);
 				commandList->SetGraphicsRootDescriptorTable(3, matCbvHandle);
 
 
-				//set texture buffer  
-				int texheapIndex = (1 + objCount + matCount) * Graphics::gNumFrameResources;
-				auto texCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-				texCbvHandle.Offset(texheapIndex, Graphics::gCbvSrvUavDescriptorSize);
-				commandList->SetGraphicsRootDescriptorTable(0, texCbvHandle);
+				//set textures 
+				auto& mat = model.materials[prim.matIndex];
+				UINT texDiffuseheapIndex = mat->diffuseMapSrvHeapIndex;
+				auto texDiffuseCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+				texDiffuseCbvHandle.Offset(texDiffuseheapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				commandList->SetGraphicsRootDescriptorTable(0, texDiffuseCbvHandle);
+
+
 
 				// set vertex/index for each render object
 				ivb.Format = DXGI_FORMAT_R16_UINT;
@@ -774,8 +817,8 @@ namespace Renderer {
 				vbvPos.SizeInBytes = prim.vertexBufferPosByteSize;
 				commandList->IASetVertexBuffers(0, 1, &vbvPos);
 
-				vbvTex.SizeInBytes = prim.vertexBufferTexCordByteSize;
-				commandList->IASetVertexBuffers(2, 1, &vbvTex);
+				vbvTexCord.SizeInBytes = prim.vertexBufferTexCordByteSize;
+				commandList->IASetVertexBuffers(2, 1, &vbvTexCord);
 					
 				commandList->IASetIndexBuffer(&ivb);
 				commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -783,7 +826,6 @@ namespace Renderer {
 			
 			}
 			
-			//commandList->IASetVertexBuffers(4, 1, &model.vertexColorBufferView);	
 
 			//set mat cbv in the descritpor heap for each node for the current frame resource
 			

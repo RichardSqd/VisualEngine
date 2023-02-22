@@ -290,127 +290,180 @@ namespace Scene {
 			//extract texture data  
 			//diffuse map  
 			
-			auto diffuseTex = std::make_unique<Texture>();
-			int diffuseIndex = tinyMat.pbrMetallicRoughness.baseColorTexture.index;
-
-			tinygltf::Texture& tinyDiffuseTex = tinyModel.textures[diffuseIndex];
-			tinygltf::Image& tinyDiffuseTexImg = tinyModel.images[tinyDiffuseTex.source]; 
-			diffuseTex->name = tinyMat.name+"_diffuse";
-			mat->texDiffuseMap = tinyMat.name + "_diffuse";
-			diffuseTex->uri = tinyDiffuseTexImg.uri;
-			diffuseTex->width = tinyDiffuseTexImg.width;
-			diffuseTex->height = tinyDiffuseTexImg.height;
-			diffuseTex->component = tinyDiffuseTexImg.component;
-			diffuseTex->bits = tinyDiffuseTexImg.bits;
-
-			/*
-			D3D12_RESOURCE_DESC txtDesc = {};
-			txtDesc.MipLevels = txtDesc.DepthOrArraySize = 1;
-			if(diffuseTex->bits==8 && diffuseTex->component == 4)
-				txtDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			txtDesc.Width = tinyDiffuseTexImg.width;
-			txtDesc.Height = tinyDiffuseTexImg.height;
-			txtDesc.SampleDesc.Count = 1;
-			txtDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-			*/
-			/*
-			CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
-			Graphics::gDevice->CreateCommittedResource(
-					&heapProps,
-					D3D12_HEAP_FLAG_NONE,
-					&txtDesc,
-					D3D12_RESOURCE_STATE_COPY_DEST,
-					nullptr,
-					IID_PPV_ARGS(diffuseTex->textureResource.ReleaseAndGetAddressOf()));
-			*/
-			//std::unique_ptr<uint8_t[]> decodedData;
 			D3D12_SUBRESOURCE_DATA subresource = {};
-			//subresource.pData = tinyDiffuseTexImg.image.data();
-			//subresource.RowPitch = static_cast<LONG_PTR>(tinyDiffuseTexImg.width) * diffuseTex->component;
-			//subresource.SlicePitch = subresource.RowPitch * tinyDiffuseTexImg.height;
-			
-			std::wstring filepath = Config::gltfFileDirectory + L"\\" + Utils::to_wide_str(diffuseTex->uri) ;
-			std::unique_ptr<uint8_t[]> wicDiffuseData;
-			BREAKIFFAILED(
-				DirectX::LoadWICTextureFromFile(
-					Graphics::gDevice.Get(),
-					filepath.c_str(),
-					diffuseTex->textureResource.ReleaseAndGetAddressOf(),
-					wicDiffuseData,
-					subresource
+			std::wstring filepath;
 
-				));
-			
-			
+			int diffuseIndex = tinyMat.pbrMetallicRoughness.baseColorTexture.index;
+			if (diffuseIndex >= 0) {
+				auto diffuseTex = std::make_unique<Texture>();
+				tinygltf::Texture& tinyDiffuseTex = tinyModel.textures[diffuseIndex];
+				tinygltf::Image& tinyDiffuseTexImg = tinyModel.images[tinyDiffuseTex.source];
+				diffuseTex->name = tinyMat.name + "_diffuse";
+				mat->texDiffuseMap = tinyMat.name + "_diffuse";
+				diffuseTex->uri = tinyDiffuseTexImg.uri;
+				diffuseTex->width = tinyDiffuseTexImg.width;
+				diffuseTex->height = tinyDiffuseTexImg.height;
+				diffuseTex->component = tinyDiffuseTexImg.component;
+				diffuseTex->bits = tinyDiffuseTexImg.bits;
 
-			UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), diffuseTex->textureResource, diffuseTex->textureUploader, subresource);
-			diffuseTex->textureUploader->SetName(L"diffuseTexUploader");
-			diffuseTex->textureResource->SetName(L"diffuseTexDefault");
-			model.textures[diffuseTex->name] = std::move(diffuseTex);
+				/*
+				D3D12_RESOURCE_DESC txtDesc = {};
+				txtDesc.MipLevels = txtDesc.DepthOrArraySize = 1;
+				if(diffuseTex->bits==8 && diffuseTex->component == 4)
+					txtDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+				txtDesc.Width = tinyDiffuseTexImg.width;
+				txtDesc.Height = tinyDiffuseTexImg.height;
+				txtDesc.SampleDesc.Count = 1;
+				txtDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+				*/
+				/*
+				CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+				Graphics::gDevice->CreateCommittedResource(
+						&heapProps,
+						D3D12_HEAP_FLAG_NONE,
+						&txtDesc,
+						D3D12_RESOURCE_STATE_COPY_DEST,
+						nullptr,
+						IID_PPV_ARGS(diffuseTex->textureResource.ReleaseAndGetAddressOf()));
+				*/
+				//std::unique_ptr<uint8_t[]> decodedData;
+				
+				//subresource.pData = tinyDiffuseTexImg.image.data();
+				//subresource.RowPitch = static_cast<LONG_PTR>(tinyDiffuseTexImg.width) * diffuseTex->component;
+				//subresource.SlicePitch = subresource.RowPitch * tinyDiffuseTexImg.height;
+
+				filepath = Config::gltfFileDirectory + L"\\" + Utils::to_wide_str(diffuseTex->uri);
+				std::unique_ptr<uint8_t[]> wicDiffuseData;
+				BREAKIFFAILED(
+					DirectX::LoadWICTextureFromFile(
+						Graphics::gDevice.Get(),
+						filepath.c_str(),
+						diffuseTex->textureResource.ReleaseAndGetAddressOf(),
+						wicDiffuseData,
+						subresource
+
+					));
+
+
+
+				UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), diffuseTex->textureResource, diffuseTex->textureUploader, subresource);
+				diffuseTex->textureUploader->SetName(L"diffuseTexUploader");
+				diffuseTex->textureResource->SetName(L"diffuseTexDefault");
+				model.textures[diffuseTex->name] = std::move(diffuseTex);
+			}
+			else {
+				mat->texDiffuseMap = "";
+			}
+			
 
 			
 			//roughnessMetallic texture
-			auto roughnessMetallicTex = std::make_unique<Texture>();
+			
 			int roughnessMetallicIndex = tinyMat.pbrMetallicRoughness.metallicRoughnessTexture.index;
-			
-			tinygltf::Texture& tinyRoughnessMetallicTex = tinyModel.textures[roughnessMetallicIndex];
-			tinygltf::Image& tinyRoughnessMetallicImg = tinyModel.images[tinyRoughnessMetallicTex.source];
-			roughnessMetallicTex->name = tinyMat.name + "_roughnessMetallic";
-			mat->texroughnessMetallicMap = tinyMat.name + "_roughnessMetallic";
-			roughnessMetallicTex->uri = tinyRoughnessMetallicImg.uri;
-			roughnessMetallicTex->width = tinyRoughnessMetallicImg.width;
-			roughnessMetallicTex->height = tinyRoughnessMetallicImg.height;
-			roughnessMetallicTex->component = tinyRoughnessMetallicImg.component;
-			roughnessMetallicTex->bits = tinyRoughnessMetallicImg.bits;
+			if (roughnessMetallicIndex >= 0) {
+				auto roughnessMetallicTex = std::make_unique<Texture>();
+				tinygltf::Texture& tinyRoughnessMetallicTex = tinyModel.textures[roughnessMetallicIndex];
+				tinygltf::Image& tinyRoughnessMetallicImg = tinyModel.images[tinyRoughnessMetallicTex.source];
+				roughnessMetallicTex->name = tinyMat.name + "_roughnessMetallic";
+				mat->texroughnessMetallicMap = tinyMat.name + "_roughnessMetallic";
+				roughnessMetallicTex->uri = tinyRoughnessMetallicImg.uri;
+				roughnessMetallicTex->width = tinyRoughnessMetallicImg.width;
+				roughnessMetallicTex->height = tinyRoughnessMetallicImg.height;
+				roughnessMetallicTex->component = tinyRoughnessMetallicImg.component;
+				roughnessMetallicTex->bits = tinyRoughnessMetallicImg.bits;
 
-			filepath = Config::gltfFileDirectory + L"\\" + Utils::to_wide_str(roughnessMetallicTex->uri);
-			std::unique_ptr<uint8_t[]> wicRoughnessMetallicData;
-			BREAKIFFAILED(
-				DirectX::LoadWICTextureFromFile(
-					Graphics::gDevice.Get(),
-					filepath.c_str(),
-					roughnessMetallicTex->textureResource.ReleaseAndGetAddressOf(),
-					wicRoughnessMetallicData,
-					subresource
-				));
+				filepath = Config::gltfFileDirectory + L"\\" + Utils::to_wide_str(roughnessMetallicTex->uri);
+				std::unique_ptr<uint8_t[]> wicRoughnessMetallicData;
+				BREAKIFFAILED(
+					DirectX::LoadWICTextureFromFile(
+						Graphics::gDevice.Get(),
+						filepath.c_str(),
+						roughnessMetallicTex->textureResource.ReleaseAndGetAddressOf(),
+						wicRoughnessMetallicData,
+						subresource
+					));
 
+				UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), roughnessMetallicTex->textureResource, roughnessMetallicTex->textureUploader, subresource);
+				model.textures[roughnessMetallicTex->name] = std::move(roughnessMetallicTex);
 
-
-			
-			UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), roughnessMetallicTex->textureResource, roughnessMetallicTex->textureUploader, subresource);
-			model.textures[roughnessMetallicTex->name] = std::move(roughnessMetallicTex);
+			}
+			else {
+				mat->texroughnessMetallicMap = "";
+			}
 			
 
 			//normal 
-			auto normalTex = std::make_unique<Texture>();
-			int normalIndex = tinyMat.normalTexture.index;
-
-			tinygltf::Texture& tinyNormalTex = tinyModel.textures[normalIndex];
-			tinygltf::Image& tinyNormalTexImg = tinyModel.images[tinyNormalTex.source];
-			normalTex->name = tinyMat.name + "_normal";
-			mat->texNormalMap = tinyMat.name + "_normal";
-			normalTex->uri = tinyNormalTexImg.uri;
-			normalTex->width = tinyNormalTexImg.width;
-			normalTex->height = tinyNormalTexImg.height;
-			normalTex->component = tinyNormalTexImg.component;
-			normalTex->bits = tinyNormalTexImg.bits;
-
-			filepath = Config::gltfFileDirectory + L"\\" + Utils::to_wide_str(normalTex->uri);
-
-
-			std::unique_ptr<uint8_t[]> wicNormalData;
-			BREAKIFFAILED(
-				DirectX::LoadWICTextureFromFile(
-					Graphics::gDevice.Get(),
-					filepath.c_str(),
-					normalTex->textureResource.ReleaseAndGetAddressOf(),
-					wicNormalData,
-					subresource
-				));
-
-			UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), normalTex->textureResource, normalTex->textureUploader, subresource);
-			model.textures[normalTex->name] = std::move(normalTex);
 			
+			int normalIndex = tinyMat.normalTexture.index;
+			if (normalIndex >= 0) {
+				auto normalTex = std::make_unique<Texture>();
+				tinygltf::Texture& tinyNormalTex = tinyModel.textures[normalIndex];
+				tinygltf::Image& tinyNormalTexImg = tinyModel.images[tinyNormalTex.source];
+				normalTex->name = tinyMat.name + "_normal";
+				mat->texNormalMap = tinyMat.name + "_normal";
+				normalTex->uri = tinyNormalTexImg.uri;
+				normalTex->width = tinyNormalTexImg.width;
+				normalTex->height = tinyNormalTexImg.height;
+				normalTex->component = tinyNormalTexImg.component;
+				normalTex->bits = tinyNormalTexImg.bits;
+
+				filepath = Config::gltfFileDirectory + L"\\" + Utils::to_wide_str(normalTex->uri);
+
+
+				std::unique_ptr<uint8_t[]> wicNormalData;
+				BREAKIFFAILED(
+					DirectX::LoadWICTextureFromFile(
+						Graphics::gDevice.Get(),
+						filepath.c_str(),
+						normalTex->textureResource.ReleaseAndGetAddressOf(),
+						wicNormalData,
+						subresource
+					));
+
+				UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), normalTex->textureResource, normalTex->textureUploader, subresource);
+				model.textures[normalTex->name] = std::move(normalTex);
+			}
+			else {
+				mat->texNormalMap = "";
+			}
+			
+			
+
+			//occlusion texture
+			
+			int occlusionIndex = tinyMat.occlusionTexture.index;
+			if (occlusionIndex >= 0) {
+				auto occlusionTex = std::make_unique<Texture>();
+				tinygltf::Texture& tinyOcclusionTex = tinyModel.textures[occlusionIndex];
+				tinygltf::Image& tinyOcclusionTexImg = tinyModel.images[tinyOcclusionTex.source];
+				occlusionTex->name = tinyMat.name + "_AO";
+				mat->texOcclusionMap = tinyMat.name + "_AO";
+				occlusionTex->uri = tinyOcclusionTexImg.uri;
+				occlusionTex->width = tinyOcclusionTexImg.width;
+				occlusionTex->height = tinyOcclusionTexImg.height;
+				occlusionTex->component = tinyOcclusionTexImg.component;
+				occlusionTex->bits = tinyOcclusionTexImg.bits;
+				filepath = Config::gltfFileDirectory + L"\\" + Utils::to_wide_str(occlusionTex->uri);
+				std::unique_ptr<uint8_t[]> wicAOData;
+				BREAKIFFAILED(
+					DirectX::LoadWICTextureFromFile(
+						Graphics::gDevice.Get(),
+						filepath.c_str(),
+						occlusionTex->textureResource.ReleaseAndGetAddressOf(),
+						wicAOData,
+						subresource
+					));
+
+				UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), occlusionTex->textureResource, occlusionTex->textureUploader, subresource);
+				model.textures[occlusionTex->name] = std::move(occlusionTex);
+				//occlusionTex->name = 
+			}
+			else {
+				mat->texOcclusionMap = "";
+			}
+			
+
+
 
 			model.materials[i] = std::move(mat);
 		}
