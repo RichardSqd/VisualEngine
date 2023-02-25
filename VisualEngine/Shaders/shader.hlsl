@@ -83,6 +83,26 @@ float4 PS(VertexOut pin) : SV_Target
 
 	float4 ambientLight = float4(0.25f, 0.25f, 0.35f, 1.0f);
 	
+	SurfaceProperties surface; 
+	surface.N = pin.normal;
+	surface.V = normalize(CameraPos - pin.positionWorld);
+	surface.NdotV = saturate(dot(surface.N, surface.V));
 	
 	return  diffuseAlbedo;
+}
+
+float3 ComputeNormal(VertexOut pin) {
+	float3 normal = normalize(pin.normal);
+	float3 tangent = normalize(pin.tangent.xyz);
+	float3 bitangent = normalize(cross(normal, tangent)) * pin.tangent.w;
+	float3x3 tangentMatrix = float3x3(tangent, bitangent, normal);
+
+	//sample normal map 
+	normal = normalMap.Sample(samLinearClamp, pin.uv) * 2 - 1;
+
+	//scaling
+	
+
+	return mul(normal, tangentMatrix);
+
 }
