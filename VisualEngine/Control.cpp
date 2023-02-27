@@ -60,4 +60,14 @@ namespace Control {
         lastMousePos.x = x;
         lastMousePos.y = y;
 	}
+    void OnKeyDown(WPARAM btnState) {
+        if (static_cast<UINT8>(btnState) == VK_ESCAPE)
+            PostQuitMessage(0);
+        else if (static_cast<UINT8>(btnState) == VK_SPACE && Graphics::gRayTraceActive) {
+            Graphics::gRayTraced = !Graphics::gRayTraced;
+        }
+        
+
+
+    }
 }

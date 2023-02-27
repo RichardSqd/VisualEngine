@@ -40,17 +40,22 @@ namespace EngineCore {
         case WM_MBUTTONDOWN:
         case WM_RBUTTONDOWN:
             Control::OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-            return 0;
+            break;
         case WM_LBUTTONUP:
         case WM_MBUTTONUP:
         case WM_RBUTTONUP:
             Control::OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-            return 0;
+            break;
         case WM_MOUSEMOVE:
             Control::OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-            return 0;
+            break;
 
         case WM_KEYDOWN:
+            Control::OnKeyDown(wParam);
+            
+                
+                
+                break;
         case WM_KEYUP:
         case WM_SYSKEYUP:
         case WM_SYSKEYDOWN:
@@ -58,8 +63,9 @@ namespace EngineCore {
             break;
 
         case WM_DESTROY:
+            //__debugbreak();
             PostQuitMessage(0);
-            return 0;
+            break;
 
         default:
             return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -107,7 +113,7 @@ namespace EngineCore {
     }
 
     void InitWindow(_In_ HINSTANCE hInstance, const wchar_t* className){
-        WNDCLASS wc;
+        WNDCLASS wc = {};
         wc.style = CS_HREDRAW | CS_VREDRAW;
         wc.lpfnWndProc = WndProc;
         wc.cbClsExtra = 0;

@@ -5,7 +5,8 @@
 
 using Microsoft::WRL::ComPtr;
 namespace Graphics {
-
+	extern bool gRayTraceActive;
+	extern bool gRayTraced;
 	extern float gWidth;
 	extern float gHeight;
 	extern HWND ghWnd;
@@ -39,9 +40,9 @@ namespace Graphics {
 	extern DXGI_FORMAT gBackBufferFormat;
 	extern DXGI_FORMAT gDepthStencilFormat;
 
-	void Init(bool EnableDXR);
+	void Init();
 	extern float AspectRatio();
-
+	extern void CheckDXRSupport(bool& rayTraceStatus);
 
 	
 

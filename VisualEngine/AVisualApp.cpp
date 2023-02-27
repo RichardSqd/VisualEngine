@@ -4,7 +4,7 @@
 #include "FrameResource.h"
 #include "Control.h"
 
-#define NODXR false
+
 
 AVisualApp::AVisualApp() {
 
@@ -18,7 +18,7 @@ AVisualApp::~AVisualApp() {
 
 void AVisualApp::InitApp() {
 	//TODO: handle input 
-	Graphics::Init(NODXR);
+	Graphics::Init();
 	
 	Control::InitControl(Graphics::ghWnd);
 	auto context = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT).get();
@@ -75,6 +75,7 @@ void AVisualApp::Run() {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 			if (msg.message == WM_QUIT) {
+				//__debugbreak();
 				return;
 			}
 		}
@@ -84,5 +85,8 @@ void AVisualApp::Run() {
 }
 
 void AVisualApp::ShutDown() {
+	auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
 
+	queue.FlushCommandQueue();
+	//CloseHandle(Graphics::ghWnd);
 }

@@ -14,6 +14,8 @@ namespace Graphics {
 	float gWidth = 800;
 	float gHeight = 600;
 	HWND ghWnd = nullptr;
+	bool gRayTraceActive = false;
+	bool gRayTraced = false;
 	ComPtr<ID3D12Device> gDevice = nullptr;
 	ComPtr<IDXGISwapChain3> gSwapChain = nullptr;
 	ComPtr<ID3D12DescriptorHeap> gRtvHeap = nullptr;
@@ -42,7 +44,7 @@ namespace Graphics {
 
 	D3D12_RECT gScissorRect;
 
-	void Init(bool EnableDXR) {
+	void Init() {
 		ComPtr<ID3D12Device> device;
 		uint32_t dxgiFactoryFlags = 0;
 #if defined(DEBUG) || defined(_DEBUG)
@@ -87,6 +89,7 @@ namespace Graphics {
 #if defined(DEBUG) || defined(_DEBUG)
 		gDevice->SetStablePowerState(1);
 #endif
+		CheckDXRSupport(gRayTraceActive);
 
 		//display port stats
 		gScreenViewport.TopLeftX = 0.0f;
@@ -124,6 +127,17 @@ namespace Graphics {
 	float AspectRatio()
 	{
 		return gWidth / gHeight;
+	}
+
+	void CheckDXRSupport(bool& rayTraceStatus) {
+		D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = {};
+		BREAKIFFAILED(gDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5,
+			&options5, sizeof(options5)));
+		if (!(options5.RaytracingTier < D3D12_RAYTRACING_TIER_1_0)) {
+			rayTraceStatus = true;
+		}
+		
+			
 	}
 }
 

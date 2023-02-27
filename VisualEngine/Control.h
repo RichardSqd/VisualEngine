@@ -12,5 +12,5 @@ namespace Control {
 	extern void OnMouseDown(WPARAM btnState, int x, int y);
 	extern void OnMouseUp(WPARAM btnState, int x, int y);
 	extern void OnMouseMove(WPARAM btnState, int x, int y);
-
+	extern void OnKeyDown(WPARAM btnState);
 }

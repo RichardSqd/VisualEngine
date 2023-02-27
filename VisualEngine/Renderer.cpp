@@ -142,7 +142,11 @@ namespace Renderer {
 #endif
 		ComPtr<ID3DBlob> errors;
 		BREAKIFFAILED(D3DCompileFromFile(Config::shaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS", "vs_5_0", compileFlags, 0, &rVertexShader, &errors));
-		Utils::Print((char*)errors->GetBufferPointer());
+
+		if (errors!=nullptr && errors->GetBufferSize()>0) {
+			Utils::Print((char*)errors->GetBufferPointer());
+		}
+
 		BREAKIFFAILED(D3DCompileFromFile(Config::shaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS", "ps_5_0", compileFlags, 0, &rPixelShader, &errors));
 
 

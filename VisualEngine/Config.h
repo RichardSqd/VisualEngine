@@ -5,7 +5,7 @@
 namespace Config {
 	//Graphics Related
 	const int frameCount = 3;
-	const bool RAYTRACE = false;
+	const bool RAYTRACE = true;
 	const bool useGPUBasedValidation = true;
 	const std::wstring gltfFileDirectory  = L"Models\\Avocado\\glTF";
 	const std::wstring gltfFileName = L"Avocado.gltf";

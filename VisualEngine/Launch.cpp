@@ -22,5 +22,5 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance,
 #endif
     int result = EngineCore::StartUp(hInstance, hPrevInstance, lpCmdLine, nShowCmd);
     EngineCore::ShutDown();
-	return result;
+	return 0;
 } 
