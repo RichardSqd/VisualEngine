@@ -535,6 +535,16 @@ namespace Renderer {
 		FrameResource* currentFrameResource = Graphics::gFrameResourceManager.GetCurrentFrameResource();
 
 		auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
+
+		//if contex switching is signaled, start the DXR rendering 
+		if (Graphics::gRayTraced) {
+			//clean up
+			queue.FlushCommandQueue();
+			//prepare for switching 
+
+
+			return;
+		}
 		
 		auto frameTargetCompletionValue = currentFrameResource->fence;
 		//std::wstring index = L"frame" + std::to_wstring(Graphics::gFrameResourceManager.GetCurrentIndex())+ L"  "+ std::to_wstring(queue.GetCurrentFenceValue()) + +L"\n";

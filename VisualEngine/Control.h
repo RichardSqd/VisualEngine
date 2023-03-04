@@ -8,6 +8,7 @@ namespace Control {
 	extern const float ROTATION_GAIN;
 	extern const float MOVEMENT_GAIN;
 	extern POINT lastMousePos;
+	extern bool cameraLocked;
 	extern void InitControl(HWND hwnd);
 	extern void OnMouseDown(WPARAM btnState, int x, int y);
 	extern void OnMouseUp(WPARAM btnState, int x, int y);

@@ -80,6 +80,12 @@
     <ClCompile Include="Control.cpp">
       <Filter>Source\Core</Filter>
     </ClCompile>
+    <ClCompile Include="DXRRenderer.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="DXRAccelerateStructures.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineCore.h">
@@ -159,6 +165,12 @@
     </ClInclude>
     <ClInclude Include="Header.h">
       <Filter>Header Files\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="DXRRenderer.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="DXRAccelerateStructures.h">
+      <Filter>Header Files\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

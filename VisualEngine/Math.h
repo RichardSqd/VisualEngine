@@ -1,6 +1,7 @@
 #pragma once
 
 namespace Math {
+	extern inline UINT Alignment256(UINT byteSize);
 	extern inline DirectX::XMMATRIX IdentityMatrix();
 	extern inline DirectX::XMMATRIX VectorToMatrix(const std::vector<double> v);
 	extern inline DirectX::XMMATRIX QuaternionToMatrix(const std::vector<double> v);

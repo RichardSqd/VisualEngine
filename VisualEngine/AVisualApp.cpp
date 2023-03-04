@@ -3,7 +3,7 @@
 #include "Renderer.h"
 #include "FrameResource.h"
 #include "Control.h"
-
+#include "DXRRenderer.h"
 
 
 AVisualApp::AVisualApp() {
@@ -28,6 +28,9 @@ void AVisualApp::InitApp() {
 	it to reuse the allocated memory for another command list.*/
 	commandList->Reset(context->getCommandAllocator().Get(), nullptr);
 	Renderer::Init(context);
+	if (Graphics::gRayTraceEnvironmentActive) {
+		DXRRenderer::Init(context);
+	}
 	BREAKIFFAILED(commandList->Close());
 	ID3D12CommandList* cmds[] = { commandList.Get() };
 	auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();

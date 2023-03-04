@@ -94,6 +94,8 @@
     <ClCompile Include="CommandAllocatorPool.cpp" />
     <ClCompile Include="CommandListManager.cpp" />
     <ClCompile Include="Control.cpp" />
+    <ClCompile Include="DXRAccelerateStructures.cpp" />
+    <ClCompile Include="DXRRenderer.cpp" />
     <ClCompile Include="EngineCore.cpp" />
     <ClCompile Include="FrameResource.cpp" />
     <ClCompile Include="Graphics.cpp" />
@@ -116,11 +118,13 @@
     <ClInclude Include="CommandListManager.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="Control.h" />
+    <ClInclude Include="DXRAccelerateStructures.h" />
     <ClInclude Include="EngineCore.h" />
     <ClInclude Include="EngineLoop.h" />
     <ClInclude Include="FrameResource.h" />
     <ClInclude Include="Graphics.h" />
     <ClInclude Include="Header.h" />
+    <ClInclude Include="DXRRenderer.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="RenderItem.h" />

@@ -111,6 +111,8 @@ void CommandQueueManager::CreateCommandQueueObjects(ComPtr<ID3D12Device> device)
 
 //-----------------------------------------------------------
 
+
+
 std::shared_ptr<CommandContext> CommandContextManager::AllocateContext(D3D12_COMMAND_LIST_TYPE type) {
 	std::shared_ptr<CommandContext> context;
 	
@@ -156,6 +158,15 @@ CommandContextManager::~CommandContextManager() {
 
 
 //---------------------------------------------------------------
+CommandContext::CommandContext(ComPtr<ID3D12GraphicsCommandList> commandList,
+	ComPtr<ID3D12CommandAllocator> commandAllocator) :
+	mCommandList(commandList),
+	mCommandAllocator(commandAllocator) {
+	if (Graphics::gRayTraceEnvironmentActive) {
+		BREAKIFFAILED(mCommandList->QueryInterface(IID_PPV_ARGS(mDXRCommandList.GetAddressOf())));
+
+	}
+}
 
 ComPtr<ID3D12GraphicsCommandList> CommandContext::getCommandList() {
 	return mCommandList;
@@ -163,4 +174,8 @@ ComPtr<ID3D12GraphicsCommandList> CommandContext::getCommandList() {
 
 ComPtr<ID3D12CommandAllocator> CommandContext::getCommandAllocator() {
 	return mCommandAllocator;
+}
+
+ComPtr<ID3D12GraphicsCommandList4> CommandContext::getDXRCommandList() {
+	return mDXRCommandList;
 }

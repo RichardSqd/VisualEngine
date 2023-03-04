@@ -3,7 +3,9 @@
 #include "Math.h"
 const float Math::PI = 3.1415926535f;
 
-
+inline UINT Math::Alignment256(UINT byteSize) {
+	return (byteSize + 255) & ~255;
+}
 
 inline DirectX::XMMATRIX Math::IdentityMatrix() {
 	return DirectX::XMMATRIX(
