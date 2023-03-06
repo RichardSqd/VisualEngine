@@ -61,7 +61,7 @@ namespace Control {
                 Renderer::gMainCam.camRadius += dx - dy;
 
                 // Restrict the radius.
-                Renderer::gMainCam.camRadius = Math::Clamp(Renderer::gMainCam.camRadius, 3.0f, 15.0f);
+                //Renderer::gMainCam.camRadius = Math::Clamp(Renderer::gMainCam.camRadius, 3.0f, 150.0f);
             }
 
             lastMousePos.x = x;

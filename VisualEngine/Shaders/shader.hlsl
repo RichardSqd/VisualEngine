@@ -80,9 +80,23 @@ VertexOut VS(VertexIn vin)
 
 float4 PS(VertexOut pin) : SV_Target
 {
-	float4 diffuseAlbedo = DiffuseFactor * diffuseMap.Sample(samLinearClamp, pin.uv);
+	float4 diffuseAlbedo;
+	float2 metallicRoughnessFactor;
 
-	float2 metallicRoughnessFactor = float2(MetallicFactor, RoughnessFactor);
+	if (HasDiffuseTexture) {
+		diffuseAlbedo = DiffuseFactor * diffuseMap.Sample(samPointWrap, pin.uv);
+	}
+	else {
+		diffuseAlbedo = DiffuseFactor;
+	}
+
+	if (HasMetallicRoughnessTexture) {
+		metallicRoughnessFactor = float2(MetallicFactor, RoughnessFactor);
+	}
+	else {
+		metallicRoughnessFactor = float2(0.25, 0.25);
+	}
+	
 	float2 metallicRoughness = metallicRoughnessFactor * metallicRoughnessMap.Sample(samLinearClamp, pin.uv).bg;
 
 	float4 ambientLight = float4(0.25f, 0.25f, 0.35f, 1.0f);
@@ -93,7 +107,7 @@ float4 PS(VertexOut pin) : SV_Target
 	surface.NdotV = saturate(dot(surface.N, surface.V));
 	surface.diffuse = diffuseAlbedo.rgb * (1 - dielectricSpecular) * (1 - metallicRoughness.x) * 1;
 
-	return  float4(surface.diffuse, diffuseAlbedo.a);
+	return float4(surface.diffuse, diffuseAlbedo.a);
 }
 
 float3 ComputeNormal(VertexOut pin) {

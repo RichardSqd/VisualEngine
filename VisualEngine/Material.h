@@ -34,6 +34,11 @@ struct Material
 	UINT normalMapSrvHeapIndex = -1;
 	UINT occlusionMapSrvHeapIndex = -1;
 
+	bool hasDiffuseTexture = false;
+	bool hasMetallicRoughnessTexture = false;
+	bool hasNormalTexture = false;
+	bool hasOcclusionTexture = false;
+
 
 	int numFrameDirty = Graphics::gNumFrameResources;
 

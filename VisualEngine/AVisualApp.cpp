@@ -29,7 +29,7 @@ void AVisualApp::InitApp() {
 	commandList->Reset(context->getCommandAllocator().Get(), nullptr);
 	Renderer::Init(context);
 	if (Graphics::gRayTraceEnvironmentActive) {
-		DXRRenderer::Init(context);
+		//DXRRenderer::Init(context);
 	}
 	BREAKIFFAILED(commandList->Close());
 	ID3D12CommandList* cmds[] = { commandList.Get() };

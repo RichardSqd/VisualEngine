@@ -67,7 +67,7 @@ inline DirectX::XMMATRIX Math::Scale(const std::vector<double> v) {
 	return DirectX::XMMATRIX(   v[0],       0,     0,    0,
 								   0,    v[1],     0,    0,
 								   0,       0,  v[2],    0,
-								   0,       0,     0,  v[3]);
+								   0,       0,     0,    1);
 }
 inline DirectX::XMMATRIX Math::Trans(const std::vector<double> v) {
 	if (v.size() != 3)  return Math::IdentityMatrix();

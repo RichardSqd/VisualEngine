@@ -9,6 +9,8 @@ namespace Config {
 	const bool useGPUBasedValidation = true;
 	const std::wstring gltfFileDirectory  = L"Models\\Avocado\\glTF";
 	const std::wstring gltfFileName = L"Avocado.gltf";
+	//const std::wstring gltfFileDirectory  = L"Models\\testscene";
+	//const std::wstring gltfFileName = L"testscene3.gltf";
 	const std::wstring testSceneFilePath = L"Models\\skull.txt";
 	const std::wstring testShaderPath = L"Shaders\\testshader.hlsl";
 	const std::wstring shaderFilePath = L"Shaders\\shader.hlsl";

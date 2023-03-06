@@ -183,7 +183,7 @@ namespace Renderer {
 		psoDesc.DSVFormat = Graphics::gDepthStencilFormat; // DXGI_FORMAT_D32_FLOAT;
 		psoDesc.SampleDesc.Count = 1; //no msaa for now 
 
-		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
 
 		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPso)));
 
@@ -269,7 +269,8 @@ namespace Renderer {
 				//offset to the object cbv in the descriptor heap 
 				int heapIndex = (objCount + 1) * Graphics::gNumFrameResources + 
 								frameIndex * matCount + matIndex;
-				//Utils::Print(std::to_wstring(heapIndex).c_str());
+				Utils::Print(std::to_wstring(matCount).c_str());
+				Utils::Print(std::to_wstring(heapIndex).c_str());
 				
 				auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
@@ -288,11 +289,13 @@ namespace Renderer {
 
 	void CreateShaderResourceViews() {
 		//create texture heap descriptors and associate them with loaded resources
+		
 		UINT objCount = EngineCore::eModel.numPrimitives;
 		UINT matCount = (UINT)EngineCore::eModel.materials.size();
 		UINT textureCount = (UINT)EngineCore::eModel.textures.size();
+		auto& model = EngineCore::eModel;
 		auto& textures = EngineCore::eModel.textures;
-
+		
 		
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -305,9 +308,9 @@ namespace Renderer {
 		//1xpass + objCount for each frame resource and matCount for each materials 
 		int heapIndex = (1 + objCount + matCount) * Graphics::gNumFrameResources ;
 
-		for (UINT i = 0; i < EngineCore::eModel.materials.size(); i++) {
-			auto& mat = EngineCore::eModel.materials[i];
-			if (!mat->texDiffuseMap.empty()) {
+		for (UINT i = 0; i < model.materials.size(); i++) {
+			auto& mat = model.materials[i];
+			if (mat->hasDiffuseTexture) {
 				mat->diffuseMapSrvHeapIndex = heapIndex;
 				auto& texResource = textures[mat->texDiffuseMap]->textureResource;
 				auto des = texResource->GetDesc();
@@ -319,13 +322,15 @@ namespace Renderer {
 				
 			}
 			else {
+				mat->diffuseMapSrvHeapIndex = heapIndex;
 				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+				srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				Graphics::gDevice->CreateShaderResourceView(nullptr, &srvDesc, handle);
 			}
 			heapIndex++;
 
-			if (!mat->texroughnessMetallicMap.empty()) {
+			if (mat->hasMetallicRoughnessTexture) {
 				mat->roughnessMetallicMapSrvHeaIndex = heapIndex;
 				auto& texResource = textures[mat->texroughnessMetallicMap]->textureResource;
 				auto des = texResource->GetDesc();
@@ -338,13 +343,14 @@ namespace Renderer {
 				
 			}
 			else {
+				mat->roughnessMetallicMapSrvHeaIndex = heapIndex;
 				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				Graphics::gDevice->CreateShaderResourceView(nullptr, &srvDesc, handle);
 			}
 			heapIndex++;
 
-			if (!mat->texNormalMap.empty()) {
+			if (mat->hasNormalTexture) {
 				mat->normalMapSrvHeapIndex = heapIndex;
 				auto& texResource = textures[mat->texNormalMap]->textureResource;
 				srvDesc.Format = texResource->GetDesc().Format;
@@ -356,13 +362,14 @@ namespace Renderer {
 				
 			}
 			else {
+				mat->normalMapSrvHeapIndex = heapIndex;
 				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				Graphics::gDevice->CreateShaderResourceView(nullptr, &srvDesc, handle);
 			}
 
 			heapIndex++;
-			if (!mat->texOcclusionMap.empty()) {
+			if (mat->hasOcclusionTexture) {
 				mat->occlusionMapSrvHeapIndex = heapIndex;
 				auto& texResource = textures[mat->texOcclusionMap]->textureResource;
 				srvDesc.Format = texResource->GetDesc().Format;
@@ -374,6 +381,7 @@ namespace Renderer {
 
 			}
 			else {
+				mat->occlusionMapSrvHeapIndex = heapIndex;
 				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				Graphics::gDevice->CreateShaderResourceView(nullptr, &srvDesc, handle);
@@ -401,7 +409,7 @@ namespace Renderer {
 		BREAKIFFAILED(Graphics::gDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(Graphics::gDsvHeap.GetAddressOf())));
 
 		//create srv/cbv desc heap 
-		UINT numDescriptors = (static_cast<unsigned long long>(EngineCore::eModel.numPrimitives) 
+		UINT numDescriptors = (static_cast<unsigned long long>(EngineCore::eModel.numNodes) 
 			+ 1 + (UINT)EngineCore::eModel.materials.size()) * Graphics::gNumFrameResources + 
 			static_cast<unsigned long long>((UINT)EngineCore::eModel.materials.size()) * 4;
 		D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc{};
@@ -609,7 +617,6 @@ namespace Renderer {
 		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
 			auto& node = EngineCore::eModel.nodes[i];
 			if (node.numFrameDirty > 0) {
-				Utils::Print("Update OBJ CB LOOP");
 				DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&node.matrix);
 
 				ObjectConstants objConsts;
@@ -638,10 +645,10 @@ namespace Renderer {
 				materialConsts.diffuseFactor =  mat->diffuse;
 				materialConsts.metallicFactor = mat->metalness;
 				materialConsts.roughnessFactor = mat->roughness;
-				materialConsts.hasDiffuseTexture = mat->diffuseMapSrvHeapIndex >= 0;
-				materialConsts.hasMetallicRoughnessTexture = mat->roughnessMetallicMapSrvHeaIndex >= 0;
-				materialConsts.hasNormalTexture = mat->normalMapSrvHeapIndex >= 0;
-				materialConsts.hasOcclusionTexture = mat->occlusionMapSrvHeapIndex >= 0;
+				materialConsts.hasDiffuseTexture = mat->hasDiffuseTexture;
+				materialConsts.hasMetallicRoughnessTexture = mat->hasMetallicRoughnessTexture;
+				materialConsts.hasNormalTexture = mat->hasNormalTexture ;
+				materialConsts.hasOcclusionTexture = mat->hasOcclusionTexture;
 				curFrameMatCB->CopyData(i, &materialConsts);
 				mat->numFrameDirty--;
 			}
@@ -787,9 +794,9 @@ namespace Renderer {
 			D3D12_VERTEX_BUFFER_VIEW vbvNormal = {};
 			D3D12_VERTEX_BUFFER_VIEW vbvTexCord = {};
 			D3D12_VERTEX_BUFFER_VIEW vbvTangent = {};
-			D3D12_INDEX_BUFFER_VIEW ivb = {};
+			D3D12_INDEX_BUFFER_VIEW ibv = {};
 
-			ivb.BufferLocation = model.indexBufferGPU->GetGPUVirtualAddress();
+			ibv.BufferLocation = model.indexBufferGPU->GetGPUVirtualAddress();
 
 			vbvPos.BufferLocation = model.vertexPosBufferGPU->GetGPUVirtualAddress();
 			vbvPos.StrideInBytes = sizeof(Scene::VertexPos);
@@ -801,9 +808,10 @@ namespace Renderer {
 			vbvTexCord.BufferLocation = model.vertexTexCordBufferGPU->GetGPUVirtualAddress();
 			vbvTexCord.StrideInBytes = sizeof(Scene::VertexTexCord);
 
-			vbvTangent.BufferLocation = model.vertexTangentBufferGPU->GetGPUVirtualAddress();
-			vbvTangent.StrideInBytes = sizeof(Scene::VertexTangent);
-			
+			if(model.vertexTangentBufferByteSize>0){
+				vbvTangent.BufferLocation = model.vertexTangentBufferGPU->GetGPUVirtualAddress();
+				vbvTangent.StrideInBytes = sizeof(Scene::VertexTangent);
+			}
 
 			for (auto& prim : primitives) {
 				//set mat 
@@ -824,19 +832,22 @@ namespace Renderer {
 
 
 
-				// set vertex/index for each render object
-				ivb.Format = DXGI_FORMAT_R16_UINT;
-				ivb.SizeInBytes = prim.indexBufferByteSize;
+				// set vertex/index for each render primitive
+				ibv.Format = prim.iformat;
+				ibv.SizeInBytes = prim.indexBufferByteSize;
+				ibv.BufferLocation += prim.ibOffset;
 	
 				vbvPos.SizeInBytes = prim.vertexBufferPosByteSize;
+				vbvPos.BufferLocation += prim.vbPosOffset;
 				commandList->IASetVertexBuffers(0, 1, &vbvPos);
 
 				vbvTexCord.SizeInBytes = prim.vertexBufferTexCordByteSize;
+				vbvTexCord.BufferLocation += prim.vbTexOffset;
 				commandList->IASetVertexBuffers(2, 1, &vbvTexCord);
 					
-				commandList->IASetIndexBuffer(&ivb);
+				commandList->IASetIndexBuffer(&ibv);
 				commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				commandList->DrawIndexedInstanced(prim.indexCount, 1, prim.ibOffset, prim.vbPosOffset, 0);
+				commandList->DrawIndexedInstanced(prim.indexCount, 1, 0, 0, 0);
 			
 			}
 			

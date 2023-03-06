@@ -22,7 +22,8 @@ namespace Scene {
 	
 	void SolveMeshs(tinygltf::Model& tinyModel, int meshIndex , Scene::Model& model, Scene::Node& node, DirectX::XMMATRIX& localToObject) {
 		
-		Mesh& mesh = model.meshes[meshIndex] = Mesh{};
+		model.meshes[meshIndex] = Mesh{};
+		Mesh& mesh = model.meshes[meshIndex];
 		tinygltf::Mesh& tinyMesh = tinyModel.meshes[meshIndex];
 
 		//buffer views 
@@ -61,7 +62,7 @@ namespace Scene {
 				auto& indexDataBuffer = tinyModel.buffers[indexBufferview.buffer].data;
 				//Utils::Print(std::to_string(indexDataBuffer.size()).c_str());
 				auto itBegin = std::next(tinyModel.buffers[indexBufferview.buffer].data.begin(), indexAccessor.byteOffset + indexBufferview.byteOffset);
-				auto itEnd = std::next(tinyModel.buffers[indexBufferview.buffer].data.begin(), indexAccessor.byteOffset + indexBufferview.byteOffset + indexBufferview.byteLength);
+				auto itEnd = std::next(tinyModel.buffers[indexBufferview.buffer].data.begin(), indexBufferview.byteOffset + indexBufferview.byteLength);
 				model.indexBufferCPU.insert(model.indexBufferCPU.end(), 
 											make_move_iterator(itBegin),
 											make_move_iterator(itEnd));
@@ -94,8 +95,8 @@ namespace Scene {
 				tinygltf::Accessor accessor = tinyModel.accessors[attribute.second];
 				tinygltf::BufferView vaBufferview = tinyModel.bufferViews[accessor.bufferView];
 
-				int byteStride = accessor.ByteStride(tinyModel.bufferViews[accessor.bufferView]);
-				size_t byteOffset = accessor.byteOffset;
+				//int byteStride = accessor.ByteStride(tinyModel.bufferViews[accessor.bufferView]);
+				//size_t byteOffset = accessor.byteOffset;
 
 
 				int size = 1;
@@ -110,7 +111,7 @@ namespace Scene {
 					
 					UINT vbOffset = model.vertexPosBufferCPU.size();
 					auto vbBegin = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), accessor.byteOffset + vaBufferview.byteOffset);
-					auto vbEnd = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), accessor.byteOffset + vaBufferview.byteOffset + vaBufferview.byteLength);
+					auto vbEnd = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), vaBufferview.byteOffset + vaBufferview.byteLength);
 					model.vertexPosBufferCPU.insert(model.vertexPosBufferCPU.end(),
 						make_move_iterator(vbBegin),
 						make_move_iterator(vbEnd));
@@ -133,7 +134,7 @@ namespace Scene {
 					ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
 					UINT vbOffset = model.vertexNormalBufferCPU.size();
 					auto vbBegin = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), accessor.byteOffset + vaBufferview.byteOffset);
-					auto vbEnd = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), accessor.byteOffset + vaBufferview.byteOffset + vaBufferview.byteLength);
+					auto vbEnd = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), vaBufferview.byteOffset + vaBufferview.byteLength);
 					model.vertexNormalBufferCPU.insert(model.vertexNormalBufferCPU.end(),
 						make_move_iterator(vbBegin),
 						make_move_iterator(vbEnd));
@@ -151,7 +152,7 @@ namespace Scene {
 					ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
 					UINT vbOffset = model.vertexTexCordBufferCPU.size();
 					auto vbBegin = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), accessor.byteOffset + vaBufferview.byteOffset);
-					auto vbEnd = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), accessor.byteOffset + vaBufferview.byteOffset + vaBufferview.byteLength);
+					auto vbEnd = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), vaBufferview.byteOffset + vaBufferview.byteLength);
 					model.vertexTexCordBufferCPU.insert(model.vertexTexCordBufferCPU.end(),
 						make_move_iterator(vbBegin),
 						make_move_iterator(vbEnd));
@@ -167,7 +168,7 @@ namespace Scene {
 					ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)\
 					UINT vbOffset = model.vertexTangentBufferCPU.size();
 					auto vbBegin = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), accessor.byteOffset + vaBufferview.byteOffset);
-					auto vbEnd = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), accessor.byteOffset + vaBufferview.byteOffset + vaBufferview.byteLength);
+					auto vbEnd = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), vaBufferview.byteOffset + vaBufferview.byteLength);
 					model.vertexTangentBufferCPU.insert(model.vertexTangentBufferCPU.end(),
 						make_move_iterator(vbBegin),
 						make_move_iterator(vbEnd));
@@ -249,16 +250,30 @@ namespace Scene {
 				localToObject = Math::VectorToMatrix(tinyNode.matrix) * localToObject;
 			}
 			else {
-				DirectX::XMMATRIX scale =  DirectX::XMMatrixScaling(10,10,10); //Math::Scale(tinyNode.scale);
+				DirectX::XMMATRIX scale;
+				DirectX::XMMATRIX translate;
+				if (tinyNode.scale.size() == 3) {
+					scale = DirectX::XMMatrixScaling(tinyNode.scale[0]*1, tinyNode.scale[1] * 1, tinyNode.scale[2]*1);
+				}
+				else {
+					scale = DirectX::XMMatrixScaling(1, 1, 1);
+				}
+				if (tinyNode.translation.size() == 3) {
+					translate = DirectX::XMMatrixTranslation(tinyNode.translation[0], tinyNode.translation[1], tinyNode.translation[2]);
 
-				DirectX::XMMATRIX translate = Math::Trans(tinyNode.translation);
-				DirectX::XMMATRIX rotate = Math::QuaternionToMatrix(tinyNode.rotation);
+				}
+				else {
+					translate = DirectX::XMMatrixTranslation(0, 0, 0);
+
+				}
+				translate = Math::Trans(tinyNode.translation);
+				//DirectX::XMMATRIX rotate = Math::QuaternionToMatrix(tinyNode.rotation);
 				
-				DirectX::XMMATRIX m = translate * rotate * scale;
-				localToObject = scale  * translate; //* rotate * translate;
+				localToObject =  translate * scale  ;
 				
 				
 			}
+			model.nodes[nodeIndex].mesh = tinyNode.mesh;
 			DirectX::XMStoreFloat4x4(&model.nodes[nodeIndex].matrix, localToObject);
 			SolveMeshs(tinyModel, tinyNode.mesh, model, model.nodes[nodeIndex], localToObject);
 		}
@@ -350,9 +365,10 @@ namespace Scene {
 				diffuseTex->textureUploader->SetName(L"diffuseTexUploader");
 				diffuseTex->textureResource->SetName(L"diffuseTexDefault");
 				model.textures[diffuseTex->name] = std::move(diffuseTex);
+				mat->hasDiffuseTexture = true;
 			}
 			else {
-				mat->texDiffuseMap = "";
+				mat->hasDiffuseTexture = false;
 			}
 			
 
@@ -385,9 +401,10 @@ namespace Scene {
 
 				UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), roughnessMetallicTex->textureResource, roughnessMetallicTex->textureUploader, subresource);
 				model.textures[roughnessMetallicTex->name] = std::move(roughnessMetallicTex);
-
+				mat->hasMetallicRoughnessTexture = true;
 			}
 			else {
+				mat->hasMetallicRoughnessTexture = false;
 				mat->texroughnessMetallicMap = "";
 			}
 			
@@ -422,8 +439,10 @@ namespace Scene {
 
 				UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), normalTex->textureResource, normalTex->textureUploader, subresource);
 				model.textures[normalTex->name] = std::move(normalTex);
+				mat->hasNormalTexture = true;
 			}
 			else {
+				mat->hasNormalTexture = false;
 				mat->texNormalMap = "";
 			}
 			
@@ -457,8 +476,10 @@ namespace Scene {
 				UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), occlusionTex->textureResource, occlusionTex->textureUploader, subresource);
 				model.textures[occlusionTex->name] = std::move(occlusionTex);
 				//occlusionTex->name = 
+				mat->hasOcclusionTexture = true;
 			}
 			else {
+				mat->hasOcclusionTexture = false;
 				mat->texOcclusionMap = "";
 			}
 			
@@ -552,7 +573,10 @@ namespace Scene {
 		model.vertexPosBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexPosBufferCPU.data(), model.vertexPosBufferByteSize, vertexPosUploader);
 		model.vertexNormalBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexNormalBufferCPU.data(), model.vertexNormalBufferByteSize, vertexNormalUploader);
 		model.vertexTexCordBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexTexCordBufferCPU.data(), model.vertexTexCordBufferByteSize, vertexTexCordUploader);
-		model.vertexTangentBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexTangentBufferCPU.data(), model.vertexTangentBufferByteSize, vertexTangentUploader);
+		
+		if (model.vertexTangentBufferByteSize > 0) {
+			model.vertexTangentBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexTangentBufferCPU.data(), model.vertexTangentBufferByteSize, vertexTangentUploader);
+		}
 
 
 		return 1;
