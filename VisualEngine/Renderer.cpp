@@ -34,6 +34,11 @@ namespace Renderer {
 
 	Camera gMainCam{};
 
+	UINT objectCBVHeapIndexStart = 0;
+	UINT passCBVHeapIndexStart = 0;
+	UINT matCBVHeapIndexStart = 0;
+	UINT texSRVHeapIndexStart = 0;
+
 
 	void Init(CommandContext* context) {
 		rCommandList = context->getCommandList();
@@ -203,23 +208,25 @@ namespace Renderer {
 	
 
 	void CreateConstantBufferViews() {
+		auto& model = EngineCore::eModel;
 		UINT objectCBByteSize = Graphics::gObjectCBByteSize;
-		UINT objCount = EngineCore::eModel.numPrimitives;
+		UINT primCount = model.numPrimitives;
 
 
 		//generate constant buffer views for all frame resources 
 		for (UINT frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
 			auto objCB = Graphics::gFrameResourceManager.GetFrameResourceByIndex(frameIndex)->objCB->GetResource();
 
-			for (UINT objIndex = 0; objIndex < objCount; objIndex++) {
-				
+			for (UINT nodeIndex = 0; nodeIndex < model.numNodes; nodeIndex++) {
+				auto& node = model.nodes[nodeIndex];
 				D3D12_GPU_VIRTUAL_ADDRESS cbAddress = objCB->GetGPUVirtualAddress();
 
 				//offset to each object constant buffer
-				cbAddress += static_cast<unsigned long long>(objIndex) * objectCBByteSize;
+				cbAddress += static_cast<unsigned long long>(nodeIndex) * objectCBByteSize;
 
 				//offset to the object cbv in the descriptor heap 
-				int heapIndex = frameIndex * objCount + objIndex;
+				int heapIndex = frameIndex * model.numNodes + nodeIndex;
+				node.cbdHeapIndexByFrames[frameIndex] = heapIndex;
 				auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 			
@@ -231,6 +238,7 @@ namespace Renderer {
 			}
 
 		}
+		passCBVHeapIndexStart = model.numNodes * Graphics::gNumFrameResources;
 
 		UINT passCBByteSize = Graphics::gPassCBByteSize;
 		//pass CBVs 
@@ -240,7 +248,7 @@ namespace Renderer {
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress = passCB->GetGPUVirtualAddress();
 
 			//offset to each pass constant buffer
-			int heapIndex = frameIndex + objCount * Graphics::gNumFrameResources;
+			int heapIndex = frameIndex + passCBVHeapIndexStart;
 			auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 			handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 
@@ -253,7 +261,7 @@ namespace Renderer {
 			cbvDesc.SizeInBytes = passCBByteSize;
 			Graphics::gDevice->CreateConstantBufferView(&cbvDesc, handle);
 		}
-
+		matCBVHeapIndexStart = passCBVHeapIndexStart + Graphics::gNumFrameResources;
 		 
 		UINT matCBByteSize = Graphics::gMatCBByteSize;
 		UINT matCount = (UINT)EngineCore::eModel.materials.size();
@@ -267,10 +275,10 @@ namespace Renderer {
 				cbAddress += static_cast<unsigned long long>(matIndex) * matCBByteSize;
 
 				//offset to the object cbv in the descriptor heap 
-				int heapIndex = (objCount + 1) * Graphics::gNumFrameResources + 
+				int heapIndex = matCBVHeapIndexStart +
 								frameIndex * matCount + matIndex;
-				Utils::Print(std::to_wstring(matCount).c_str());
-				Utils::Print(std::to_wstring(heapIndex).c_str());
+				//Utils::Print(std::to_wstring(matCount).c_str());
+				//Utils::Print(std::to_wstring(heapIndex).c_str());
 				
 				auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
@@ -282,7 +290,7 @@ namespace Renderer {
 			}
 
 		}
-
+		texSRVHeapIndexStart = matCBVHeapIndexStart + matCount * Graphics::gNumFrameResources;
 
 	}
 
@@ -290,7 +298,6 @@ namespace Renderer {
 	void CreateShaderResourceViews() {
 		//create texture heap descriptors and associate them with loaded resources
 		
-		UINT objCount = EngineCore::eModel.numPrimitives;
 		UINT matCount = (UINT)EngineCore::eModel.materials.size();
 		UINT textureCount = (UINT)EngineCore::eModel.textures.size();
 		auto& model = EngineCore::eModel;
@@ -305,8 +312,7 @@ namespace Renderer {
 		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-		//1xpass + objCount for each frame resource and matCount for each materials 
-		int heapIndex = (1 + objCount + matCount) * Graphics::gNumFrameResources ;
+		int heapIndex = texSRVHeapIndexStart;
 
 		for (UINT i = 0; i < model.materials.size(); i++) {
 			auto& mat = model.materials[i];
@@ -622,7 +628,7 @@ namespace Renderer {
 				ObjectConstants objConsts;
 				DirectX::XMStoreFloat4x4(&objConsts.World, world);
 				
-				DirectX::XMStoreFloat4x4(&objConsts.WorldIT, Math::InverseTranspose(world));
+				DirectX::XMStoreFloat4x4(&objConsts.WorldIT, DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(world), world)));
 				
 				curFrameObjCB->CopyData(i, &objConsts);
 
@@ -665,7 +671,7 @@ namespace Renderer {
 
 		//todo:
 		PassConstants pConsts;
-		DirectX::XMStoreFloat4x4(&pConsts.ViewProjMatrix, XMMatrixTranspose(viewProj));
+		DirectX::XMStoreFloat4x4(&pConsts.ViewProjMatrix, viewProj);
 		pConsts.CameraPos = gMainCam.camPos;
 		pConsts.NearZ = 1.0;
 		pConsts.FarZ = 1000.0;
@@ -772,19 +778,22 @@ namespace Renderer {
 	void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList) {
 
 		Scene::Model& model = EngineCore::eModel;
-		UINT objCount = model.numNodes;
+		//UINT objCount = model.numNodes;
 		UINT matCount = model.numMaterials;
 		
 		UINT curFrameIndex = Graphics::gFrameResourceManager.GetCurrentIndex();
 		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
 
 			auto& node = model.nodes[i];
+			if (node.mesh < 0 || node.mesh>=model.numMeshes) {
+				continue;
+			}
 			auto& primitives = model.meshes[node.mesh].primitives;
 
 
 			// set obj CBV in the descritpor heap for each node for the current frame resource
 			//todo: object constant buffer view index can be saved as a member of nodes
-			UINT cbvIndex = curFrameIndex * EngineCore::eModel.numNodes + i;
+			UINT cbvIndex = node.cbdHeapIndexByFrames[curFrameIndex];
 			auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 			cbvHandle.Offset(cbvIndex, Graphics::gCbvSrvUavDescriptorSize);
 			commandList->SetGraphicsRootDescriptorTable(1, cbvHandle);
@@ -801,13 +810,16 @@ namespace Renderer {
 			vbvPos.BufferLocation = model.vertexPosBufferGPU->GetGPUVirtualAddress();
 			vbvPos.StrideInBytes = sizeof(Scene::VertexPos);
 
-			vbvNormal.BufferLocation = model.vertexNormalBufferGPU->GetGPUVirtualAddress();
-			vbvNormal.StrideInBytes = sizeof(Scene::VertexNormal);
+			if (model.vertexNormalBufferByteSize > 0) {
+				vbvNormal.BufferLocation = model.vertexNormalBufferGPU->GetGPUVirtualAddress();
+				vbvNormal.StrideInBytes = sizeof(Scene::VertexNormal);
+			}
 
-
-			vbvTexCord.BufferLocation = model.vertexTexCordBufferGPU->GetGPUVirtualAddress();
-			vbvTexCord.StrideInBytes = sizeof(Scene::VertexTexCord);
-
+			if (model.vertexTexCordBufferByteSize > 0) {
+				vbvTexCord.BufferLocation = model.vertexTexCordBufferGPU->GetGPUVirtualAddress();
+				vbvTexCord.StrideInBytes = sizeof(Scene::VertexTexCord);
+			}
+			
 			if(model.vertexTangentBufferByteSize>0){
 				vbvTangent.BufferLocation = model.vertexTangentBufferGPU->GetGPUVirtualAddress();
 				vbvTangent.StrideInBytes = sizeof(Scene::VertexTangent);

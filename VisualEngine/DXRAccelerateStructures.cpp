@@ -57,7 +57,7 @@ namespace DXRAS {
 			D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputDesc = {};
 			inputDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
 			inputDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-			inputDesc.NumDescs = m_VBdescriptors.size();
+			inputDesc.NumDescs = (UINT)m_VBdescriptors.size();
 			inputDesc.pGeometryDescs = m_VBdescriptors.data();
 			inputDesc.Flags = m_flags;
 
@@ -103,7 +103,7 @@ namespace DXRAS {
 		D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc = {};
 		desc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
 		desc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-		desc.Inputs.NumDescs = m_VBdescriptors.size();
+		desc.Inputs.NumDescs = (UINT)m_VBdescriptors.size();
 		desc.Inputs.pGeometryDescs = m_VBdescriptors.data();
 		desc.DestAccelerationStructureData = {
 			pResult->GetGPUVirtualAddress()
@@ -158,7 +158,7 @@ namespace DXRAS {
 			D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputDesc = {};
 			inputDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 			inputDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-			inputDesc.NumDescs = m_instances.size();
+			inputDesc.NumDescs = (UINT) m_instances.size();
 			inputDesc.Flags = m_flags;
 
 
@@ -231,7 +231,7 @@ namespace DXRAS {
 		desc.Inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 		desc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
 		desc.Inputs.InstanceDescs = pInstanceDesc->GetGPUVirtualAddress();
-		desc.Inputs.NumDescs = m_instances.size();
+		desc.Inputs.NumDescs = (UINT)m_instances.size();
 		desc.DestAccelerationStructureData = {
 			pResult->GetGPUVirtualAddress()
 		};

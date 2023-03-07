@@ -136,18 +136,19 @@ namespace Scene {
 	};
 
 	struct Node {
-		
+		Node();
 		DirectX::XMFLOAT4X4 matrix;
 		DirectX::XMFLOAT4 rotation;
 		DirectX::XMFLOAT3 scale;
 		DirectX::XMFLOAT3 translation;
-		UINT32 mesh;
+		int mesh;
 
 		UINT32 indexCount;
 		UINT32 ibOffset;
 		UINT32 vbOffset;
 
 		UINT32 numFrameDirty;
+		std::vector<UINT32> cbdHeapIndexByFrames;
 	};
 
 	struct Model {

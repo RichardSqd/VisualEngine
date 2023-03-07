@@ -48,4 +48,10 @@ namespace Renderer {
 	extern Camera gMainCam;
 
 	extern DirectX::XMFLOAT4X4 gview;
+
+	extern UINT objectCBVHeapIndexStart;
+	extern UINT passCBVHeapIndexStart;
+	extern UINT matCBVHeapIndexStart;
+	extern UINT texSRVHeapIndexStart;
+
 }

@@ -41,7 +41,7 @@ namespace Scene {
 		}
 
 		mesh.primitives.resize(tinyMesh.primitives.size());
-		model.numPrimitives += tinyMesh.primitives.size();
+		model.numPrimitives += (UINT)tinyMesh.primitives.size();
 		for (UINT i = 0; i < tinyMesh.primitives.size(); i++) {
 			tinygltf::Primitive& tinyPrimitive = tinyMesh.primitives[i];
 			Primitive& primitive = mesh.primitives[i];
@@ -70,7 +70,7 @@ namespace Scene {
 				//primitive = indexBufferview.buffer;
 				primitive.iformat = DXGI_FORMAT_R16_UINT;
 				primitive.ibOffset = ibOffset;
-				primitive.indexBufferByteSize = indexBufferview.byteLength;
+				primitive.indexBufferByteSize = (UINT)indexBufferview.byteLength;
 				primitive.indexCount = (UINT)indexAccessor.count;
 
 
@@ -109,7 +109,7 @@ namespace Scene {
 					ASSERT(accessor.type == TINYGLTF_TYPE_VEC3 );
 					ASSERT(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
 					
-					UINT vbOffset = model.vertexPosBufferCPU.size();
+					UINT vbOffset = (UINT)model.vertexPosBufferCPU.size();
 					auto vbBegin = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), accessor.byteOffset + vaBufferview.byteOffset);
 					auto vbEnd = std::next(tinyModel.buffers[vaBufferview.buffer].data.begin(), vaBufferview.byteOffset + vaBufferview.byteLength);
 					model.vertexPosBufferCPU.insert(model.vertexPosBufferCPU.end(),
@@ -140,7 +140,7 @@ namespace Scene {
 						make_move_iterator(vbEnd));
 
 					primitive.vbNormalOffset = vbOffset;
-					primitive.vbNormalBufferByteSize = vaBufferview.byteLength;
+					primitive.vbNormalBufferByteSize = (UINT)vaBufferview.byteLength;
 
 					model.vertexNormalBufferByteSize += vaBufferview.byteLength;
 
@@ -157,7 +157,7 @@ namespace Scene {
 						make_move_iterator(vbBegin),
 						make_move_iterator(vbEnd));
 					primitive.vbTexOffset = vbOffset;
-					primitive.vertexBufferTexCordByteSize = vaBufferview.byteLength;
+					primitive.vertexBufferTexCordByteSize = (UINT)vaBufferview.byteLength;
 
 					model.vertexTexCordBufferByteSize += vaBufferview.byteLength;
 					//model.vertexTexCordBufferByteSize += vaBufferview.byteLength;
@@ -175,7 +175,7 @@ namespace Scene {
 					//model.vertexTangentBufferByteSize += vaBufferview.byteLength;
 
 					primitive.vbTangentOffset = vbOffset;
-					primitive.vbTangentBufferByteSize = vaBufferview.byteLength;
+					primitive.vbTangentBufferByteSize = (UINT)vaBufferview.byteLength;
 					model.vertexTangentBufferByteSize += vaBufferview.byteLength;
 				}
 				Utils::Print(attribute.first.c_str());
@@ -237,50 +237,59 @@ namespace Scene {
 	}
 
 	//recursively discover nodes 
-	void SolveNodes(tinygltf::Model& tinyModel, int nodeIndex, Scene::Model& model, DirectX::XMMATRIX& localToObject) {
+	void SolveNodes(tinygltf::Model& tinyModel, int nodeIndex, Scene::Model& model, DirectX::XMMATRIX& localToObject, std::vector<bool> visited) {
 
 		model.nodes[nodeIndex] = Node{};
+		model.nodes[nodeIndex].cbdHeapIndexByFrames.resize(Graphics::gNumFrameResources);
 		model.nodes[nodeIndex].numFrameDirty = Graphics::gNumFrameResources;
 		tinygltf::Node& tinyNode = tinyModel.nodes[nodeIndex];
+		model.nodes[nodeIndex].mesh = tinyNode.mesh;
 		//validate current mesh
 		
 		if ((tinyNode.mesh >= 0) && (tinyNode.mesh < tinyModel.meshes.size())) {
 
 			if (tinyNode.matrix.size() != 0) {
-				localToObject = Math::VectorToMatrix(tinyNode.matrix) * localToObject;
+				localToObject = localToObject * Math::VectorToMatrix(tinyNode.matrix) ;
 			}
 			else {
 				DirectX::XMMATRIX scale;
 				DirectX::XMMATRIX translate;
 				if (tinyNode.scale.size() == 3) {
-					scale = DirectX::XMMatrixScaling(tinyNode.scale[0]*1, tinyNode.scale[1] * 1, tinyNode.scale[2]*1);
+					scale = DirectX::XMMatrixScaling((float)tinyNode.scale[0]*1.0, (float)tinyNode.scale[1] * 1.0, (float)tinyNode.scale[2]*1.0);
 				}
 				else {
-					scale = DirectX::XMMatrixScaling(1, 1, 1);
+					scale = DirectX::XMMatrixScaling(50, 50, 50);
 				}
 				if (tinyNode.translation.size() == 3) {
-					translate = DirectX::XMMatrixTranslation(tinyNode.translation[0], tinyNode.translation[1], tinyNode.translation[2]);
+					translate = DirectX::XMMatrixTranslation((float)tinyNode.translation[0], (float)tinyNode.translation[1], (float)tinyNode.translation[2]);
 
 				}
 				else {
 					translate = DirectX::XMMatrixTranslation(0, 0, 0);
 
 				}
-				translate = Math::Trans(tinyNode.translation);
-				//DirectX::XMMATRIX rotate = Math::QuaternionToMatrix(tinyNode.rotation);
 				
-				localToObject =  translate * scale  ;
+				//DirectX::XMMATRIX rotate = Math::QuaternionToMatrix(tinyNode.rotation);
+				 
+				localToObject =  scale * translate;
+				
 				
 				
 			}
-			model.nodes[nodeIndex].mesh = tinyNode.mesh;
+			
 			DirectX::XMStoreFloat4x4(&model.nodes[nodeIndex].matrix, localToObject);
 			SolveMeshs(tinyModel, tinyNode.mesh, model, model.nodes[nodeIndex], localToObject);
 		}
 
 		for (UINT i = 0; i < tinyNode.children.size(); i++) {
+
 			ASSERT((tinyNode.children[i] >= 0) && (tinyNode.children[i] < tinyModel.nodes.size()));
-			SolveNodes(tinyModel, tinyNode.children[i], model, localToObject);
+			if (!visited[tinyNode.children[i]]) {
+				visited[tinyNode.children[i]] = true;
+				SolveNodes(tinyModel, tinyNode.children[i], model, localToObject, visited);
+			}
+			
+			
 		}
 
 		
@@ -299,8 +308,8 @@ namespace Scene {
 			auto& baseColorFactor =  tinyMat.pbrMetallicRoughness.baseColorFactor;
 			mat->diffuse = { (float)baseColorFactor[0],  (float)baseColorFactor[1],  (float)baseColorFactor[2], (float)baseColorFactor[3] };
 			mat->emissive= { (float)tinyMat.emissiveFactor[0],  (float)tinyMat.emissiveFactor[1],  (float)tinyMat.emissiveFactor[2] };
-			mat->metalness = tinyMat.pbrMetallicRoughness.metallicFactor;
-			mat->roughness = tinyMat.pbrMetallicRoughness.roughnessFactor;
+			mat->metalness = (float)tinyMat.pbrMetallicRoughness.metallicFactor;
+			mat->roughness = (float)tinyMat.pbrMetallicRoughness.roughnessFactor;
 
 			//extract texture data  
 			//diffuse map  
@@ -482,10 +491,6 @@ namespace Scene {
 				mat->hasOcclusionTexture = false;
 				mat->texOcclusionMap = "";
 			}
-			
-
-
-
 			model.materials[i] = std::move(mat);
 		}
 
@@ -499,10 +504,10 @@ namespace Scene {
 		model.nodes.resize(tinyModel.nodes.size());
 		model.materials.resize(tinyModel.materials.size());
 
-		model.numNodes = tinyModel.nodes.size();
-		model.numMeshes = tinyModel.meshes.size();
-		model.numMaterials = tinyModel.materials.size();
-		model.numTextures = tinyModel.textures.size();
+		model.numNodes = (UINT)tinyModel.nodes.size();
+		model.numMeshes = (UINT)tinyModel.meshes.size();
+		model.numMaterials = (UINT)tinyModel.materials.size();
+		model.numTextures = (UINT)tinyModel.textures.size();
 
 		//DirectX::XMLoadFloat4x4(model.);
 
@@ -513,8 +518,14 @@ namespace Scene {
 		//}
 
 		//iterate over all nodes 
+		std::vector<bool> visited;
+		visited.resize(scene.nodes.size(),false);
 		for (UINT i = 0; i < scene.nodes.size(); i++) {
-			SolveNodes(tinyModel, scene.nodes[i], model, Math::IdentityMatrix());
+			if (!visited[i]) {
+				visited[i] = true;
+				SolveNodes(tinyModel, scene.nodes[i], model, Math::IdentityMatrix(),visited);
+			}
+			
 		}
 
 		SolveMaterials(tinyModel, model, commandList);
@@ -571,9 +582,13 @@ namespace Scene {
 
 		model.indexBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.indexBufferCPU.data(), model.indexBufferByteSize, indexUploader);
 		model.vertexPosBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexPosBufferCPU.data(), model.vertexPosBufferByteSize, vertexPosUploader);
-		model.vertexNormalBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexNormalBufferCPU.data(), model.vertexNormalBufferByteSize, vertexNormalUploader);
-		model.vertexTexCordBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexTexCordBufferCPU.data(), model.vertexTexCordBufferByteSize, vertexTexCordUploader);
 		
+		if (model.vertexNormalBufferByteSize) {
+			model.vertexNormalBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexNormalBufferCPU.data(), model.vertexNormalBufferByteSize, vertexNormalUploader);
+		}
+		if (model.vertexTexCordBufferByteSize > 0) {
+			model.vertexTexCordBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexTexCordBufferCPU.data(), model.vertexTexCordBufferByteSize, vertexTexCordUploader);
+		}
 		if (model.vertexTangentBufferByteSize > 0) {
 			model.vertexTangentBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexTangentBufferCPU.data(), model.vertexTangentBufferByteSize, vertexTangentUploader);
 		}
