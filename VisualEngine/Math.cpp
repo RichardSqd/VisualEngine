@@ -3,14 +3,12 @@
 #include "Math.h"
 const float Math::PI = 3.1415926535f;
 
-
+inline UINT Math::Alignment256(UINT64 byteSize) {
+	return (byteSize + 255) & ~255;
+}
 
 inline DirectX::XMMATRIX Math::IdentityMatrix() {
-	return DirectX::XMMATRIX(
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f);
+	return DirectX::XMMatrixIdentity();
 
 }
 
@@ -65,15 +63,15 @@ inline DirectX::XMMATRIX Math::Scale(const std::vector<double> v) {
 	return DirectX::XMMATRIX(   v[0],       0,     0,    0,
 								   0,    v[1],     0,    0,
 								   0,       0,  v[2],    0,
-								   0,       0,     0,  v[3]);
+								   0,       0,     0,    1);
 }
 inline DirectX::XMMATRIX Math::Trans(const std::vector<double> v) {
 	if (v.size() != 3)  return Math::IdentityMatrix();
 	
-	return DirectX::XMMATRIX(	   1,       0,     0,    v[0],
-								   0,       1,     0,    v[1],
-								   0,       0,     1,    v[2],
-								   0,       0,     0,    1);
+	return DirectX::XMMATRIX(	   1,       0,     0,    0,
+								   0,       1,     0,    0,
+								   0,       0,     1,    0,
+								v[0],	 v[1],  v[2],    1);
 
 }
 

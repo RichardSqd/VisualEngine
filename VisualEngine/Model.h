@@ -115,12 +115,12 @@ namespace Scene {
 		UINT vbTexOffset; 
 		UINT vertexBufferTexCordByteSize;
 
-		////D3D12_VERTEX_BUFFER_VIEW vertexPosBufferView{};
-		//D3D12_VERTEX_BUFFER_VIEW vertexNormalBufferView{};
-		//D3D12_VERTEX_BUFFER_VIEW vertexTexCordBufferView{};
-		//D3D12_VERTEX_BUFFER_VIEW vertexTangentBufferView{};
-		//D3D12_VERTEX_BUFFER_VIEW vertexColorBufferView{};
-		//D3D12_INDEX_BUFFER_VIEW indexBufferView{};
+		UINT vbNormalOffset;
+		UINT vbNormalBufferByteSize;
+
+		UINT vbTangentOffset;
+		UINT vbTangentBufferByteSize;
+		
 
 		UINT matIndex;
 	};
@@ -136,18 +136,19 @@ namespace Scene {
 	};
 
 	struct Node {
-		
+		Node();
 		DirectX::XMFLOAT4X4 matrix;
 		DirectX::XMFLOAT4 rotation;
 		DirectX::XMFLOAT3 scale;
 		DirectX::XMFLOAT3 translation;
-		UINT32 mesh;
+		int mesh;
 
 		UINT32 indexCount;
 		UINT32 ibOffset;
 		UINT32 vbOffset;
 
 		UINT32 numFrameDirty;
+		std::vector<UINT32> cbdHeapIndexByFrames;
 	};
 
 	struct Model {
@@ -187,8 +188,9 @@ namespace Scene {
 		UINT numPrimitives = 0;
 		long long indexBufferByteSize;
 		long long vertexPosBufferByteSize;
-
+		long long vertexNormalBufferByteSize;
 		long long vertexTexCordBufferByteSize;
+		long long vertexTangentBufferByteSize;
 
 		D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	};

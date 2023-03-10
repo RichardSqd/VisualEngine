@@ -3,8 +3,8 @@
 #include "Renderer.h"
 #include "FrameResource.h"
 #include "Control.h"
+#include "DXRRenderer.h"
 
-#define NODXR false
 
 AVisualApp::AVisualApp() {
 
@@ -18,7 +18,7 @@ AVisualApp::~AVisualApp() {
 
 void AVisualApp::InitApp() {
 	//TODO: handle input 
-	Graphics::Init(NODXR);
+	Graphics::Init();
 	
 	Control::InitControl(Graphics::ghWnd);
 	auto context = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT).get();
@@ -28,6 +28,9 @@ void AVisualApp::InitApp() {
 	it to reuse the allocated memory for another command list.*/
 	commandList->Reset(context->getCommandAllocator().Get(), nullptr);
 	Renderer::Init(context);
+	if (Graphics::gRayTraceEnvironmentActive) {
+		//DXRRenderer::Init(context);
+	}
 	BREAKIFFAILED(commandList->Close());
 	ID3D12CommandList* cmds[] = { commandList.Get() };
 	auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
@@ -75,6 +78,7 @@ void AVisualApp::Run() {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 			if (msg.message == WM_QUIT) {
+				//__debugbreak();
 				return;
 			}
 		}
@@ -84,5 +88,8 @@ void AVisualApp::Run() {
 }
 
 void AVisualApp::ShutDown() {
+	auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
 
+	queue.FlushCommandQueue();
+	//CloseHandle(Graphics::ghWnd);
 }

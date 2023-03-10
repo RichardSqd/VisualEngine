@@ -5,11 +5,13 @@
 
 using Microsoft::WRL::ComPtr;
 namespace Graphics {
-
+	extern bool gRayTraceEnvironmentActive;
+	extern bool gRayTraced;
 	extern float gWidth;
 	extern float gHeight;
 	extern HWND ghWnd;
 	extern ComPtr<ID3D12Device> gDevice;
+	extern ComPtr<ID3D12Device5> gDXRDevice;
 	extern ComPtr<IDXGISwapChain3> gSwapChain;
 	extern ComPtr<ID3D12DescriptorHeap> gRtvHeap;
 	extern ComPtr<ID3D12DescriptorHeap> gDsvHeap;
@@ -39,9 +41,9 @@ namespace Graphics {
 	extern DXGI_FORMAT gBackBufferFormat;
 	extern DXGI_FORMAT gDepthStencilFormat;
 
-	void Init(bool EnableDXR);
+	void Init();
 	extern float AspectRatio();
-
+	extern void CheckDXRSupport(bool& rayTraceStatus);
 
 	
 

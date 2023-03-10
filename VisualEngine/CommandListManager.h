@@ -55,15 +55,16 @@ class CommandContext {
 public:
 	CommandContext() {};
 	CommandContext(ComPtr<ID3D12GraphicsCommandList> commandList,
-		ComPtr<ID3D12CommandAllocator> commandAllocator)
-		: mCommandList(commandList),
-		mCommandAllocator(commandAllocator) {}
+		ComPtr<ID3D12CommandAllocator> commandAllocator);
+		
 	ComPtr<ID3D12GraphicsCommandList> getCommandList();
 	ComPtr<ID3D12CommandAllocator> getCommandAllocator();
+	ComPtr<ID3D12GraphicsCommandList4> getDXRCommandList();
 
 protected:
 	ComPtr<ID3D12GraphicsCommandList> mCommandList;
 	ComPtr<ID3D12CommandAllocator> mCommandAllocator;
+	ComPtr<ID3D12GraphicsCommandList4> mDXRCommandList;
 
 
 

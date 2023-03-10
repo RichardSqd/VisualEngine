@@ -5,7 +5,7 @@
 
 struct Material 
 {
-	DirectX::XMFLOAT3 diffuse;
+	DirectX::XMFLOAT4 diffuse;
 	DirectX::XMFLOAT3 specular;
 	DirectX::XMFLOAT3 ambient;
 	DirectX::XMFLOAT3 emissive;
@@ -24,6 +24,7 @@ struct Material
 	std::string texLightmapMap;
 	std::string texReflectionMap;
 	std::string texroughnessMetallicMap;
+	std::string texOcclusionMap;
 	std::string name;
 
 
@@ -31,6 +32,12 @@ struct Material
 	UINT diffuseMapSrvHeapIndex = -1;
 	UINT roughnessMetallicMapSrvHeaIndex = -1;
 	UINT normalMapSrvHeapIndex = -1;
+	UINT occlusionMapSrvHeapIndex = -1;
+
+	bool hasDiffuseTexture = false;
+	bool hasMetallicRoughnessTexture = false;
+	bool hasNormalTexture = false;
+	bool hasOcclusionTexture = false;
 
 
 	int numFrameDirty = Graphics::gNumFrameResources;
