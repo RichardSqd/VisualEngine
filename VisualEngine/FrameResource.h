@@ -18,8 +18,10 @@ public:
 class PassConstants {
 public:
 	PassConstants() {
-		XMStoreFloat4x4(&ViewProjMatrix, Math::IdentityMatrix());
+		XMStoreFloat4x4(&ViewProjMatrix, DirectX::XMMatrixIdentity());
 		//XMStoreFloat4x4(&CameraPos, Math::IdentityMatrix());
+		XMStoreFloat4x4(&ViewMatrix, DirectX::XMMatrixIdentity());
+		XMStoreFloat4x4(&ProjMatrix, DirectX::XMMatrixIdentity());
 		CameraPos = {};
 		NearZ = 0.0;
 		FarZ = 0.0;
@@ -27,6 +29,8 @@ public:
 	}
 
 	DirectX::XMFLOAT4X4 ViewProjMatrix;
+	DirectX::XMFLOAT4X4 ViewMatrix;
+	DirectX::XMFLOAT4X4 ProjMatrix;
 	//DirectX::XMFLOAT4X4 CameraPos;
 	DirectX::XMFLOAT3 CameraPos;
 	float NearZ;

@@ -258,7 +258,7 @@ namespace Scene {
 					scale = DirectX::XMMatrixScaling((float)tinyNode.scale[0]*1.0, (float)tinyNode.scale[1] * 1.0, (float)tinyNode.scale[2]*1.0);
 				}
 				else {
-					scale = DirectX::XMMatrixScaling(50, 50, 50);
+					scale = DirectX::XMMatrixScaling(10, 10, 10);
 				}
 				if (tinyNode.translation.size() == 3) {
 					translate = DirectX::XMMatrixTranslation((float)tinyNode.translation[0], (float)tinyNode.translation[1], (float)tinyNode.translation[2]);
@@ -270,10 +270,7 @@ namespace Scene {
 				}
 				
 				//DirectX::XMMATRIX rotate = Math::QuaternionToMatrix(tinyNode.rotation);
-				 
-				localToObject =  scale * translate;
-				
-				
+				localToObject =  scale  * translate;
 				
 			}
 			

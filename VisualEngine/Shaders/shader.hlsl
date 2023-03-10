@@ -26,6 +26,8 @@ cbuffer cbPerObject : register(b0)
 cbuffer cbGlobal : register(b1)
 {
 	float4x4 ViewProjMatrix;
+	float4x4 ViewMatrix;
+	float4x4 ProjMatrix;
 	float3 CameraPos;
 	float NearZ;
 	float FarZ;

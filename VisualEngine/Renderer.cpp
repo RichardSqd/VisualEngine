@@ -188,7 +188,7 @@ namespace Renderer {
 		psoDesc.DSVFormat = Graphics::gDepthStencilFormat; // DXGI_FORMAT_D32_FLOAT;
 		psoDesc.SampleDesc.Count = 1; //no msaa for now 
 
-		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 
 		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPso)));
 
@@ -527,8 +527,18 @@ namespace Renderer {
 
 		//update the projection matrix after the aspect ratio has been changed
 		
-		DirectX::XMMATRIX P = DirectX::XMMatrixPerspectiveFovLH(0.25f * Math::PI, Graphics::AspectRatio(), 1.0f, 1000.0f);
-		DirectX::XMStoreFloat4x4(&gMainCam.proj, P);
+		DirectX::XMMATRIX P = DirectX::XMMatrixPerspectiveFovLH(0.25f * Math::PI, Graphics::AspectRatio(), 0.1f, 1000.0f);
+		DirectX::XMMATRIX P2 = DirectX::XMMatrixPerspectiveFovRH(0.25f * Math::PI, Graphics::AspectRatio(), 0.1f, 1000.0f);
+		//DirectX::XMMATRIX M = DirectX::XMMATRIX(1.35799503, 0, 0, 0, 
+		//										0, 2.41421342, 0, 0,
+		//										0, 0, 0.00100100099, 1.00100100,
+		//										0, 0, -1, 0);
+		
+		//DirectX::XMFLOAT4X4 X;
+		//DirectX::XMStoreFloat4x4(&X, M);
+		
+		DirectX::XMStoreFloat4x4(&gMainCam.proj, P2);
+	
 
 
 	}
@@ -607,15 +617,21 @@ namespace Renderer {
 		gMainCam.camPos.x = gMainCam.camRadius * sinf(gMainCam.camPhi) * cosf(gMainCam.camTheta);
 		gMainCam.camPos.y = gMainCam.camRadius * cosf(gMainCam.camPhi);
 		gMainCam.camPos.z = gMainCam.camRadius * sinf(gMainCam.camPhi) * sinf(gMainCam.camTheta);
-
+		//gMainCam.camPos.x = 0;
+		//gMainCam.camPos.y = 1;
+		//gMainCam.camPos.z = 1;
 		//std::wstring text = L"\n "+ std::to_wstring(gMainCam.camPos.x) + L" " + std::to_wstring(gMainCam.camPos.y) + L" " + std::to_wstring(gMainCam.camPos.z)+L"\n ";
 		//Utils::Print(text.c_str());
 		//view matrix update
 		DirectX::XMVECTOR pos = DirectX::XMVectorSet(gMainCam.camPos.x, gMainCam.camPos.y, gMainCam.camPos.z, 1.0f);
 		DirectX::XMVECTOR lookat = DirectX::XMVectorZero();
 		DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-		DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(pos, lookat, up);
+		DirectX::XMMATRIX view = DirectX::XMMatrixLookAtRH(pos, lookat, up);
 		DirectX::XMStoreFloat4x4(&gMainCam.view, view);
+		//gMainCam.view._31 *= -1;
+		//gMainCam.view._32 *= -1;
+		//gMainCam.view._33 *= -1;
+		//gMainCam.view._34 *= -1;
 	}
 	
 	void UpdateObjCBs(FrameResource* currentFrameResource) {
@@ -672,6 +688,8 @@ namespace Renderer {
 		//todo:
 		PassConstants pConsts;
 		DirectX::XMStoreFloat4x4(&pConsts.ViewProjMatrix, viewProj);
+		DirectX::XMStoreFloat4x4(&pConsts.ViewMatrix, view);
+		DirectX::XMStoreFloat4x4(&pConsts.ProjMatrix, proj);
 		pConsts.CameraPos = gMainCam.camPos;
 		pConsts.NearZ = 1.0;
 		pConsts.FarZ = 1000.0;
