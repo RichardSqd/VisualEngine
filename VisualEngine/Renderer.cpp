@@ -642,9 +642,9 @@ namespace Renderer {
 				DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&node.matrix);
 
 				ObjectConstants objConsts;
-				DirectX::XMStoreFloat4x4(&objConsts.World, world);
+				DirectX::XMStoreFloat4x4(&objConsts.World, DirectX::XMMatrixTranspose(world));
 				
-				DirectX::XMStoreFloat4x4(&objConsts.WorldIT, DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(world), world)));
+				DirectX::XMStoreFloat4x4(&objConsts.WorldIT, DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(world), world));
 				
 				curFrameObjCB->CopyData(i, &objConsts);
 
@@ -687,9 +687,9 @@ namespace Renderer {
 
 		//todo:
 		PassConstants pConsts;
-		DirectX::XMStoreFloat4x4(&pConsts.ViewProjMatrix, viewProj);
-		DirectX::XMStoreFloat4x4(&pConsts.ViewMatrix, view);
-		DirectX::XMStoreFloat4x4(&pConsts.ProjMatrix, proj);
+		DirectX::XMStoreFloat4x4(&pConsts.ViewProjMatrix, DirectX::XMMatrixTranspose(viewProj));
+		DirectX::XMStoreFloat4x4(&pConsts.ViewMatrix, DirectX::XMMatrixTranspose(view));
+		DirectX::XMStoreFloat4x4(&pConsts.ProjMatrix, DirectX::XMMatrixTranspose(proj));
 		pConsts.CameraPos = gMainCam.camPos;
 		pConsts.NearZ = 1.0;
 		pConsts.FarZ = 1000.0;
