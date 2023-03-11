@@ -27,6 +27,9 @@
     <Filter Include="Assets\Shaders">
       <UniqueIdentifier>{7fda0b73-12fb-41ab-ac43-c85d3389e7f3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\imgui">
+      <UniqueIdentifier>{8c3c2ac7-d061-432f-aec5-1676e5c89586}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Launch.cpp">
@@ -85,6 +88,21 @@
     </ClCompile>
     <ClCompile Include="DXRAccelerateStructures.cpp">
       <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui.cpp">
+      <Filter>Header Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_demo.cpp">
+      <Filter>Header Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_draw.cpp">
+      <Filter>Header Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_tables.cpp">
+      <Filter>Header Files\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_widgets.cpp">
+      <Filter>Header Files\imgui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -171,6 +189,15 @@
     </ClInclude>
     <ClInclude Include="DXRAccelerateStructures.h">
       <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="imconfig.h">
+      <Filter>Header Files\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui.h">
+      <Filter>Header Files\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui_internal.h">
+      <Filter>Header Files\imgui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
