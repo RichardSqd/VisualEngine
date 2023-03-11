@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/VisualEngine/Models
+/VisualEngine/Models
+/VisualEngine/Config.h
