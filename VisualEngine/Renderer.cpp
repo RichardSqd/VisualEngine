@@ -38,7 +38,7 @@ namespace Renderer {
 	UINT passCBVHeapIndexStart = 0;
 	UINT matCBVHeapIndexStart = 0;
 	UINT texSRVHeapIndexStart = 0;
-
+	UINT guiSRVHeapIndexStart = 0;
 
 	void Init(CommandContext* context) {
 		rCommandList = context->getCommandList();
@@ -395,6 +395,7 @@ namespace Renderer {
 			heapIndex++;
 
 		}
+		guiSRVHeapIndexStart = heapIndex;
 	}
 
 	void CreateDescriptorHeaps() {
@@ -417,7 +418,7 @@ namespace Renderer {
 		//create srv/cbv desc heap 
 		UINT numDescriptors = (static_cast<unsigned long long>(EngineCore::eModel.numNodes) 
 			+ 1 + (UINT)EngineCore::eModel.materials.size()) * Graphics::gNumFrameResources + 
-			static_cast<unsigned long long>((UINT)EngineCore::eModel.materials.size()) * 4;
+			static_cast<unsigned long long>((UINT)EngineCore::eModel.materials.size()) * 4 + 1;
 		D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc{};
 		cbvSrvHeapDesc.NumDescriptors = numDescriptors;
 		cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;

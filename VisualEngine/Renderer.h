@@ -53,5 +53,5 @@ namespace Renderer {
 	extern UINT passCBVHeapIndexStart;
 	extern UINT matCBVHeapIndexStart;
 	extern UINT texSRVHeapIndexStart;
-
+	extern UINT guiSRVHeapIndexStart;
 }
