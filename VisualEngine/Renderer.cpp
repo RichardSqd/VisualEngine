@@ -3,7 +3,7 @@
 #include "Model.h"
 #include "Camera.h"
 #include "Control.h"
-
+#include "imgui_impl_dx12.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -782,6 +782,7 @@ namespace Renderer {
 
 
 		DrawRenderItems(commandList);
+		RenderUI(commandList);
 
 		//back buffer transition state from render target back to present
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
@@ -888,6 +889,21 @@ namespace Renderer {
 			//commandList->SetGraphicsRootDescriptorTable(3, matCbvHandle);
 		}
 
+	}
+
+	void RenderUI(ComPtr<ID3D12GraphicsCommandList> commandList) {
+		commandList->OMSetRenderTargets(1, &CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
+			gCurBackBufferIndex, Graphics::gRTVDescriptorSize), false, NULL
+		);
+		ID3D12DescriptorHeap* descriptorHeaps[] = { Graphics::gCbvSrvHeap.Get() };
+		commandList->SetDescriptorHeaps(1, descriptorHeaps);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
+		//ImGuiIO& io = ImGui::GetIO();
+		//if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		//{
+		//	ImGui::UpdatePlatformWindows();
+		//	ImGui::RenderPlatformWindowsDefault(NULL, (void*)commandList.Get());
+		//}
 	}
 
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> Renderer::GetStaticSamplers()

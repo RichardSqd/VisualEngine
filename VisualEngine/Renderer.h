@@ -26,6 +26,7 @@ namespace Renderer {
 	extern void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void OnResize();
+	extern void RenderUI(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
 
 	extern ComPtr<ID3D12RootSignature> rRootSignature;
