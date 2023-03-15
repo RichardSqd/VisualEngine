@@ -70,11 +70,11 @@ VertexOut VS(VertexIn vin)
 	VertexOut vout;
 
 	// Transform to homogeneous clip space.
-	vout.positionWorld = mul(WorldMatrix, float4(vin.pos, 1));
-	vout.position = mul( ViewProjMatrix, vout.positionWorld );
+	vout.positionWorld = mul( float4(vin.pos, 1), WorldMatrix);
+	vout.position = mul( vout.positionWorld, ViewProjMatrix);
 	//normal vector transformation 
-	vout.normal = mul(  WorldITMatrix, float4(vin.normal, 1) * 2 - 1 ).xyz;
-	vout.tangent = mul( WorldITMatrix, float4(vin.tangent, 1) * 2 - 1);
+	vout.normal = mul(   float4(vin.normal, 1) * 2 - 1, WorldITMatrix ).xyz;
+	vout.tangent = mul( float4(vin.tangent, 1) * 2 - 1, WorldITMatrix);
 	vout.uv = vin.tex;
 	//vout.color = float4(1.0f, 0.0f, 0.0f, 0.5f);
 	return vout;
@@ -124,6 +124,6 @@ float3 ComputeNormal(VertexOut pin) {
 	//scaling
 	
 
-	return mul(normal, tangentMatrix);
+	return mul( tangentMatrix, normal);
 
 }

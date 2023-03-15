@@ -3,7 +3,7 @@
 #include "Model.h"
 #include "Camera.h"
 #include "Control.h"
-
+#include "imgui_impl_dx12.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,7 +24,7 @@ namespace Renderer {
 	D3D12_INPUT_LAYOUT_DESC rInputLayoutDesc {};
 	CD3DX12_DEPTH_STENCIL_DESC rDepthStencilDesc {};
 	
-	ComPtr<ID3D12Resource> rRenderTargetBuffer[Config::frameCount];
+	ComPtr<ID3D12Resource> rRenderTargetBuffer[Config::numRenderTargets];
 	ComPtr<ID3D12Resource> rDepthStencilBuffer;
 
 	D3D12_VIEWPORT gScreenViewport {};
@@ -38,7 +38,7 @@ namespace Renderer {
 	UINT passCBVHeapIndexStart = 0;
 	UINT matCBVHeapIndexStart = 0;
 	UINT texSRVHeapIndexStart = 0;
-
+	UINT guiSRVHeapIndexStart = 0;
 
 	void Init(CommandContext* context) {
 		rCommandList = context->getCommandList();
@@ -395,6 +395,7 @@ namespace Renderer {
 			heapIndex++;
 
 		}
+		guiSRVHeapIndexStart = heapIndex;
 	}
 
 	void CreateDescriptorHeaps() {
@@ -417,7 +418,7 @@ namespace Renderer {
 		//create srv/cbv desc heap 
 		UINT numDescriptors = (static_cast<unsigned long long>(EngineCore::eModel.numNodes) 
 			+ 1 + (UINT)EngineCore::eModel.materials.size()) * Graphics::gNumFrameResources + 
-			static_cast<unsigned long long>((UINT)EngineCore::eModel.materials.size()) * 4;
+			static_cast<unsigned long long>((UINT)EngineCore::eModel.materials.size()) * 4 + 1;
 		D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc{};
 		cbvSrvHeapDesc.NumDescriptors = numDescriptors;
 		cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -642,9 +643,9 @@ namespace Renderer {
 				DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&node.matrix);
 
 				ObjectConstants objConsts;
-				DirectX::XMStoreFloat4x4(&objConsts.World, world);
+				DirectX::XMStoreFloat4x4(&objConsts.World, DirectX::XMMatrixTranspose(world));
 				
-				DirectX::XMStoreFloat4x4(&objConsts.WorldIT, DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(world), world)));
+				DirectX::XMStoreFloat4x4(&objConsts.WorldIT, DirectX::XMMatrixInverse(&DirectX::XMMatrixDeterminant(world), world));
 				
 				curFrameObjCB->CopyData(i, &objConsts);
 
@@ -687,9 +688,9 @@ namespace Renderer {
 
 		//todo:
 		PassConstants pConsts;
-		DirectX::XMStoreFloat4x4(&pConsts.ViewProjMatrix, viewProj);
-		DirectX::XMStoreFloat4x4(&pConsts.ViewMatrix, view);
-		DirectX::XMStoreFloat4x4(&pConsts.ProjMatrix, proj);
+		DirectX::XMStoreFloat4x4(&pConsts.ViewProjMatrix, DirectX::XMMatrixTranspose(viewProj));
+		DirectX::XMStoreFloat4x4(&pConsts.ViewMatrix, DirectX::XMMatrixTranspose(view));
+		DirectX::XMStoreFloat4x4(&pConsts.ProjMatrix, DirectX::XMMatrixTranspose(proj));
 		pConsts.CameraPos = gMainCam.camPos;
 		pConsts.NearZ = 1.0;
 		pConsts.FarZ = 1000.0;
@@ -781,6 +782,7 @@ namespace Renderer {
 
 
 		DrawRenderItems(commandList);
+		RenderUI(commandList);
 
 		//back buffer transition state from render target back to present
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
@@ -887,6 +889,21 @@ namespace Renderer {
 			//commandList->SetGraphicsRootDescriptorTable(3, matCbvHandle);
 		}
 
+	}
+
+	void RenderUI(ComPtr<ID3D12GraphicsCommandList> commandList) {
+		commandList->OMSetRenderTargets(1, &CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
+			gCurBackBufferIndex, Graphics::gRTVDescriptorSize), false, NULL
+		);
+		ID3D12DescriptorHeap* descriptorHeaps[] = { Graphics::gCbvSrvHeap.Get() };
+		commandList->SetDescriptorHeaps(1, descriptorHeaps);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
+		ImGuiIO& io = ImGui::GetIO();
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault(NULL, (void*)commandList.Get());
+		}
 	}
 
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> Renderer::GetStaticSamplers()

@@ -3,6 +3,7 @@
 #include "AVisualApp.h"
 #include <WindowsX.h>
 #include "Control.h"
+#include "imgui_impl_win32.h"
 
 namespace EngineCore {
     using namespace DirectX;
@@ -14,6 +15,8 @@ namespace EngineCore {
     LRESULT CALLBACK
     WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
+        if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam))
+            return true;
         switch (msg)
         {
 

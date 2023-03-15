@@ -26,6 +26,7 @@ namespace Renderer {
 	extern void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void OnResize();
+	extern void RenderUI(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
 
 	extern ComPtr<ID3D12RootSignature> rRootSignature;
@@ -41,7 +42,7 @@ namespace Renderer {
 	extern ComPtr<ID3D12GraphicsCommandList> rCommandList;
 	extern ComPtr<ID3D12CommandAllocator> rCommandAlloc;
 
-	extern ComPtr<ID3D12Resource> rRenderTargetBuffer[Config::frameCount];
+	extern ComPtr<ID3D12Resource> rRenderTargetBuffer[Config::numRenderTargets];
 	extern ComPtr<ID3D12Resource> rDepthStencilBuffer;
 
 	extern INT gCurBackBufferIndex;
@@ -53,5 +54,5 @@ namespace Renderer {
 	extern UINT passCBVHeapIndexStart;
 	extern UINT matCBVHeapIndexStart;
 	extern UINT texSRVHeapIndexStart;
-
+	extern UINT guiSRVHeapIndexStart;
 }
