@@ -38,8 +38,8 @@ namespace Graphics {
 	UINT gObjectCBByteSize;
 	UINT gPassCBByteSize;
 	UINT gMatCBByteSize;
-	UINT gNumFrameResources = Config::frameCount;
-	UINT gSwapChainBufferCount = 2;
+	UINT gNumFrameResources = Config::numFrameResource;
+	UINT gSwapChainBufferCount = Config::numRenderTargets;
 	UINT gFrameIndex = 0;
 	DXGI_FORMAT gBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	DXGI_FORMAT gDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;

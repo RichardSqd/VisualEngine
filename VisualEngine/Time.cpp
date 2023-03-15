@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Time.h"
 #include "Graphics.h"
+#include "imgui.h"
 
 namespace Time {
 	double tBaseTime;
@@ -38,7 +39,7 @@ namespace Time {
 	}
 
 	void CalcFPS() {
-		tNumFrames++;
+		//tNumFrames++;
 
 		/*if (tTimeElapsed - tDeltaTime >= 1.0) {
 			tFPS = tNumFrames;
@@ -51,16 +52,15 @@ namespace Time {
 		}*/
 	}
 	void Tick() {
-		LARGE_INTEGER cur;
-		ASSERT(QueryPerformanceCounter(&cur));
-		tCurTime = (double)cur.QuadPart;
-		tTimeElapsed = (tCurTime - tBaseTime) * tFreq;
-
-		std::wstring fpsText = std::to_wstring(tTimeElapsed); //L"fps: " + std::to_wstring(tFPS);
-
+		//LARGE_INTEGER cur;
+		//ASSERT(QueryPerformanceCounter(&cur));
+		//tCurTime = (double)cur.QuadPart;
+		//tTimeElapsed = (tCurTime - tBaseTime) * tFreq;
+		ImGuiIO& io = ImGui::GetIO();
+		std::wstring fpsText =L"Framerate: " + std::to_wstring(round(io.Framerate*100)/100).substr(0,4) + L" FPS";
 		SetWindowText(Graphics::ghWnd, fpsText.c_str());
 
-		CalcFPS();
+		//CalcFPS();
 
 	}
 

@@ -4,7 +4,8 @@
 
 namespace Config {
 	//Graphics Related
-	const int frameCount = 3;
+	const int numFrameResource = 3;
+	const int numRenderTargets = 3;
 	const bool RAYTRACE = true;
 	const bool useGPUBasedValidation = true;
 	const std::wstring gltfFileDirectory  = L"Models\\BoomBox\\glTF";

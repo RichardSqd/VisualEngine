@@ -76,7 +76,7 @@ void AVisualApp::InitApp() {
 	auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
 	queue.GetQueue()->ExecuteCommandLists(_countof(cmds),cmds);
 	
-	Time::Init();
+	//Time::Init();
 
 	queue.FlushCommandQueue();
 	Renderer::OnResize();
@@ -94,6 +94,17 @@ void AVisualApp::Update() {
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 	ImGui::ShowDemoWindow(&show_demo_window);
+	
+	ImGuiIO& io = ImGui::GetIO();
+	
+	{
+		static float f = 0.0f;
+		static int counter = 0;
+
+		ImGui::Begin("Welcome to Visual Engine!");                          // Create a window called "Hello, world!" and append into it.
+		//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+		ImGui::End();
+	}
 	Renderer::Update();
 	
 	

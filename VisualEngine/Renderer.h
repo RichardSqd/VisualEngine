@@ -42,7 +42,7 @@ namespace Renderer {
 	extern ComPtr<ID3D12GraphicsCommandList> rCommandList;
 	extern ComPtr<ID3D12CommandAllocator> rCommandAlloc;
 
-	extern ComPtr<ID3D12Resource> rRenderTargetBuffer[Config::frameCount];
+	extern ComPtr<ID3D12Resource> rRenderTargetBuffer[Config::numRenderTargets];
 	extern ComPtr<ID3D12Resource> rDepthStencilBuffer;
 
 	extern INT gCurBackBufferIndex;

@@ -24,7 +24,7 @@ namespace Renderer {
 	D3D12_INPUT_LAYOUT_DESC rInputLayoutDesc {};
 	CD3DX12_DEPTH_STENCIL_DESC rDepthStencilDesc {};
 	
-	ComPtr<ID3D12Resource> rRenderTargetBuffer[Config::frameCount];
+	ComPtr<ID3D12Resource> rRenderTargetBuffer[Config::numRenderTargets];
 	ComPtr<ID3D12Resource> rDepthStencilBuffer;
 
 	D3D12_VIEWPORT gScreenViewport {};
