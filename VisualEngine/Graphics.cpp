@@ -13,8 +13,8 @@ using Microsoft::WRL::ComPtr;
 
 
 namespace Graphics {
-	float gWidth = 800;
-	float gHeight = 600;
+	float gWidth = 1200;
+	float gHeight = 900;
 	HWND ghWnd = nullptr;
 	bool gRayTraceEnvironmentActive = false;
 	bool gRayTraced = false;

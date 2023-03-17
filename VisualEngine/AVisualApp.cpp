@@ -102,7 +102,7 @@ void AVisualApp::Update() {
 		static int counter = 0;
 
 		ImGui::Begin("Welcome to Visual Engine!");                          // Create a window called "Hello, world!" and append into it.
-		//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 		ImGui::End();
 	}
 	Renderer::Update();
