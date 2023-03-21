@@ -23,7 +23,7 @@ void AVisualApp::InitApp() {
 	Graphics::Init();
 
 
-	Control::InitControl(Graphics::ghWnd);
+	
 	auto context = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT).get();
 	auto commandList = context->getCommandList();
 	/*CommandList Reset can be called while it's being executed
@@ -31,6 +31,7 @@ void AVisualApp::InitApp() {
 	it to reuse the allocated memory for another command list.*/
 	commandList->Reset(context->getCommandAllocator().Get(), nullptr);
 	Renderer::Init(context);
+	Control::InitControl(Graphics::ghWnd);
 	if (Graphics::gRayTraceEnvironmentActive) {
 		//DXRRenderer::Init(context);
 	}
@@ -103,6 +104,7 @@ void AVisualApp::Update() {
 
 		ImGui::Begin("Welcome to Visual Engine!");                          // Create a window called "Hello, world!" and append into it.
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+		ImGui::Text("Camera Position %.3f %.3f %.3f (x,y,z) ", Renderer::gMainCam.camPos.x, Renderer::gMainCam.camPos.y, Renderer::gMainCam.camPos.z);
 		ImGui::End();
 	}
 	Renderer::Update();

@@ -8,5 +8,8 @@ struct Camera {
 	FLOAT camPhi;
 	FLOAT camTheta;
 	FLOAT camRadius;
+	BOOL viewDirty = true;
 
+	void SetCamPosSph(float phi, float theta, float rad);
+	void UpdateViewMatrix();
 };

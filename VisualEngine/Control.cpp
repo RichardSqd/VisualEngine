@@ -50,6 +50,7 @@ namespace Control {
 
                 // Restrict the angle mPhi.
                 Renderer::gMainCam.camPhi = Math::Clamp(Renderer::gMainCam.camPhi, 0.1f, Math::PI - 0.1f);
+                Renderer::gMainCam.viewDirty = true;
             }
             else if ((btnState & MK_RBUTTON) != 0)
             {
@@ -59,7 +60,7 @@ namespace Control {
 
                 // Update the camera radius based on input.
                 Renderer::gMainCam.camRadius += dx - dy;
-
+                Renderer::gMainCam.viewDirty = true;
                 // Restrict the radius.
                 //Renderer::gMainCam.camRadius = Math::Clamp(Renderer::gMainCam.camRadius, 3.0f, 150.0f);
             }

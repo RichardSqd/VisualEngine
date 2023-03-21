@@ -27,6 +27,9 @@
     <Filter Include="Assets\Shaders">
       <UniqueIdentifier>{7fda0b73-12fb-41ab-ac43-c85d3389e7f3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="gui">
+      <UniqueIdentifier>{64686557-4fc5-47a8-a424-347bce47ca1d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Launch.cpp">
@@ -85,6 +88,30 @@
     </ClCompile>
     <ClCompile Include="DXRAccelerateStructures.cpp">
       <Filter>Source\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui.cpp">
+      <Filter>gui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_demo.cpp">
+      <Filter>gui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_draw.cpp">
+      <Filter>gui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_impl_dx12.cpp">
+      <Filter>gui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_impl_win32.cpp">
+      <Filter>gui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_tables.cpp">
+      <Filter>gui</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_widgets.cpp">
+      <Filter>gui</Filter>
+    </ClCompile>
+    <ClCompile Include="imguiRenderer.cpp">
+      <Filter>gui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -172,6 +199,24 @@
     <ClInclude Include="DXRAccelerateStructures.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
+    <ClInclude Include="imconfig.h">
+      <Filter>gui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui.h">
+      <Filter>gui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui_impl_dx12.h">
+      <Filter>gui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui_impl_win32.h">
+      <Filter>gui</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui_internal.h">
+      <Filter>gui</Filter>
+    </ClInclude>
+    <ClInclude Include="imguiRenderer.h">
+      <Filter>gui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="Shaders\shader.hlsl">
@@ -182,6 +227,9 @@
     <None Include="packages.config" />
     <None Include="Common.hlsli">
       <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="imgui.ini">
+      <Filter>gui</Filter>
     </None>
   </ItemGroup>
 </Project>

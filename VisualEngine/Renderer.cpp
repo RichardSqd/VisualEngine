@@ -591,48 +591,41 @@ namespace Renderer {
 	}
 
 	void UpdateInput() {
-		/*
-		auto kb = Control::m_keyboard->GetState();
-		auto mouse = Control::m_mouse->GetState();
+		ImGuiIO& io = ImGui::GetIO();
+		if (GetAsyncKeyState('A') & 0x8000) {
+			float dx = 2.50f;
+			Renderer::gMainCam.camTheta += 0.1*dx;
+			Renderer::gMainCam.camPhi = Math::Clamp(Renderer::gMainCam.camPhi, 0.1f, Math::PI - 0.1f);
+			Control::lastMousePos.x += dx;
+			Renderer::gMainCam.viewDirty = true;
+		}
+		if (GetAsyncKeyState('D') & 0x8000) {
+			float dx = 2.50f;
+			Renderer::gMainCam.camTheta -= 0.1 * dx;
+			Renderer::gMainCam.camPhi = Math::Clamp(Renderer::gMainCam.camPhi, 0.1f, Math::PI - 0.1f);
+			Control::lastMousePos.x -= dx;
+			Renderer::gMainCam.viewDirty = true;
+		}
 		
-		
-		float dx = DirectX::XMConvertToRadians(0.25f * static_cast<float>(mouse.x - Control::lastMousePos.x));
-		float dy = DirectX::XMConvertToRadians(0.25f * static_cast<float>(mouse.y - Control::lastMousePos.y));
+			
 
-		gMainCam.camTheta += dx;
-		gMainCam.camPhi += dy;
+		//if (GetAsyncKeyState('S') & 0x8000)
+		//	mCamera.Walk(-10.0f * dt);
 
-		
-		gMainCam.camPhi = Math::Clamp(gMainCam.camPhi, 0.1f, Math::PI - 0.1f);
-		
-		Control::lastMousePos.x = mouse.x;
-		Control::lastMousePos.x = mouse.y;
-		//update camera data based on mouse input 
-		std::wstring mouseData = L"\n x: "+ std::to_wstring(mouse.x) +L" y:"+ std::to_wstring(mouse.y) + L"\n";
-		Utils::Print(mouseData.c_str() );
+		//if (GetAsyncKeyState('A') & 0x8000)
+		//	mCamera.Strafe(-10.0f * dt);
 
-		*/
+		//if (GetAsyncKeyState('D') & 0x8000)
+		//	mCamera.Strafe(10.0f * dt);
 	}
 
 	void UpdateCamera() {
-		gMainCam.camPos.x = gMainCam.camRadius * sinf(gMainCam.camPhi) * cosf(gMainCam.camTheta);
-		gMainCam.camPos.y = gMainCam.camRadius * cosf(gMainCam.camPhi);
-		gMainCam.camPos.z = gMainCam.camRadius * sinf(gMainCam.camPhi) * sinf(gMainCam.camTheta);
-		//gMainCam.camPos.x = 0;
-		//gMainCam.camPos.y = 1;
-		//gMainCam.camPos.z = 1;
-		//std::wstring text = L"\n "+ std::to_wstring(gMainCam.camPos.x) + L" " + std::to_wstring(gMainCam.camPos.y) + L" " + std::to_wstring(gMainCam.camPos.z)+L"\n ";
-		//Utils::Print(text.c_str());
-		//view matrix update
-		DirectX::XMVECTOR pos = DirectX::XMVectorSet(gMainCam.camPos.x, gMainCam.camPos.y, gMainCam.camPos.z, 1.0f);
-		DirectX::XMVECTOR lookat = DirectX::XMVectorZero();
-		DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-		DirectX::XMMATRIX view = DirectX::XMMatrixLookAtRH(pos, lookat, up);
-		DirectX::XMStoreFloat4x4(&gMainCam.view, view);
-		//gMainCam.view._31 *= -1;
-		//gMainCam.view._32 *= -1;
-		//gMainCam.view._33 *= -1;
-		//gMainCam.view._34 *= -1;
+		if (gMainCam.viewDirty) {
+			
+			gMainCam.SetCamPosSph(gMainCam.camPhi, gMainCam.camTheta, gMainCam.camRadius);
+			gMainCam.UpdateViewMatrix();
+		}
+		
 	}
 	
 	void UpdateObjCBs(FrameResource* currentFrameResource) {
