@@ -190,7 +190,7 @@
     <ClInclude Include="Material.h">
       <Filter>Header Files\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Header.h">
+    <ClInclude Include="Light.h">
       <Filter>Header Files\Scene</Filter>
     </ClInclude>
     <ClInclude Include="DXRRenderer.h">
@@ -216,6 +216,9 @@
     </ClInclude>
     <ClInclude Include="imguiRenderer.h">
       <Filter>gui</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderLightingData.h">
+      <Filter>Assets\Shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

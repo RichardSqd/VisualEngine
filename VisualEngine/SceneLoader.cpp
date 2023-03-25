@@ -6,6 +6,7 @@
 #include <iterator>
 #include <vector>
 #include "ResourceUploadBatch.h"
+#include "ShaderLightingData.h"
 #include "pix3.h"
 
 using Microsoft::WRL::ComPtr;
@@ -274,7 +275,7 @@ namespace Scene {
 				
 			}
 			
-			DirectX::XMStoreFloat4x4(&model.nodes[nodeIndex].matrix, localToObject);
+			DirectX::XMStoreFloat4x4(&model.nodes[nodeIndex].toWorldmatrix, localToObject);
 			SolveMeshs(tinyModel, tinyNode.mesh, model, model.nodes[nodeIndex], localToObject);
 		}
 
@@ -494,6 +495,26 @@ namespace Scene {
 		
 	}
 
+	void SolveLights(tinygltf::Model& tinyModel, Scene::Model& model, ComPtr<ID3D12GraphicsCommandList> commandList){
+		auto& tinylights = tinyModel.lights;
+		if (tinylights.size() == 0) {
+			//use default directional light 
+			
+			model.lights.numDirectionalLights = 1;
+			model.lights.numPointLights = 0;
+			model.lights.numSpotLights = 0;
+
+			auto& directionalLight0 = model.lights.directionalLights[0];
+			directionalLight0.color = { 1.0f, 1.0f, 1.0f };
+			directionalLight0.lightDirection = { 0.57735f, -0.57735f, 0.57735f };
+			directionalLight0.strength = { 0.8f, 0.8f, 0.8f };
+			directionalLight0.enabled = 1;
+			return;
+		}
+
+		
+	}
+
 	int translate(tinygltf::Model& tinyModel, Scene::Model& model, ComPtr<ID3D12GraphicsCommandList> commandList) {
 		const tinygltf::Scene& scene = tinyModel.scenes[tinyModel.defaultScene];
 		//model.buffers.resize(tinyModel.buffers.size());
@@ -526,7 +547,7 @@ namespace Scene {
 		}
 
 		SolveMaterials(tinyModel, model, commandList);
-
+		SolveLights(tinyModel, model, commandList);
 		
 		return 1;
 	}

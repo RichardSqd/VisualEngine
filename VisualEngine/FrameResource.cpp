@@ -4,6 +4,13 @@
 #include "EngineCore.h"
 
 
+LightConstant::LightConstant() {
+	lights.numDirectionalLights = 0;
+	lights.numSpotLights = 0;
+	lights.numPointLights = 0;
+}
+
+
 FrameResource::FrameResource() {
 
 }
@@ -13,6 +20,7 @@ FrameResource::FrameResource(UINT passCount, UINT objectCount, UINT materialCoun
 	passCB = std::make_unique<UploadBuffer>(sizeof(PassConstants), passCount, true);
 	objCB = std::make_unique<UploadBuffer>(sizeof(ObjectConstants),objectCount, true);
 	matCB = std::make_unique<UploadBuffer>(sizeof(MaterialConstants), materialCount, true);
+	lightCB = std::make_unique<UploadBuffer>(sizeof(LightConstant), 1, true);
 }
 
 UINT FrameResourceManager::curFrameIndex = Graphics::gNumFrameResources - 1;

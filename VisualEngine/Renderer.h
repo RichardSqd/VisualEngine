@@ -22,6 +22,7 @@ namespace Renderer {
 	extern void UpdateObjCBs(FrameResource* currentFrameResource);
 	extern void UpdateMaterialCBs(FrameResource* currentFrameResource);
 	extern void UpdatePassCB(FrameResource* currentFrameResource);
+	extern void UpdateLightCBs(FrameResource* currentFrameResource);
 	extern void Draw();
 	extern void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList);
@@ -52,6 +53,7 @@ namespace Renderer {
 
 	extern UINT objectCBVHeapIndexStart;
 	extern UINT passCBVHeapIndexStart;
+	extern UINT lightCBVHeapIndexStart;
 	extern UINT matCBVHeapIndexStart;
 	extern UINT texSRVHeapIndexStart;
 	extern UINT guiSRVHeapIndexStart;

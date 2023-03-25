@@ -4,6 +4,7 @@
 #include "Camera.h"
 #include "Control.h"
 #include "imgui_impl_dx12.h"
+#include "ShaderLightingData.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +37,7 @@ namespace Renderer {
 
 	UINT objectCBVHeapIndexStart = 0;
 	UINT passCBVHeapIndexStart = 0;
+	UINT lightCBVHeapIndexStart = 0;
 	UINT matCBVHeapIndexStart = 0;
 	UINT texSRVHeapIndexStart = 0;
 	UINT guiSRVHeapIndexStart = 0;
@@ -108,20 +110,22 @@ namespace Renderer {
 		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 		BREAKIFFAILED(Graphics::gDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)));
 
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[5] = {};
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[6] = {};
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse,metalicroughness, normal, AO textures, register t1,2,3 
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //object constant buffer
 		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //global constant buffer
 		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //mat constant buffer
-		ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); //shadow texture
+		ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 3, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //light constant buffer
+		ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); //shadow texture
 		//ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[5] = {};
+		CD3DX12_ROOT_PARAMETER1 rootParameters[6] = {};
 		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
 		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[3].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[4].InitAsDescriptorTable(1, &ranges[4], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[5].InitAsDescriptorTable(1, &ranges[5], D3D12_SHADER_VISIBILITY_PIXEL);
 		//rootParameters[4].InitAsDescriptorTable(1, &ranges[4], D3D12_SHADER_VISIBILITY_PIXEL);
 
 		auto staticSamplers = GetStaticSamplers();
@@ -132,7 +136,9 @@ namespace Renderer {
 		ComPtr<ID3DBlob> serializedRootSig;
 		ComPtr<ID3DBlob> err;
 		BREAKIFFAILED(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &serializedRootSig, &err));
-		
+		if (err != nullptr && err->GetBufferSize() > 0) {
+			Utils::Print((char*)err->GetBufferPointer());
+		}
 		
 		BREAKIFFAILED(Graphics::gDevice->CreateRootSignature(0, serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(), IID_PPV_ARGS(rRootSignature.GetAddressOf())));
 	}
@@ -261,8 +267,34 @@ namespace Renderer {
 			cbvDesc.SizeInBytes = passCBByteSize;
 			Graphics::gDevice->CreateConstantBufferView(&cbvDesc, handle);
 		}
-		matCBVHeapIndexStart = passCBVHeapIndexStart + Graphics::gNumFrameResources;
-		 
+		
+		lightCBVHeapIndexStart = passCBVHeapIndexStart + Graphics::gNumFrameResources;
+		UINT lightCBByteSize = Graphics::gLightCBByteSize;
+		auto& sceneLighting = EngineCore::eModel.lights;
+		UINT lightCount = (UINT)sceneLighting.numDirectionalLights + sceneLighting.numPointLights + sceneLighting.numSpotLights;
+		//create light views
+		for (UINT frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
+			auto lightCB = Graphics::gFrameResourceManager.GetFrameResourceByIndex(frameIndex)->lightCB->GetResource();
+			{
+				D3D12_GPU_VIRTUAL_ADDRESS cbAddress = lightCB->GetGPUVirtualAddress();
+				
+				//offset to the object cbv in the descriptor heap 
+				int heapIndex = lightCBVHeapIndexStart + frameIndex;
+
+
+				auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+
+				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+				cbvDesc.BufferLocation = cbAddress;
+				cbvDesc.SizeInBytes = lightCBByteSize;
+				Graphics::gDevice->CreateConstantBufferView(&cbvDesc, handle);
+			}
+		}
+		
+
+		matCBVHeapIndexStart = lightCBVHeapIndexStart + 1 * Graphics::gNumFrameResources;
+
 		UINT matCBByteSize = Graphics::gMatCBByteSize;
 		UINT matCount = (UINT)EngineCore::eModel.materials.size();
 
@@ -418,7 +450,8 @@ namespace Renderer {
 		//create srv/cbv desc heap 
 		UINT numDescriptors = (static_cast<unsigned long long>(EngineCore::eModel.numNodes) 
 			+ 1 + (UINT)EngineCore::eModel.materials.size()) * Graphics::gNumFrameResources + 
-			static_cast<unsigned long long>((UINT)EngineCore::eModel.materials.size()) * 4 + 1;
+			static_cast<unsigned long long>((UINT)EngineCore::eModel.materials.size()) * 4 +
+			1 * Graphics::gNumFrameResources + 1;
 		D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc{};
 		cbvSrvHeapDesc.NumDescriptors = numDescriptors;
 		cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -587,7 +620,7 @@ namespace Renderer {
 		UpdateObjCBs(currentFrameResource);
 		UpdateMaterialCBs(currentFrameResource);
 		UpdatePassCB(currentFrameResource);
-
+		UpdateLightCBs(currentFrameResource);
 	}
 
 	void UpdateInput() {
@@ -633,7 +666,7 @@ namespace Renderer {
 		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
 			auto& node = EngineCore::eModel.nodes[i];
 			if (node.numFrameDirty > 0) {
-				DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&node.matrix);
+				DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&node.toWorldmatrix);
 
 				ObjectConstants objConsts;
 				DirectX::XMStoreFloat4x4(&objConsts.World, DirectX::XMMatrixTranspose(world));
@@ -673,13 +706,27 @@ namespace Renderer {
 
 	}
 
+	void UpdateLightCBs(FrameResource* currentFrameResource) {
+		auto curFrameLightCB = currentFrameResource->lightCB.get();
+		auto& model = EngineCore::eModel;
+		
+		if (model.lightnumFrameDirty>0) {
+			Utils::Print("Update LIGHT CB LOOP\n");
+			LightConstant lc = {};
+			lc.lights = model.lights;
+			curFrameLightCB->CopyData(0, &lc);
+			model.lightnumFrameDirty--;
+		}
+		
+	}
+
 
 	void UpdatePassCB(FrameResource* currentFrameResource){
 		DirectX::XMMATRIX view = DirectX::XMLoadFloat4x4(&gMainCam.view);
 		DirectX::XMMATRIX proj = DirectX::XMLoadFloat4x4(&gMainCam.proj);
 		DirectX::XMMATRIX viewProj = view * proj;
 
-		//todo:
+		
 		PassConstants pConsts;
 		DirectX::XMStoreFloat4x4(&pConsts.ViewProjMatrix, DirectX::XMMatrixTranspose(viewProj));
 		DirectX::XMStoreFloat4x4(&pConsts.ViewMatrix, DirectX::XMMatrixTranspose(view));
@@ -773,6 +820,13 @@ namespace Renderer {
 		passCbvHandle.Offset(passCbvIndex, Graphics::gCbvSrvUavDescriptorSize);
 		commandList->SetGraphicsRootDescriptorTable(2, passCbvHandle);
 
+		//lights handle
+		//UINT lightCount = (UINT)EngineCore::eModel.lights.size();
+		
+		auto lightCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+		int lightCbvIndex = lightCBVHeapIndexStart + curFrameIndex;
+		lightCbvHandle.Offset(lightCbvIndex, Graphics::gCbvSrvUavDescriptorSize);
+		commandList->SetGraphicsRootDescriptorTable(4, lightCbvHandle);
 
 		DrawRenderItems(commandList);
 		RenderUI(commandList);
@@ -841,7 +895,7 @@ namespace Renderer {
 			for (auto& prim : primitives) {
 				//set mat 
 				//curMat = model.materials[ prim.matName]->
-				UINT matvIndex = (model.numNodes + 1) * Graphics::gNumFrameResources +
+				UINT matvIndex = matCBVHeapIndexStart +
 					curFrameIndex * model.numMaterials + prim.matIndex;  
 				auto matCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 				matCbvHandle.Offset(matvIndex, Graphics::gCbvSrvUavDescriptorSize);

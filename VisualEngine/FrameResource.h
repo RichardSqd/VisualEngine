@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "CommandListManager.h"
 #include "UploadBuffer.h"
+#include "ShaderLightingData.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -63,7 +64,11 @@ public:
 };
 
 
-
+class LightConstant {
+public:
+	LightConstant();
+	ShaderLightingData::SceneLighting lights;
+};
 
 class FrameResource {
 public:
@@ -78,6 +83,7 @@ public:
 	std::unique_ptr<UploadBuffer> objCB = nullptr;
 	std::unique_ptr<UploadBuffer> passCB = nullptr;
 	std::unique_ptr<UploadBuffer> matCB = nullptr;
+	std::unique_ptr<UploadBuffer> lightCB = nullptr;
 	UINT64 fence = 0;
 
 };

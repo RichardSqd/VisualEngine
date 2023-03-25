@@ -45,6 +45,11 @@ cbuffer cbMaterial : register(b2)
 	bool HasOcclusionTexture; 
 }
 
+cbuffer cbLight: register(b3)
+{
+	SceneLighting lights;
+}
+
 struct VertexIn
 {
 
@@ -108,7 +113,15 @@ float4 PS(VertexOut pin) : SV_Target
 	surface.V = normalize(CameraPos - pin.positionWorld.xyz);
 	surface.NdotV = saturate(dot(surface.N, surface.V));
 	surface.diffuse = diffuseAlbedo.rgb * (1 - dielectricSpecular) * (1 - metallicRoughness.x) * 1;
+	
+	
+	if (lights.numDirectionalLights > 0) {
+		diffuseAlbedo.rgb = float3(0.2, 0.3, 0.4);
+	}
 
+	//if (lightType == 0) {
+	//	diffuseAlbedo.rgb = float3(0.2, 0.3, 0.4);
+	//}
 	return float4(diffuseAlbedo.rgb, diffuseAlbedo.a);
 }
 
