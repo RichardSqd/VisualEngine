@@ -47,20 +47,25 @@ public:
 		metallicFactor = 1.0f;
 		roughnessFactor = 0.2f;
 
-		hasDiffuseTexture = false;
-		hasMetallicRoughnessTexture = false;
-		hasNormalTexture = false;
-		hasOcclusionTexture = false;
+		hasDiffuseTexture = 0;
+		hasMetallicRoughnessTexture = 0;
+		hasNormalTexture = 0;
+		hasOcclusionTexture = 0;
+		hasEmissiveTexture = 0;
+		dummy1 =0;
 
 	}
 	DirectX::XMFLOAT4 diffuseFactor;
 	float metallicFactor;
 	float roughnessFactor;
+	int hasDiffuseTexture;
+	int hasMetallicRoughnessTexture;
 
-	bool hasDiffuseTexture;
-	bool hasMetallicRoughnessTexture;
-	bool hasNormalTexture;
-	bool hasOcclusionTexture;
+	int hasNormalTexture;
+	int hasOcclusionTexture;
+	int hasEmissiveTexture;
+	int dummy1;
+	
 };
 
 

@@ -13,6 +13,7 @@ Texture2D diffuseMap : register(t1);
 Texture2D metallicRoughnessMap : register(t2);
 Texture2D normalMap : register(t3);
 Texture2D occlusionMap: register(t4);
+Texture2D emissiveMap: register(t5);
 
 static const float PI = 3.14159265;
 static const float3 dielectricSpecular = float3(0.04, 0.04, 0.04);
@@ -38,11 +39,15 @@ cbuffer cbMaterial : register(b2)
 	float4 DiffuseFactor;
 	float MetallicFactor;
 	float RoughnessFactor;
+	int HasDiffuseTexture; 
+	int HasMetallicRoughnessTexture;
 
-	bool HasDiffuseTexture; 
-	bool HasMetallicRoughnessTexture;
-	bool HasNormalTexture; 
-	bool HasOcclusionTexture; 
+	int HasNormalTexture;
+	int HasOcclusionTexture;
+	int HasEmissiveTexture;
+	int dummy1;
+
+	
 }
 
 cbuffer cbLight: register(b3)
@@ -89,20 +94,37 @@ float4 PS(VertexOut pin) : SV_Target
 {
 	float4 diffuseAlbedo;
 	float2 metallicRoughnessFactor;
+	float4 roughnessmetallic;
+	float4 emissiveAlbedo;
 
-	if (HasDiffuseTexture) {
+	if (HasDiffuseTexture==1) {
+		//float4 temp = DiffuseFactor * metallicRoughnessMap.Sample(samPointWrap, pin.uv);
+		//diffuseAlbedo += temp;
+		
+
 		diffuseAlbedo = DiffuseFactor * diffuseMap.Sample(samPointWrap, pin.uv);
+		
 	}
 	else {
 		diffuseAlbedo = DiffuseFactor;
 	}
 
-	if (HasMetallicRoughnessTexture) {
+	if (HasMetallicRoughnessTexture == 1) {
 		metallicRoughnessFactor = float2(MetallicFactor, RoughnessFactor);
+		roughnessmetallic = DiffuseFactor * metallicRoughnessMap.Sample(samPointWrap, pin.uv);
 	}
 	else {
 		metallicRoughnessFactor = float2(0.25, 0.25);
 	}
+
+	if (HasEmissiveTexture == 1) {
+		emissiveAlbedo = DiffuseFactor * emissiveMap.Sample(samPointWrap, pin.uv);
+	}
+
+	diffuseAlbedo =  diffuseAlbedo + emissiveAlbedo;
+	//if (HasEmissiveTexture == 1) {
+		//emissiveAlbedo = 
+	//}
 	
 	float2 metallicRoughness = metallicRoughnessFactor * metallicRoughnessMap.Sample(samLinearClamp, pin.uv).bg;
 
@@ -115,13 +137,11 @@ float4 PS(VertexOut pin) : SV_Target
 	surface.diffuse = diffuseAlbedo.rgb * (1 - dielectricSpecular) * (1 - metallicRoughness.x) * 1;
 	
 	
-	if (lights.numDirectionalLights > 0) {
-		diffuseAlbedo.rgb = float3(0.2, 0.3, 0.4);
-	}
-
-	//if (lightType == 0) {
+	//if (lights.numDirectionalLights > 0) {
 	//	diffuseAlbedo.rgb = float3(0.2, 0.3, 0.4);
 	//}
+
+	
 	return float4(diffuseAlbedo.rgb, diffuseAlbedo.a);
 }
 

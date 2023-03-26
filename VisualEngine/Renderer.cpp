@@ -111,7 +111,7 @@ namespace Renderer {
 		BREAKIFFAILED(Graphics::gDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)));
 
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[6] = {};
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse,metalicroughness, normal, AO textures, register t1,2,3 
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse,metalicroughness, normal, AO textures, register t1,2,3 
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //object constant buffer
 		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //global constant buffer
 		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //mat constant buffer
@@ -424,6 +424,26 @@ namespace Renderer {
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				Graphics::gDevice->CreateShaderResourceView(nullptr, &srvDesc, handle);
 			}
+
+			heapIndex++;
+			if (mat->hasEmissiveTexture) {
+				mat->emissiveSrvHeapIndex = heapIndex;
+				auto& texResource = textures[mat->texEmisiveMap]->textureResource;
+				srvDesc.Format = texResource->GetDesc().Format;
+				srvDesc.Texture2D.MipLevels = texResource->GetDesc().MipLevels;
+				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				Graphics::gDevice->CreateShaderResourceView(texResource.Get(), &srvDesc, handle);
+			}
+			else {
+				mat->emissiveSrvHeapIndex = heapIndex;
+				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				Graphics::gDevice->CreateShaderResourceView(nullptr, &srvDesc, handle);
+			}
+
+
+
 			heapIndex++;
 
 		}
@@ -450,7 +470,7 @@ namespace Renderer {
 		//create srv/cbv desc heap 
 		UINT numDescriptors = (static_cast<unsigned long long>(EngineCore::eModel.numNodes) 
 			+ 1 + (UINT)EngineCore::eModel.materials.size()) * Graphics::gNumFrameResources + 
-			static_cast<unsigned long long>((UINT)EngineCore::eModel.materials.size()) * 4 +
+			static_cast<unsigned long long>((UINT)EngineCore::eModel.materials.size()) * 5 +
 			1 * Graphics::gNumFrameResources + 1;
 		D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc{};
 		cbvSrvHeapDesc.NumDescriptors = numDescriptors;
@@ -691,13 +711,14 @@ namespace Renderer {
 
 
 				MaterialConstants materialConsts = {};
-				materialConsts.diffuseFactor =  mat->diffuse;
+				materialConsts.diffuseFactor = mat->diffuse;
 				materialConsts.metallicFactor = mat->metalness;
 				materialConsts.roughnessFactor = mat->roughness;
 				materialConsts.hasDiffuseTexture = mat->hasDiffuseTexture;
 				materialConsts.hasMetallicRoughnessTexture = mat->hasMetallicRoughnessTexture;
 				materialConsts.hasNormalTexture = mat->hasNormalTexture ;
-				materialConsts.hasOcclusionTexture = mat->hasOcclusionTexture;
+				materialConsts.hasOcclusionTexture =  mat->hasOcclusionTexture;
+				materialConsts.hasEmissiveTexture = mat->hasEmissiveTexture;
 				curFrameMatCB->CopyData(i, &materialConsts);
 				mat->numFrameDirty--;
 			}
@@ -909,6 +930,10 @@ namespace Renderer {
 				texDiffuseCbvHandle.Offset(texDiffuseheapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				commandList->SetGraphicsRootDescriptorTable(0, texDiffuseCbvHandle);
 
+				//UINT texDiffuseheapIndex = mat->diffuseMapSrvHeapIndex;
+				//auto texDiffuseCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+				//texDiffuseCbvHandle.Offset(texDiffuseheapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				//commandList->SetGraphicsRootDescriptorTable(0, texDiffuseCbvHandle);
 
 
 				// set vertex/index for each render primitive
