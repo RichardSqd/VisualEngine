@@ -23,7 +23,7 @@ void AVisualApp::InitApp() {
 	Graphics::Init();
 
 
-	Control::InitControl(Graphics::ghWnd);
+	
 	auto context = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT).get();
 	auto commandList = context->getCommandList();
 	/*CommandList Reset can be called while it's being executed
@@ -31,45 +31,47 @@ void AVisualApp::InitApp() {
 	it to reuse the allocated memory for another command list.*/
 	commandList->Reset(context->getCommandAllocator().Get(), nullptr);
 	Renderer::Init(context);
+	Control::InitControl(Graphics::ghWnd);
 	if (Graphics::gRayTraceEnvironmentActive) {
 		//DXRRenderer::Init(context);
 	}
 
 	//gui init
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
-	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
-	//io.ConfigViewportsNoAutoMerge = true;
-	//io.ConfigViewportsNoTaskBarIcon = true;
-
-	// Setup Dear ImGui style
-	ImGui::StyleColorsDark();
-	//ImGui::StyleColorsLight();
-
-	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-	ImGuiStyle& style = ImGui::GetStyle();
-	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 	{
-		style.WindowRounding = 0.0f;
-		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
+		//io.ConfigViewportsNoAutoMerge = true;
+		//io.ConfigViewportsNoTaskBarIcon = true;
+
+		// Setup Dear ImGui style
+		ImGui::StyleColorsDark();
+		//ImGui::StyleColorsLight();
+
+		// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+		ImGuiStyle& style = ImGui::GetStyle();
+		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			style.WindowRounding = 0.0f;
+			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+		}
+
+		ImGui_ImplWin32_Init(Graphics::ghWnd);
+
+		auto fontCpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap.Get()->GetCPUDescriptorHandleForHeapStart());
+		fontCpuHandle.Offset(Renderer::guiSRVHeapIndexStart, Graphics::gCbvSrvUavDescriptorSize);
+		auto fontGpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap.Get()->GetGPUDescriptorHandleForHeapStart());
+		fontGpuHandle.Offset(Renderer::guiSRVHeapIndexStart, Graphics::gCbvSrvUavDescriptorSize);
+
+		ImGui_ImplDX12_Init(Graphics::gDevice.Get(), Graphics::gSwapChainBufferCount,
+			DXGI_FORMAT_R8G8B8A8_UNORM, Graphics::gCbvSrvHeap.Get(),
+			fontCpuHandle,
+			fontGpuHandle);
 	}
-
-	ImGui_ImplWin32_Init(Graphics::ghWnd);
-
-	auto fontCpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap.Get()->GetCPUDescriptorHandleForHeapStart());
-	fontCpuHandle.Offset(Renderer::guiSRVHeapIndexStart, Graphics::gCbvSrvUavDescriptorSize);
-	auto fontGpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap.Get()->GetGPUDescriptorHandleForHeapStart());
-	fontGpuHandle.Offset(Renderer::guiSRVHeapIndexStart, Graphics::gCbvSrvUavDescriptorSize);
-
-	ImGui_ImplDX12_Init(Graphics::gDevice.Get(), Graphics::gSwapChainBufferCount,
-		DXGI_FORMAT_R8G8B8A8_UNORM, Graphics::gCbvSrvHeap.Get(),
-		fontCpuHandle,
-		fontGpuHandle);
-
 
 	BREAKIFFAILED(commandList->Close());
 	ID3D12CommandList* cmds[] = { commandList.Get() };
@@ -94,15 +96,38 @@ void AVisualApp::Update() {
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 	ImGui::ShowDemoWindow(&show_demo_window);
-	
+	//ImGui::
 	ImGuiIO& io = ImGui::GetIO();
 	
+	auto& sceneLighting = EngineCore::eModel.lights;
 	{
 		static float f = 0.0f;
 		static int counter = 0;
 
 		ImGui::Begin("Welcome to Visual Engine!");                          // Create a window called "Hello, world!" and append into it.
-		//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+		ImGui::Text("Camera Position %.3f %.3f %.3f (x,y,z) ", Renderer::gMainCam.camPos.x, Renderer::gMainCam.camPos.y, Renderer::gMainCam.camPos.z);
+
+		if (sceneLighting.numDirectionalLights > 0) {
+			ImGui::SeparatorText("Directional Lights");
+			for (int i = 0; i < sceneLighting.numDirectionalLights; i++) {
+				auto& dl = sceneLighting.directionalLights[i];
+				float lastx = dl.strength.x;
+				float lasty = dl.strength.y;
+				float lastz = dl.strength.z;
+
+				//ImGui::InputFloat3("input float3", vec4f);
+
+				ImGui::SliderFloat("strength x", &dl.strength.x, 0.0f, 1.0f, "ratio = %.3f");
+				ImGui::SliderFloat("strength y", &dl.strength.y, 0.0f, 1.0f, "ratio = %.3f");
+				ImGui::SliderFloat("strength z", &dl.strength.z, 0.0f, 1.0f, "ratio = %.3f");
+				if (lastx != dl.strength.x || lasty != dl.strength.y || lastz != dl.strength.z) {
+					EngineCore::eModel.lightnumFrameDirty = Config::numFrameResource;
+				}
+			}
+
+		}
+			
 		ImGui::End();
 	}
 	Renderer::Update();

@@ -33,6 +33,7 @@ namespace Graphics {
 	extern UINT gObjectCBByteSize;
 	extern UINT gPassCBByteSize;
 	extern UINT gMatCBByteSize;
+	extern UINT gLightCBByteSize;
 	extern std::vector<std::unique_ptr<FrameResource>> gFrameResources;
 
 	extern D3D12_VIEWPORT gScreenViewport;

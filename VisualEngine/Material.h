@@ -19,7 +19,7 @@ struct Material
 
 	std::string texDiffuseMap;
 	std::string texSpecularMap;
-	std::string texEmmisiveMap;
+	std::string texEmisiveMap;
 	std::string texNormalMap;
 	std::string texLightmapMap;
 	std::string texReflectionMap;
@@ -33,11 +33,13 @@ struct Material
 	UINT roughnessMetallicMapSrvHeaIndex = -1;
 	UINT normalMapSrvHeapIndex = -1;
 	UINT occlusionMapSrvHeapIndex = -1;
+	UINT emissiveSrvHeapIndex = -1;
 
-	bool hasDiffuseTexture = false;
-	bool hasMetallicRoughnessTexture = false;
-	bool hasNormalTexture = false;
-	bool hasOcclusionTexture = false;
+	int hasDiffuseTexture = 0;
+	int hasMetallicRoughnessTexture = 0;
+	int hasNormalTexture = 0;
+	int hasOcclusionTexture = 0;
+	int hasEmissiveTexture = 0;
 
 
 	int numFrameDirty = Graphics::gNumFrameResources;

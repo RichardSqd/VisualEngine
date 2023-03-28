@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "CommandListManager.h"
 #include "UploadBuffer.h"
+#include "ShaderLightingData.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -46,24 +47,33 @@ public:
 		metallicFactor = 1.0f;
 		roughnessFactor = 0.2f;
 
-		hasDiffuseTexture = false;
-		hasMetallicRoughnessTexture = false;
-		hasNormalTexture = false;
-		hasOcclusionTexture = false;
+		hasDiffuseTexture = 0;
+		hasMetallicRoughnessTexture = 0;
+		hasNormalTexture = 0;
+		hasOcclusionTexture = 0;
+		hasEmissiveTexture = 0;
+		dummy1 =0;
 
 	}
 	DirectX::XMFLOAT4 diffuseFactor;
 	float metallicFactor;
 	float roughnessFactor;
+	int hasDiffuseTexture;
+	int hasMetallicRoughnessTexture;
 
-	bool hasDiffuseTexture;
-	bool hasMetallicRoughnessTexture;
-	bool hasNormalTexture;
-	bool hasOcclusionTexture;
+	int hasNormalTexture;
+	int hasOcclusionTexture;
+	int hasEmissiveTexture;
+	int dummy1;
+	
 };
 
 
-
+class LightConstant {
+public:
+	LightConstant();
+	ShaderLightingData::SceneLighting lights;
+};
 
 class FrameResource {
 public:
@@ -78,6 +88,7 @@ public:
 	std::unique_ptr<UploadBuffer> objCB = nullptr;
 	std::unique_ptr<UploadBuffer> passCB = nullptr;
 	std::unique_ptr<UploadBuffer> matCB = nullptr;
+	std::unique_ptr<UploadBuffer> lightCB = nullptr;
 	UINT64 fence = 0;
 
 };

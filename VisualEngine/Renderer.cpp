@@ -4,6 +4,7 @@
 #include "Camera.h"
 #include "Control.h"
 #include "imgui_impl_dx12.h"
+#include "ShaderLightingData.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +37,7 @@ namespace Renderer {
 
 	UINT objectCBVHeapIndexStart = 0;
 	UINT passCBVHeapIndexStart = 0;
+	UINT lightCBVHeapIndexStart = 0;
 	UINT matCBVHeapIndexStart = 0;
 	UINT texSRVHeapIndexStart = 0;
 	UINT guiSRVHeapIndexStart = 0;
@@ -108,20 +110,22 @@ namespace Renderer {
 		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 		BREAKIFFAILED(Graphics::gDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)));
 
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[5] = {};
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse,metalicroughness, normal, AO textures, register t1,2,3 
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[6] = {};
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse,metalicroughness, normal, AO textures, register t1,2,3 
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //object constant buffer
 		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //global constant buffer
 		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //mat constant buffer
-		ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); //shadow texture
+		ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 3, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //light constant buffer
+		ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); //shadow texture
 		//ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[5] = {};
+		CD3DX12_ROOT_PARAMETER1 rootParameters[6] = {};
 		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
 		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[3].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[4].InitAsDescriptorTable(1, &ranges[4], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[5].InitAsDescriptorTable(1, &ranges[5], D3D12_SHADER_VISIBILITY_PIXEL);
 		//rootParameters[4].InitAsDescriptorTable(1, &ranges[4], D3D12_SHADER_VISIBILITY_PIXEL);
 
 		auto staticSamplers = GetStaticSamplers();
@@ -132,7 +136,9 @@ namespace Renderer {
 		ComPtr<ID3DBlob> serializedRootSig;
 		ComPtr<ID3DBlob> err;
 		BREAKIFFAILED(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &serializedRootSig, &err));
-		
+		if (err != nullptr && err->GetBufferSize() > 0) {
+			Utils::Print((char*)err->GetBufferPointer());
+		}
 		
 		BREAKIFFAILED(Graphics::gDevice->CreateRootSignature(0, serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(), IID_PPV_ARGS(rRootSignature.GetAddressOf())));
 	}
@@ -261,8 +267,34 @@ namespace Renderer {
 			cbvDesc.SizeInBytes = passCBByteSize;
 			Graphics::gDevice->CreateConstantBufferView(&cbvDesc, handle);
 		}
-		matCBVHeapIndexStart = passCBVHeapIndexStart + Graphics::gNumFrameResources;
-		 
+		
+		lightCBVHeapIndexStart = passCBVHeapIndexStart + Graphics::gNumFrameResources;
+		UINT lightCBByteSize = Graphics::gLightCBByteSize;
+		auto& sceneLighting = EngineCore::eModel.lights;
+		UINT lightCount = (UINT)sceneLighting.numDirectionalLights + sceneLighting.numPointLights + sceneLighting.numSpotLights;
+		//create light views
+		for (UINT frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
+			auto lightCB = Graphics::gFrameResourceManager.GetFrameResourceByIndex(frameIndex)->lightCB->GetResource();
+			{
+				D3D12_GPU_VIRTUAL_ADDRESS cbAddress = lightCB->GetGPUVirtualAddress();
+				
+				//offset to the object cbv in the descriptor heap 
+				int heapIndex = lightCBVHeapIndexStart + frameIndex;
+
+
+				auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+
+				D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+				cbvDesc.BufferLocation = cbAddress;
+				cbvDesc.SizeInBytes = lightCBByteSize;
+				Graphics::gDevice->CreateConstantBufferView(&cbvDesc, handle);
+			}
+		}
+		
+
+		matCBVHeapIndexStart = lightCBVHeapIndexStart + 1 * Graphics::gNumFrameResources;
+
 		UINT matCBByteSize = Graphics::gMatCBByteSize;
 		UINT matCount = (UINT)EngineCore::eModel.materials.size();
 
@@ -392,6 +424,26 @@ namespace Renderer {
 				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				Graphics::gDevice->CreateShaderResourceView(nullptr, &srvDesc, handle);
 			}
+
+			heapIndex++;
+			if (mat->hasEmissiveTexture) {
+				mat->emissiveSrvHeapIndex = heapIndex;
+				auto& texResource = textures[mat->texEmisiveMap]->textureResource;
+				srvDesc.Format = texResource->GetDesc().Format;
+				srvDesc.Texture2D.MipLevels = texResource->GetDesc().MipLevels;
+				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				Graphics::gDevice->CreateShaderResourceView(texResource.Get(), &srvDesc, handle);
+			}
+			else {
+				mat->emissiveSrvHeapIndex = heapIndex;
+				CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
+				handle.Offset(heapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				Graphics::gDevice->CreateShaderResourceView(nullptr, &srvDesc, handle);
+			}
+
+
+
 			heapIndex++;
 
 		}
@@ -418,7 +470,8 @@ namespace Renderer {
 		//create srv/cbv desc heap 
 		UINT numDescriptors = (static_cast<unsigned long long>(EngineCore::eModel.numNodes) 
 			+ 1 + (UINT)EngineCore::eModel.materials.size()) * Graphics::gNumFrameResources + 
-			static_cast<unsigned long long>((UINT)EngineCore::eModel.materials.size()) * 4 + 1;
+			static_cast<unsigned long long>((UINT)EngineCore::eModel.materials.size()) * 5 +
+			1 * Graphics::gNumFrameResources + 1;
 		D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc{};
 		cbvSrvHeapDesc.NumDescriptors = numDescriptors;
 		cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -587,52 +640,45 @@ namespace Renderer {
 		UpdateObjCBs(currentFrameResource);
 		UpdateMaterialCBs(currentFrameResource);
 		UpdatePassCB(currentFrameResource);
-
+		UpdateLightCBs(currentFrameResource);
 	}
 
 	void UpdateInput() {
-		/*
-		auto kb = Control::m_keyboard->GetState();
-		auto mouse = Control::m_mouse->GetState();
+		ImGuiIO& io = ImGui::GetIO();
+		if (GetAsyncKeyState('A') & 0x8000) {
+			float dx = 2.50f;
+			Renderer::gMainCam.camTheta += 0.1*dx;
+			Renderer::gMainCam.camPhi = Math::Clamp(Renderer::gMainCam.camPhi, 0.1f, Math::PI - 0.1f);
+			Control::lastMousePos.x += dx;
+			Renderer::gMainCam.viewDirty = true;
+		}
+		if (GetAsyncKeyState('D') & 0x8000) {
+			float dx = 2.50f;
+			Renderer::gMainCam.camTheta -= 0.1 * dx;
+			Renderer::gMainCam.camPhi = Math::Clamp(Renderer::gMainCam.camPhi, 0.1f, Math::PI - 0.1f);
+			Control::lastMousePos.x -= dx;
+			Renderer::gMainCam.viewDirty = true;
+		}
 		
-		
-		float dx = DirectX::XMConvertToRadians(0.25f * static_cast<float>(mouse.x - Control::lastMousePos.x));
-		float dy = DirectX::XMConvertToRadians(0.25f * static_cast<float>(mouse.y - Control::lastMousePos.y));
+			
 
-		gMainCam.camTheta += dx;
-		gMainCam.camPhi += dy;
+		//if (GetAsyncKeyState('S') & 0x8000)
+		//	mCamera.Walk(-10.0f * dt);
 
-		
-		gMainCam.camPhi = Math::Clamp(gMainCam.camPhi, 0.1f, Math::PI - 0.1f);
-		
-		Control::lastMousePos.x = mouse.x;
-		Control::lastMousePos.x = mouse.y;
-		//update camera data based on mouse input 
-		std::wstring mouseData = L"\n x: "+ std::to_wstring(mouse.x) +L" y:"+ std::to_wstring(mouse.y) + L"\n";
-		Utils::Print(mouseData.c_str() );
+		//if (GetAsyncKeyState('A') & 0x8000)
+		//	mCamera.Strafe(-10.0f * dt);
 
-		*/
+		//if (GetAsyncKeyState('D') & 0x8000)
+		//	mCamera.Strafe(10.0f * dt);
 	}
 
 	void UpdateCamera() {
-		gMainCam.camPos.x = gMainCam.camRadius * sinf(gMainCam.camPhi) * cosf(gMainCam.camTheta);
-		gMainCam.camPos.y = gMainCam.camRadius * cosf(gMainCam.camPhi);
-		gMainCam.camPos.z = gMainCam.camRadius * sinf(gMainCam.camPhi) * sinf(gMainCam.camTheta);
-		//gMainCam.camPos.x = 0;
-		//gMainCam.camPos.y = 1;
-		//gMainCam.camPos.z = 1;
-		//std::wstring text = L"\n "+ std::to_wstring(gMainCam.camPos.x) + L" " + std::to_wstring(gMainCam.camPos.y) + L" " + std::to_wstring(gMainCam.camPos.z)+L"\n ";
-		//Utils::Print(text.c_str());
-		//view matrix update
-		DirectX::XMVECTOR pos = DirectX::XMVectorSet(gMainCam.camPos.x, gMainCam.camPos.y, gMainCam.camPos.z, 1.0f);
-		DirectX::XMVECTOR lookat = DirectX::XMVectorZero();
-		DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-		DirectX::XMMATRIX view = DirectX::XMMatrixLookAtRH(pos, lookat, up);
-		DirectX::XMStoreFloat4x4(&gMainCam.view, view);
-		//gMainCam.view._31 *= -1;
-		//gMainCam.view._32 *= -1;
-		//gMainCam.view._33 *= -1;
-		//gMainCam.view._34 *= -1;
+		if (gMainCam.viewDirty) {
+			
+			gMainCam.SetCamPosSph(gMainCam.camPhi, gMainCam.camTheta, gMainCam.camRadius);
+			gMainCam.UpdateViewMatrix();
+		}
+		
 	}
 	
 	void UpdateObjCBs(FrameResource* currentFrameResource) {
@@ -640,7 +686,7 @@ namespace Renderer {
 		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
 			auto& node = EngineCore::eModel.nodes[i];
 			if (node.numFrameDirty > 0) {
-				DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&node.matrix);
+				DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&node.toWorldmatrix);
 
 				ObjectConstants objConsts;
 				DirectX::XMStoreFloat4x4(&objConsts.World, DirectX::XMMatrixTranspose(world));
@@ -665,13 +711,14 @@ namespace Renderer {
 
 
 				MaterialConstants materialConsts = {};
-				materialConsts.diffuseFactor =  mat->diffuse;
+				materialConsts.diffuseFactor = mat->diffuse;
 				materialConsts.metallicFactor = mat->metalness;
 				materialConsts.roughnessFactor = mat->roughness;
 				materialConsts.hasDiffuseTexture = mat->hasDiffuseTexture;
 				materialConsts.hasMetallicRoughnessTexture = mat->hasMetallicRoughnessTexture;
 				materialConsts.hasNormalTexture = mat->hasNormalTexture ;
-				materialConsts.hasOcclusionTexture = mat->hasOcclusionTexture;
+				materialConsts.hasOcclusionTexture =  mat->hasOcclusionTexture;
+				materialConsts.hasEmissiveTexture = mat->hasEmissiveTexture;
 				curFrameMatCB->CopyData(i, &materialConsts);
 				mat->numFrameDirty--;
 			}
@@ -680,13 +727,27 @@ namespace Renderer {
 
 	}
 
+	void UpdateLightCBs(FrameResource* currentFrameResource) {
+		auto curFrameLightCB = currentFrameResource->lightCB.get();
+		auto& model = EngineCore::eModel;
+		
+		if (model.lightnumFrameDirty>0) {
+			Utils::Print("Update LIGHT CB LOOP\n");
+			LightConstant lc = {};
+			lc.lights = model.lights;
+			curFrameLightCB->CopyData(0, &lc);
+			model.lightnumFrameDirty--;
+		}
+		
+	}
+
 
 	void UpdatePassCB(FrameResource* currentFrameResource){
 		DirectX::XMMATRIX view = DirectX::XMLoadFloat4x4(&gMainCam.view);
 		DirectX::XMMATRIX proj = DirectX::XMLoadFloat4x4(&gMainCam.proj);
 		DirectX::XMMATRIX viewProj = view * proj;
 
-		//todo:
+		
 		PassConstants pConsts;
 		DirectX::XMStoreFloat4x4(&pConsts.ViewProjMatrix, DirectX::XMMatrixTranspose(viewProj));
 		DirectX::XMStoreFloat4x4(&pConsts.ViewMatrix, DirectX::XMMatrixTranspose(view));
@@ -780,6 +841,13 @@ namespace Renderer {
 		passCbvHandle.Offset(passCbvIndex, Graphics::gCbvSrvUavDescriptorSize);
 		commandList->SetGraphicsRootDescriptorTable(2, passCbvHandle);
 
+		//lights handle
+		//UINT lightCount = (UINT)EngineCore::eModel.lights.size();
+		
+		auto lightCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+		int lightCbvIndex = lightCBVHeapIndexStart + curFrameIndex;
+		lightCbvHandle.Offset(lightCbvIndex, Graphics::gCbvSrvUavDescriptorSize);
+		commandList->SetGraphicsRootDescriptorTable(4, lightCbvHandle);
 
 		DrawRenderItems(commandList);
 		RenderUI(commandList);
@@ -848,7 +916,7 @@ namespace Renderer {
 			for (auto& prim : primitives) {
 				//set mat 
 				//curMat = model.materials[ prim.matName]->
-				UINT matvIndex = (model.numNodes + 1) * Graphics::gNumFrameResources +
+				UINT matvIndex = matCBVHeapIndexStart +
 					curFrameIndex * model.numMaterials + prim.matIndex;  
 				auto matCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 				matCbvHandle.Offset(matvIndex, Graphics::gCbvSrvUavDescriptorSize);
@@ -862,6 +930,10 @@ namespace Renderer {
 				texDiffuseCbvHandle.Offset(texDiffuseheapIndex, Graphics::gCbvSrvUavDescriptorSize);
 				commandList->SetGraphicsRootDescriptorTable(0, texDiffuseCbvHandle);
 
+				//UINT texDiffuseheapIndex = mat->diffuseMapSrvHeapIndex;
+				//auto texDiffuseCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+				//texDiffuseCbvHandle.Offset(texDiffuseheapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				//commandList->SetGraphicsRootDescriptorTable(0, texDiffuseCbvHandle);
 
 
 				// set vertex/index for each render primitive

@@ -13,8 +13,8 @@ using Microsoft::WRL::ComPtr;
 
 
 namespace Graphics {
-	float gWidth = 800;
-	float gHeight = 600;
+	float gWidth = 1200;
+	float gHeight = 900;
 	HWND ghWnd = nullptr;
 	bool gRayTraceEnvironmentActive = false;
 	bool gRayTraced = false;
@@ -38,6 +38,7 @@ namespace Graphics {
 	UINT gObjectCBByteSize;
 	UINT gPassCBByteSize;
 	UINT gMatCBByteSize;
+	UINT gLightCBByteSize;
 	UINT gNumFrameResources = Config::numFrameResource;
 	UINT gSwapChainBufferCount = Config::numRenderTargets;
 	UINT gFrameIndex = 0;
@@ -118,7 +119,7 @@ namespace Graphics {
 		gObjectCBByteSize = (sizeof(ObjectConstants) + 255) & ~255;
 		gPassCBByteSize = (sizeof(PassConstants) + 255) & ~255;
 		gMatCBByteSize = (sizeof(MaterialConstants) + 255) & ~255;
-		
+		gLightCBByteSize = (sizeof(LightConstant) + 255) & ~255;
 		
 		CheckDXRSupport(Graphics::gRayTraceEnvironmentActive);
 	}

@@ -750,27 +750,7 @@ bool    ImGui_ImplDX12_CreateDeviceObjects()
     return true;
 }
 
-bool prepareFrame() {
-    ImGui_ImplDX12_Data* bd = ImGui_ImplDX12_GetBackendData();
-    if (!bd || !bd->pd3dDevice)
-        return false;
-    {
-        bd->pRootSignature = Renderer::rRootSignature.Get();
-    }
-    {
-        bd->pPipelineState = Renderer::rPso.Get();
-    }
 
-    ImGuiIO& io = ImGui::GetIO();
-    unsigned char* pixels;
-    int width, height;
-    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-    {
-
-    }
-    static_assert(sizeof(ImTextureID) >= sizeof(bd->hFontSrvGpuDescHandle.ptr), "Can't pack descriptor handle into TexID, 32-bit not supported yet.");
-    io.Fonts->SetTexID((ImTextureID)bd->hFontSrvGpuDescHandle.ptr);
-}
 
 static void ImGui_ImplDX12_DestroyRenderBuffers(ImGui_ImplDX12_RenderBuffers* render_buffers)
 {
@@ -848,11 +828,7 @@ void ImGui_ImplDX12_Shutdown()
     IM_DELETE(bd);
 }
 
-bool ImGui_ImplDX12_CreateAdjDeviceObjects() {
-    ImGui_ImplDX12_Data* bd = ImGui_ImplDX12_GetBackendData();
-    if (!bd || !bd->pd3dDevice)
-        return false;
-}
+
 
 void ImGui_ImplDX12_NewFrame()
 {

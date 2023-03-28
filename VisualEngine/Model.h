@@ -1,6 +1,7 @@
 #pragma once
 #include "pch.h"
 #include "Material.h"
+#include "ShaderLightingData.h"
 #include <unordered_map>
 #include <string>
 
@@ -137,7 +138,7 @@ namespace Scene {
 
 	struct Node {
 		Node();
-		DirectX::XMFLOAT4X4 matrix;
+		DirectX::XMFLOAT4X4 toWorldmatrix;
 		DirectX::XMFLOAT4 rotation;
 		DirectX::XMFLOAT3 scale;
 		DirectX::XMFLOAT3 translation;
@@ -157,7 +158,7 @@ namespace Scene {
 		UINT32 numMeshes;
 		UINT32 numMaterials;
 		UINT32 numTextures;
-
+		
 		UINT32 meshDataSize;
 		
 		UINT32 geometrySize;
@@ -165,6 +166,8 @@ namespace Scene {
 		std::vector<Mesh> meshes;
 		std::vector<Node> nodes;
 		std::vector<std::unique_ptr<Material>> materials;
+		ShaderLightingData::SceneLighting lights;
+		int lightnumFrameDirty = Config::numFrameResource;
 
 		std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
 

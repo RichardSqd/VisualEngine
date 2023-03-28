@@ -6,6 +6,7 @@
 #include <iterator>
 #include <vector>
 #include "ResourceUploadBatch.h"
+#include "ShaderLightingData.h"
 #include "pix3.h"
 
 using Microsoft::WRL::ComPtr;
@@ -274,7 +275,7 @@ namespace Scene {
 				
 			}
 			
-			DirectX::XMStoreFloat4x4(&model.nodes[nodeIndex].matrix, localToObject);
+			DirectX::XMStoreFloat4x4(&model.nodes[nodeIndex].toWorldmatrix, localToObject);
 			SolveMeshs(tinyModel, tinyNode.mesh, model, model.nodes[nodeIndex], localToObject);
 		}
 
@@ -371,10 +372,10 @@ namespace Scene {
 				diffuseTex->textureUploader->SetName(L"diffuseTexUploader");
 				diffuseTex->textureResource->SetName(L"diffuseTexDefault");
 				model.textures[diffuseTex->name] = std::move(diffuseTex);
-				mat->hasDiffuseTexture = true;
+				mat->hasDiffuseTexture = 1;
 			}
 			else {
-				mat->hasDiffuseTexture = false;
+				mat->hasDiffuseTexture = 0;
 			}
 			
 
@@ -407,10 +408,10 @@ namespace Scene {
 
 				UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), roughnessMetallicTex->textureResource, roughnessMetallicTex->textureUploader, subresource);
 				model.textures[roughnessMetallicTex->name] = std::move(roughnessMetallicTex);
-				mat->hasMetallicRoughnessTexture = true;
+				mat->hasMetallicRoughnessTexture = 1;
 			}
 			else {
-				mat->hasMetallicRoughnessTexture = false;
+				mat->hasMetallicRoughnessTexture = 0;
 				mat->texroughnessMetallicMap = "";
 			}
 			
@@ -445,10 +446,10 @@ namespace Scene {
 
 				UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), normalTex->textureResource, normalTex->textureUploader, subresource);
 				model.textures[normalTex->name] = std::move(normalTex);
-				mat->hasNormalTexture = true;
+				mat->hasNormalTexture = 1;
 			}
 			else {
-				mat->hasNormalTexture = false;
+				mat->hasNormalTexture = 0;
 				mat->texNormalMap = "";
 			}
 			
@@ -482,13 +483,67 @@ namespace Scene {
 				UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), occlusionTex->textureResource, occlusionTex->textureUploader, subresource);
 				model.textures[occlusionTex->name] = std::move(occlusionTex);
 				//occlusionTex->name = 
-				mat->hasOcclusionTexture = true;
+				mat->hasOcclusionTexture = 1;
 			}
 			else {
-				mat->hasOcclusionTexture = false;
+				mat->hasOcclusionTexture = 0;
 				mat->texOcclusionMap = "";
 			}
+
+			//emmisive texture 
+			int emmisiveIndex = tinyMat.emissiveTexture.index;
+			if (emmisiveIndex >= 0) {
+				auto emmisiveTex = std::make_unique<Texture>();
+				tinygltf::Texture& tinyEmmisiveTex = tinyModel.textures[emmisiveIndex];
+				tinygltf::Image& tinyEmmisiveTexImg = tinyModel.images[tinyEmmisiveTex.source];
+				emmisiveTex->name = tinyMat.name + "_EMISSIVE";
+				mat->texEmisiveMap = tinyMat.name + "_EMISSIVE";
+				emmisiveTex->uri = tinyEmmisiveTexImg.uri;
+				emmisiveTex->width = tinyEmmisiveTexImg.width;
+				emmisiveTex->height = tinyEmmisiveTexImg.height;
+				emmisiveTex->component = tinyEmmisiveTexImg.component;
+				emmisiveTex->bits = tinyEmmisiveTexImg.bits;
+				filepath = Config::gltfFileDirectory + L"\\" + Utils::to_wide_str(emmisiveTex->uri);
+				std::unique_ptr<uint8_t[]> wicEMData;
+				BREAKIFFAILED(
+					DirectX::LoadWICTextureFromFile(
+						Graphics::gDevice.Get(),
+						filepath.c_str(),
+						emmisiveTex->textureResource.ReleaseAndGetAddressOf(),
+						wicEMData,
+						subresource
+					));
+
+				UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), emmisiveTex->textureResource, emmisiveTex->textureUploader, subresource);
+				model.textures[emmisiveTex->name] = std::move(emmisiveTex);
+				mat->hasEmissiveTexture = 1;
+			}
+			else {
+				mat->hasEmissiveTexture = 0;
+				mat->texEmisiveMap = "";
+			}
+
 			model.materials[i] = std::move(mat);
+		}
+
+		
+	}
+
+	void SolveLights(tinygltf::Model& tinyModel, Scene::Model& model, ComPtr<ID3D12GraphicsCommandList> commandList){
+		auto& tinylights = tinyModel.lights;
+		if (tinylights.size() == 0) {
+			//use default directional light 
+			
+			model.lights.numDirectionalLights = 1;
+			model.lights.numPointLights = 0;
+			model.lights.numSpotLights = 0;
+
+			auto& directionalLight0 = model.lights.directionalLights[0];
+			directionalLight0.color = { 1.0f, 1.0f, 1.0f };
+			directionalLight0.lightDirection = { 0.57735f, -0.57735f, 0.57735f };
+			directionalLight0.strength = { 0.8f, 0.8f, 0.8f };
+			directionalLight0.enabled = 1;
+			return;
 		}
 
 		
@@ -526,7 +581,7 @@ namespace Scene {
 		}
 
 		SolveMaterials(tinyModel, model, commandList);
-
+		SolveLights(tinyModel, model, commandList);
 		
 		return 1;
 	}

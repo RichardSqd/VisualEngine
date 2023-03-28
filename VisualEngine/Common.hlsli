@@ -1,3 +1,6 @@
+#define VE_GPU 1 
+#include "ShaderLightingData.h"
+
 struct SurfaceProperties 
 {
 	float3 N;
@@ -8,21 +11,7 @@ struct SurfaceProperties
 
 };
 
-struct Light 
-{
-	float4 Color; //color of the lights
 
-	float3 WorldDirection; // direction and spot lights
-	float SpotlightAngle; //spotlight half angle
-
-	float3 WorldPosition; //point and spot lights
-	float RangeStart; //point and spot lights
-
-	float RangeEnd; //point and spot lights
-	float Intensity; 
-	uint Type; 
-	bool Enabled;
-};
 
 float3 ComputeDirectionalLight() {
 
