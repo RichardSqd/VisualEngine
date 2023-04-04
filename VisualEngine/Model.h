@@ -122,7 +122,7 @@ namespace Scene {
 		UINT vbTangentOffset;
 		UINT vbTangentBufferByteSize;
 		
-
+		BOOL hasIndices;
 		UINT matIndex;
 	};
 
