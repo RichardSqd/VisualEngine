@@ -688,6 +688,14 @@ namespace Renderer {
 			if (node.numFrameDirty > 0) {
 				DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&node.toWorldmatrix);
 
+				DirectX::XMFLOAT4 sceneScaling = Scene::sceneScaling;
+				DirectX::XMFLOAT4 sceneTranslation = Scene::sceneTranslation;
+				DirectX::XMMATRIX temp = 
+					DirectX::XMMatrixScaling(sceneScaling.x, sceneScaling.y, sceneScaling.z) 
+					* DirectX::XMMatrixRotationAxis(DirectX::XMLoadFloat4(&Scene::axis), Scene::angle) 
+					* DirectX::XMMatrixTranslation(sceneTranslation.x, sceneTranslation.y, sceneTranslation.z);
+				world = world * temp ;
+				
 				ObjectConstants objConsts;
 				DirectX::XMStoreFloat4x4(&objConsts.World, DirectX::XMMatrixTranspose(world));
 				

@@ -7,6 +7,11 @@
 
 using Microsoft::WRL::ComPtr;
 namespace Scene {
+	extern DirectX::XMFLOAT4 axis;
+	extern float angle;
+	extern DirectX::XMFLOAT4 sceneScaling;
+	extern DirectX::XMFLOAT4 sceneTranslation;
+
 	/*
 	const D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
 	{
