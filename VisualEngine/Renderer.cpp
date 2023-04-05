@@ -871,7 +871,7 @@ namespace Renderer {
 		
 		UINT curFrameIndex = Graphics::gFrameResourceManager.GetCurrentIndex();
 		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
-
+	
 			auto& node = model.nodes[i];
 			if (node.mesh < 0 || node.mesh>=model.numMeshes) {
 				continue;
@@ -893,69 +893,64 @@ namespace Renderer {
 			D3D12_VERTEX_BUFFER_VIEW vbvTangent = {};
 			D3D12_INDEX_BUFFER_VIEW ibv = {};
 
-			ibv.BufferLocation = model.indexBufferGPU->GetGPUVirtualAddress();
-
-			vbvPos.BufferLocation = model.vertexPosBufferGPU->GetGPUVirtualAddress();
-			vbvPos.StrideInBytes = sizeof(Scene::VertexPos);
-
-			if (model.vertexNormalBufferByteSize > 0) {
-				vbvNormal.BufferLocation = model.vertexNormalBufferGPU->GetGPUVirtualAddress();
-				vbvNormal.StrideInBytes = sizeof(Scene::VertexNormal);
-			}
-
-			if (model.vertexTexCordBufferByteSize > 0) {
-				vbvTexCord.BufferLocation = model.vertexTexCordBufferGPU->GetGPUVirtualAddress();
-				vbvTexCord.StrideInBytes = sizeof(Scene::VertexTexCord);
-			}
 			
-			if(model.vertexTangentBufferByteSize>0){
-				vbvTangent.BufferLocation = model.vertexTangentBufferGPU->GetGPUVirtualAddress();
-				vbvTangent.StrideInBytes = sizeof(Scene::VertexTangent);
-			}
-
+			vbvPos.StrideInBytes = sizeof(Scene::VertexPos);
+			vbvNormal.StrideInBytes = sizeof(Scene::VertexNormal);
+			vbvTexCord.StrideInBytes = sizeof(Scene::VertexTexCord);
+			vbvTangent.StrideInBytes = sizeof(Scene::VertexTangent);
+			
 			for (auto& prim : primitives) {
 				//set mat 
+				
 				//curMat = model.materials[ prim.matName]->
-				UINT matvIndex = matCBVHeapIndexStart +
-					curFrameIndex * model.numMaterials + prim.matIndex;  
-				auto matCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-				matCbvHandle.Offset(matvIndex, Graphics::gCbvSrvUavDescriptorSize);
-				commandList->SetGraphicsRootDescriptorTable(3, matCbvHandle);
+				//if (prim.matIndex >= 0 && prim.matIndex < model.numMaterials) {
+				
+					UINT matvIndex = matCBVHeapIndexStart +
+						curFrameIndex * model.numMaterials + prim.matIndex;
+					auto matCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+					matCbvHandle.Offset(matvIndex, Graphics::gCbvSrvUavDescriptorSize);
+					commandList->SetGraphicsRootDescriptorTable(3, matCbvHandle);
 
 
-				//set textures 
-				auto& mat = model.materials[prim.matIndex];
-				UINT texDiffuseheapIndex = mat->diffuseMapSrvHeapIndex;
-				auto texDiffuseCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-				texDiffuseCbvHandle.Offset(texDiffuseheapIndex, Graphics::gCbvSrvUavDescriptorSize);
-				commandList->SetGraphicsRootDescriptorTable(0, texDiffuseCbvHandle);
-
-				//UINT texDiffuseheapIndex = mat->diffuseMapSrvHeapIndex;
-				//auto texDiffuseCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-				//texDiffuseCbvHandle.Offset(texDiffuseheapIndex, Graphics::gCbvSrvUavDescriptorSize);
-				//commandList->SetGraphicsRootDescriptorTable(0, texDiffuseCbvHandle);
+					//set textures 
+					auto& mat = model.materials[prim.matIndex];
+					UINT texDiffuseheapIndex = mat->diffuseMapSrvHeapIndex;
+					auto texDiffuseCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+					texDiffuseCbvHandle.Offset(texDiffuseheapIndex, Graphics::gCbvSrvUavDescriptorSize);
+					commandList->SetGraphicsRootDescriptorTable(0, texDiffuseCbvHandle);
 
 
-				// set vertex/index for each render primitive
-				ibv.Format = prim.iformat;
-				ibv.SizeInBytes = prim.indexBufferByteSize;
-				ibv.BufferLocation += prim.ibOffset;
-	
-				vbvPos.SizeInBytes = prim.vertexBufferPosByteSize;
-				vbvPos.BufferLocation += prim.vbPosOffset;
-				commandList->IASetVertexBuffers(0, 1, &vbvPos);
+					// set vertex/index for each render primitive
 
-				vbvTexCord.SizeInBytes = prim.vertexBufferTexCordByteSize;
-				vbvTexCord.BufferLocation += prim.vbTexOffset;
-				commandList->IASetVertexBuffers(2, 1, &vbvTexCord);
+
+					vbvPos.SizeInBytes = prim.vertexBufferPosByteSize;
+					vbvPos.BufferLocation = model.vertexPosBufferGPU->GetGPUVirtualAddress() + prim.vbPosOffset;
+					commandList->IASetVertexBuffers(0, 1, &vbvPos);
+
+					if (prim.vertexBufferTexCordByteSize>0) {
+						vbvTexCord.SizeInBytes = prim.vertexBufferTexCordByteSize;
+						vbvTexCord.BufferLocation = model.vertexTexCordBufferGPU->GetGPUVirtualAddress() + prim.vbTexOffset;
+						commandList->IASetVertexBuffers(2, 1, &vbvTexCord);
+					}
 					
-				commandList->IASetIndexBuffer(&ibv);
-				commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				commandList->DrawIndexedInstanced(prim.indexCount, 1, 0, 0, 0);
+
+					commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
+					if (prim.hasIndices) {
+						ibv.Format = prim.iformat;
+						ibv.SizeInBytes = prim.indexBufferByteSize;
+						ibv.BufferLocation = model.indexBufferGPU->GetGPUVirtualAddress() + prim.ibOffset;
+						commandList->IASetIndexBuffer(&ibv);
+						commandList->DrawIndexedInstanced(prim.indexCount, 1, 0, 0, 0);
+					}
+					else {
+						commandList->DrawInstanced(prim.vertexCount, 1, 0, 0);
+					
+					}
+			
 			
 			}
-			
-
 			//set mat cbv in the descritpor heap for each node for the current frame resource
 			
 			//commandList->SetGraphicsRootDescriptorTable(3, matCbvHandle);

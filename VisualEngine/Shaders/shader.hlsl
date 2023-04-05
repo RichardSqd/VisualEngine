@@ -96,7 +96,8 @@ float4 PS(VertexOut pin) : SV_Target
 	float2 metallicRoughnessFactor;
 	float4 roughnessmetallic;
 	float4 emissiveAlbedo;
-
+	//float4 normalAlbedo;
+	//float4 aoAlbedo;
 	if (HasDiffuseTexture==1) {
 		//float4 temp = DiffuseFactor * metallicRoughnessMap.Sample(samPointWrap, pin.uv);
 		//diffuseAlbedo += temp;
@@ -117,11 +118,21 @@ float4 PS(VertexOut pin) : SV_Target
 		metallicRoughnessFactor = float2(0.25, 0.25);
 	}
 
+	/*
 	if (HasEmissiveTexture == 1) {
 		emissiveAlbedo = DiffuseFactor * emissiveMap.Sample(samPointWrap, pin.uv);
+
+	}
+	
+	if (HasNormalTexture) {
+		normalAlbedo = float4(0.1, 0.1, 0.1, 0.1) * normalMap.Sample(samPointWrap, pin.uv);
 	}
 
-	diffuseAlbedo =  diffuseAlbedo + emissiveAlbedo;
+	if (HasOcclusionTexture) {
+		aoAlbedo = float4(0.1, 0.1, 0.1, 0.1) * occlusionMap.Sample(samPointWrap, pin.uv);
+	}*/
+
+	diffuseAlbedo = diffuseAlbedo;// + emissiveAlbedo + roughnessmetallic + normalAlbedo + aoAlbedo;
 	//if (HasEmissiveTexture == 1) {
 		//emissiveAlbedo = 
 	//}
