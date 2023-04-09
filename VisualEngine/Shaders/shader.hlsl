@@ -101,10 +101,7 @@ float4 PS(VertexOut pin) : SV_Target
 	if (HasDiffuseTexture==1) {
 		//float4 temp = DiffuseFactor * metallicRoughnessMap.Sample(samPointWrap, pin.uv);
 		//diffuseAlbedo += temp;
-		
-
 		diffuseAlbedo = DiffuseFactor * diffuseMap.Sample(samPointWrap, pin.uv);
-		
 	}
 	else {
 		diffuseAlbedo = DiffuseFactor;
@@ -132,22 +129,33 @@ float4 PS(VertexOut pin) : SV_Target
 		aoAlbedo = float4(0.1, 0.1, 0.1, 0.1) * occlusionMap.Sample(samPointWrap, pin.uv);
 	}*/
 
-	diffuseAlbedo = diffuseAlbedo;// + emissiveAlbedo + roughnessmetallic + normalAlbedo + aoAlbedo;
+	//
+
+	//diffuseAlbedo = // diffuseAlbedo + roughnessmetallic; + emissiveAlbedo + roughnessmetallic + normalAlbedo + aoAlbedo;
 	//if (HasEmissiveTexture == 1) {
 		//emissiveAlbedo = 
 	//}
 	
+
+
+
 	float2 metallicRoughness = metallicRoughnessFactor * metallicRoughnessMap.Sample(samLinearClamp, pin.uv).bg;
 
-	float4 ambientLight = float4(0.25f, 0.25f, 0.35f, 1.0f);
+	
 	
 	SurfaceProperties surface; 
-	surface.N = pin.normal;
+	surface.N = normalize(pin.normal);
 	surface.V = normalize(CameraPos - pin.positionWorld.xyz);
 	surface.NdotV = saturate(dot(surface.N, surface.V));
 	surface.diffuse = diffuseAlbedo.rgb * (1 - dielectricSpecular) * (1 - metallicRoughness.x) * 1;
 	
 	
+
+	//phong lighting 
+	float4 phongLightingFactor = ComputePhongLighting(surface, lights, CameraPos, pin.positionWorld.xyz);
+	diffuseAlbedo = phongLightingFactor * diffuseAlbedo;
+
+
 	//if (lights.numDirectionalLights > 0) {
 	//	diffuseAlbedo.rgb = float3(0.2, 0.3, 0.4);
 	//}

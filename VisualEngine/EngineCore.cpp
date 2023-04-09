@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "EngineCore.h"
 #include "AVisualApp.h"
+#include "Renderer.h"
 #include <WindowsX.h>
 #include "Control.h"
 #include "imgui_impl_win32.h"
@@ -23,6 +24,15 @@ namespace EngineCore {
         case WM_ACTIVATEAPP:
             //Keyboard::ProcessMessage(msg, wParam, lParam);
             //Mouse::ProcessMessage(msg, wParam, lParam);
+            break;
+
+        case WM_SIZE:
+            Graphics::gWidth = LOWORD(lParam);
+            Graphics::gHeight = HIWORD(lParam);
+            break;
+
+        case WM_EXITSIZEMOVE:
+            Renderer::OnResize();
             break;
             /*
         case WM_ACTIVATE:

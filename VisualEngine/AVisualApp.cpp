@@ -116,8 +116,9 @@ void AVisualApp::UpdateUI() {
 		static float f = 0.0f;
 		static int counter = 0;
 
-		ImGui::Begin("Welcome to Visual Engine!");                          // Create a window called "Hello, world!" and append into it.
+		ImGui::Begin("Welcome to Visual Engine!");                          
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+		ImGui::Text("Current window size (%.1f, %.1f) ", Graphics::gWidth, Graphics::gHeight);
 		ImGui::Text("Camera Position %.3f %.3f %.3f (x,y,z) ", Renderer::gMainCam.camPos.x, Renderer::gMainCam.camPos.y, Renderer::gMainCam.camPos.z);
 
 		if (sceneLighting.numDirectionalLights > 0) {
