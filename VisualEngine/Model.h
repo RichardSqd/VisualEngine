@@ -228,4 +228,27 @@ namespace Scene {
 	};
 
 
+	struct AnimationChannel {
+		int sampler;            
+		int target_node;         
+		std::string target_path;  // one of "translation", "rotation", "scale", "weights" 
+		
+
+		AnimationChannel() : sampler(-1), target_node(-1) {}
+		
+	};
+
+	struct AnimationSampler {
+		int input;
+		int output;
+		std::string interpolation;  // "LINEAR", "STEP","CUBICSPLINE", default "LINEAR"
+
+		AnimationSampler() : input(-1), output(-1) {}
+	};
+
+	struct Animation {
+		std::vector<AnimationChannel> channels;
+		std::vector<AnimationSampler> samplers;
+	};
+
 }

@@ -628,6 +628,31 @@ namespace Scene {
 		
 	}
 
+	void SolveAnimations(tinygltf::Model& tinyModel, Scene::Model& model) {
+		auto& tinyAnimations = tinyModel.animations;
+		for (auto& tinyAnimation : tinyAnimations) {
+			for (auto& channel : tinyAnimation.channels) {
+				auto& sampler = tinyAnimation.samplers[channel.sampler];
+				auto& node = model.nodes[channel.target_node];
+				
+				//path
+				if (channel.target_path == "translation") {
+					//node.translation
+				}
+				else if (channel.target_path == "rotation") {
+
+				}
+				else if (channel.target_path == "scale") {
+
+				}
+				else {//weights
+
+				}
+				
+			}
+		}
+	}
+
 	int translate(tinygltf::Model& tinyModel, Scene::Model& model, ComPtr<ID3D12GraphicsCommandList> commandList) {
 		const tinygltf::Scene& tinyscene = tinyModel.scenes[tinyModel.defaultScene];
 		//model.buffers.resize(tinyModel.buffers.size());
@@ -662,9 +687,11 @@ namespace Scene {
 
 		SolveMaterials(tinyModel, model, commandList);
 		SolveLights(tinyModel, model, commandList);
-		
+		SolveAnimations(tinyModel, model);
 		return 1;
 	}
+
+	
 
 
 

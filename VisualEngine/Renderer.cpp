@@ -27,13 +27,15 @@ namespace Renderer {
 	
 	ComPtr<ID3D12Resource> rRenderTargetBuffer[Config::numRenderTargets];
 	ComPtr<ID3D12Resource> rDepthStencilBuffer;
-
+	
 	D3D12_VIEWPORT gScreenViewport {};
 	INT gCurBackBufferIndex = 0;
 
 	DirectX::XMFLOAT4X4 gview{};
 
 	Camera gMainCam{};
+
+	int rframeRateCap60 = 1;
 
 	UINT objectCBVHeapIndexStart = 0;
 	UINT passCBVHeapIndexStart = 0;
@@ -607,6 +609,7 @@ namespace Renderer {
 	void Update() {
 		UpdateInput();
 		UpdateCamera();
+		UpdateAnimation();
 
 		//advance the frame index, check the status of GPU completion on current frame resources 
 		Graphics::gFrameResourceManager.NextFrameResource();
@@ -641,6 +644,10 @@ namespace Renderer {
 		UpdateMaterialCBs(currentFrameResource);
 		UpdatePassCB(currentFrameResource);
 		UpdateLightCBs(currentFrameResource);
+	}
+
+	void UpdateAnimation() {
+
 	}
 
 	void UpdateInput() {
@@ -792,7 +799,7 @@ namespace Renderer {
 		queue.ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
 		//Swap back and front buffer 
-		BREAKIFFAILED(Graphics::gSwapChain->Present(1, 0));
+		BREAKIFFAILED(Graphics::gSwapChain->Present(rframeRateCap60, 0));
 		gCurBackBufferIndex = (gCurBackBufferIndex + 1) % Graphics::gSwapChainBufferCount;
 
 		//fence move to new position and signal the new GPU fence value 

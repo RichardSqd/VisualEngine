@@ -19,13 +19,14 @@ namespace Config {
 	//const std::wstring gltfFileName = L"SciFiHelmet.gltf";
 	//const std::wstring gltfFileDirectory  = L"Models\\SciFiHelmet\\glTF";
 	// BoomBox 
-	//const std::wstring gltfFileName = L"BoomBox.gltf";
-	//const std::wstring gltfFileDirectory  = L"Models\\BoomBox\\glTF";
+	//const std::wstring gltfFileName = L"\Suzanne.gltf";
+	//const std::wstring gltfFileDirectory  = L"Models\\\Suzanne\\glTF";
 	// Buggy
 	//const std::wstring gltfFileDirectory  = L"Models\\Buggy\\glTF";
 	//const std::wstring gltfFileName = L"Buggy.gltf";
 	//const std::wstring gltfFileDirectory  = L"Models\\testscene";
 	//const std::wstring gltfFileName = L"testscene44.gltf";
+	//const std::wstring gltfFileName = L"testscene16.gltf";
 	const std::wstring testSceneFilePath = L"Models\\skull.txt";
 	const std::wstring testShaderPath = L"Shaders\\testshader.hlsl";
 	const std::wstring shaderFilePath = L"Shaders\\shader.hlsl";

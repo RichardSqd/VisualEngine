@@ -17,6 +17,7 @@ namespace Renderer {
 	extern void CreateConstantBufferViews();
 	extern void CreateShaderResourceViews();
 	extern void Update();
+	extern void UpdateAnimation();
 	extern void UpdateInput();
 	extern void UpdateCamera();
 	extern void UpdateObjCBs(FrameResource* currentFrameResource);
@@ -57,4 +58,6 @@ namespace Renderer {
 	extern UINT matCBVHeapIndexStart;
 	extern UINT texSRVHeapIndexStart;
 	extern UINT guiSRVHeapIndexStart;
+
+	extern int rframeRateCap60;
 }

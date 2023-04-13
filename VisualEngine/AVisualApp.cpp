@@ -112,12 +112,14 @@ void AVisualApp::UpdateUI() {
 	auto& angle = Scene::angle;
 	auto& translation = Scene::sceneTranslation;
 	auto& scaling = Scene::sceneScaling;
+	bool limitFrameRate = Renderer::rframeRateCap60;
 	{
 		static float f = 0.0f;
 		static int counter = 0;
-
+		
 		ImGui::Begin("Welcome to Visual Engine!");                          
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+		ImGui::Checkbox("Limit Frame Rate to 60 FPS", &limitFrameRate);
 		ImGui::Text("Current window size (%.1f, %.1f) ", Graphics::gWidth, Graphics::gHeight);
 		ImGui::Text("Camera Position %.3f %.3f %.3f (x,y,z) ", Renderer::gMainCam.camPos.x, Renderer::gMainCam.camPos.y, Renderer::gMainCam.camPos.z);
 
@@ -151,6 +153,10 @@ void AVisualApp::UpdateUI() {
 			for (int i = 0; i < EngineCore::eModel.numNodes; i++) {
 				EngineCore::eModel.nodes[i].numFrameDirty = Config::numFrameResource;
 			}
+		}
+
+		if (limitFrameRate != Renderer::rframeRateCap60) {
+			Renderer::rframeRateCap60 = limitFrameRate;
 		}
 
 
