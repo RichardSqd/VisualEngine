@@ -112,6 +112,7 @@ void AVisualApp::UpdateUI() {
 	auto& angle = Scene::angle;
 	auto& translation = Scene::sceneTranslation;
 	auto& scaling = Scene::sceneScaling;
+	bool wireframeMode = Renderer::wireframeMode;
 	bool limitFrameRate = Renderer::rframeRateCap60;
 	{
 		static float f = 0.0f;
@@ -122,6 +123,7 @@ void AVisualApp::UpdateUI() {
 		ImGui::Checkbox("Limit Frame Rate to 60 FPS", &limitFrameRate);
 		ImGui::Text("Current window size (%.1f, %.1f) ", Graphics::gWidth, Graphics::gHeight);
 		ImGui::Text("Camera Position %.3f %.3f %.3f (x,y,z) ", Renderer::gMainCam.camPos.x, Renderer::gMainCam.camPos.y, Renderer::gMainCam.camPos.z);
+		ImGui::Checkbox("Wireframe Mode", &wireframeMode);
 
 		if (sceneLighting.numDirectionalLights > 0) {
 			ImGui::SeparatorText("Directional Lights");
@@ -149,16 +151,34 @@ void AVisualApp::UpdateUI() {
 		ImGui::SliderFloat("Scaling x", &scaling.x, 0.0f, 20.0f, "ratio = %.3f");
 		ImGui::SliderFloat("Scaling y", &scaling.y, 0.0f, 20.0f, "ratio = %.3f");
 		ImGui::SliderFloat("Scaling z", &scaling.z, 0.0f, 20.0f, "ratio = %.3f");
+
+		if (ImGui::BeginMenu("Shader Settings"))
+		{
+			static bool enabled = true;
+			ImGui::MenuItem("Enabled", "", &enabled);
+
+			//static int n = 0;
+			//ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
+			//ImGui::InputFloat("Input", &f, 0.1f);
+			ImGui::Combo("Shader selector", &Renderer::shaderSelector, "Phong\0Blinn-Phong\0PBR\0\0");
+			
+			ImGui::EndMenu();
+		}
+
+		// start required updates 
 		if (lastx != scaling.x || lasty != scaling.y || lastz != scaling.z) {
-			for (int i = 0; i < EngineCore::eModel.numNodes; i++) {
+			for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
 				EngineCore::eModel.nodes[i].numFrameDirty = Config::numFrameResource;
 			}
 		}
 
-		if (limitFrameRate != Renderer::rframeRateCap60) {
+		if (limitFrameRate != (bool)Renderer::rframeRateCap60) {
 			Renderer::rframeRateCap60 = limitFrameRate;
 		}
 
+		if (wireframeMode != Renderer::wireframeMode ) {
+			Renderer::wireframeMode = wireframeMode;
+		}
 
 		ImGui::End();
 	}

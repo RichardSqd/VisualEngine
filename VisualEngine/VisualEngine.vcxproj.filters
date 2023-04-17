@@ -222,7 +222,16 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="Shaders\shader.hlsl">
+    <CustomBuild Include="Shaders\defaultPBRPS.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\defaultPBR_PS.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\defaultPhongPS.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Shaders\defaultVS.hlsl">
       <Filter>Assets\Shaders</Filter>
     </CustomBuild>
   </ItemGroup>

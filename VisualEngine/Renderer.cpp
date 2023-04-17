@@ -18,8 +18,11 @@ namespace Renderer {
 	ComPtr<ID3D12RootSignature> rRootSignature = nullptr;
 	ComPtr<ID3DBlob> rVertexShader = nullptr;
 	ComPtr<ID3DBlob> rPixelShader = nullptr;
+	ComPtr<ID3DBlob> rPixelPBRShader = nullptr;
 	ComPtr<ID3D12PipelineState> rPso = nullptr;
 	ComPtr<ID3D12PipelineState> rPsoShadow = nullptr;
+	ComPtr<ID3D12PipelineState> rPsoWireframe = nullptr;
+	ComPtr<ID3D12PipelineState> rPsoPBR = nullptr;
 	ComPtr<ID3D12GraphicsCommandList> rCommandList = nullptr;
 	ComPtr<ID3D12CommandAllocator> rCommandAlloc = nullptr;
 	D3D12_INPUT_LAYOUT_DESC rInputLayoutDesc {};
@@ -35,7 +38,10 @@ namespace Renderer {
 
 	Camera gMainCam{};
 
+	//UI interactable parameters
 	int rframeRateCap60 = 1;
+	int shaderSelector = 0;
+	bool wireframeMode = 0;
 
 	UINT objectCBVHeapIndexStart = 0;
 	UINT passCBVHeapIndexStart = 0;
@@ -154,13 +160,24 @@ namespace Renderer {
 		UINT compileFlags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 		ComPtr<ID3DBlob> errors;
-		BREAKIFFAILED(D3DCompileFromFile(Config::shaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS", "vs_5_0", compileFlags, 0, &rVertexShader, &errors));
+		BREAKIFFAILED(D3DCompileFromFile(Config::defaultVertexShaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS", "vs_5_0", compileFlags, 0, &rVertexShader, &errors));
 
 		if (errors!=nullptr && errors->GetBufferSize()>0) {
 			Utils::Print((char*)errors->GetBufferPointer());
 		}
 
-		BREAKIFFAILED(D3DCompileFromFile(Config::shaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS", "ps_5_0", compileFlags, 0, &rPixelShader, &errors));
+
+		D3DCompileFromFile(Config::defaultPBRPixelShaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS", "ps_5_0", compileFlags, 0, &rPixelPBRShader, &errors);
+		if (errors != nullptr && errors->GetBufferSize() > 0) {
+			Utils::Print((char*)errors->GetBufferPointer());
+		}
+
+		BREAKIFFAILED(D3DCompileFromFile(Config::defaultPixelShaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS", "ps_5_0", compileFlags, 0, &rPixelShader, &errors));
+		if (errors != nullptr && errors->GetBufferSize() > 0) {
+			Utils::Print((char*)errors->GetBufferPointer());
+		}
+
+		
 
 
 		rInputLayoutDesc.pInputElementDescs = Scene::inputLayoutDesc;
@@ -173,7 +190,7 @@ namespace Renderer {
 
 
 		rDepthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-		int n = (int)rVertexShader->GetBufferSize();
+		//int n = (int)rVertexShader->GetBufferSize();
 		//Utils::Print("\nVertex Shader size is:");
 		//Utils::Print(std::to_string(n).c_str());
 		//Utils::Print("\n");
@@ -184,9 +201,6 @@ namespace Renderer {
 		psoDesc.VS = CD3DX12_SHADER_BYTECODE(rVertexShader.Get());
 		psoDesc.PS = CD3DX12_SHADER_BYTECODE(rPixelShader.Get());
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-		if (Config::WIREFRAME_MODE) {
-			psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
-		}
 		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 		psoDesc.SampleMask = UINT_MAX;
@@ -200,12 +214,27 @@ namespace Renderer {
 
 		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPso)));
 
-		//shadow map pso
-		psoDesc.PS = CD3DX12_SHADER_BYTECODE(0,0);
-		psoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
-		psoDesc.NumRenderTargets = 0;
-		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPsoShadow)));
 
+		//wireframe
+		psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPsoWireframe)));
+
+		//pbr
+		psoDesc.PS = CD3DX12_SHADER_BYTECODE(rPixelPBRShader.Get());
+		psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPsoPBR)));
+
+
+
+		//shadow map pso
+		//psoDesc.PS = CD3DX12_SHADER_BYTECODE(0,0);
+		//psoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
+		//psoDesc.NumRenderTargets = 0;
+		//BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPsoShadow)));		
+
+	}
+
+	void UpdatePipelineState() {
 
 	}
 
@@ -770,7 +799,7 @@ namespace Renderer {
 		pConsts.CameraPos = gMainCam.camPos;
 		pConsts.NearZ = 1.0;
 		pConsts.FarZ = 1000.0;
-
+		pConsts.shaderSelector = shaderSelector;
 
 		auto curFramePassCB = currentFrameResource->passCB.get();
 		curFramePassCB->CopyData(0, &pConsts);
@@ -790,7 +819,20 @@ namespace Renderer {
 		//the last commands in queue has been completed for this frame 
 		
 		BREAKIFFAILED(allocator->Reset());
-		BREAKIFFAILED(commandList->Reset(allocator.Get(), rPso.Get()));
+
+		ID3D12PipelineState* pso;
+		if (shaderSelector < 2) {
+			pso = rPso.Get();
+		}
+		else {
+			pso = rPsoPBR.Get();
+		}
+		if(wireframeMode) {
+			pso = rPsoWireframe.Get();
+		}
+		
+
+		BREAKIFFAILED(commandList->Reset(allocator.Get(), pso));
 		
 		PopulateCommandList(commandList);
 		
@@ -816,7 +858,6 @@ namespace Renderer {
 		//BREAKIFFAILED(Renderer::rCommandAlloc->Reset());
 
 		//Reset Command list and reuse the memory
-		//BREAKIFFAILED(rCommandList->Reset(Renderer::rCommandAlloc.Get(), rPso.Get()));
 
 		commandList->RSSetViewports(1, &Graphics::gScreenViewport);
 		commandList->RSSetScissorRects(1, &Graphics::gScissorRect);
@@ -946,6 +987,12 @@ namespace Renderer {
 						vbvTexCord.SizeInBytes = prim.vertexBufferTexCordByteSize;
 						vbvTexCord.BufferLocation = model.vertexTexCordBufferGPU->GetGPUVirtualAddress() + prim.vbTexOffset;
 						commandList->IASetVertexBuffers(2, 1, &vbvTexCord);
+					}
+
+					if (prim.vbNormalBufferByteSize) {
+						vbvNormal.SizeInBytes = prim.vbNormalBufferByteSize;
+						vbvNormal.BufferLocation = model.vertexNormalBufferGPU->GetGPUVirtualAddress() + prim.vbNormalOffset;
+						commandList->IASetVertexBuffers(1, 1, &vbvNormal);
 					}
 					
 

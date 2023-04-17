@@ -24,6 +24,7 @@ namespace Renderer {
 	extern void UpdateMaterialCBs(FrameResource* currentFrameResource);
 	extern void UpdatePassCB(FrameResource* currentFrameResource);
 	extern void UpdateLightCBs(FrameResource* currentFrameResource);
+	extern void UpdatePipelineState();
 	extern void Draw();
 	extern void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList);
@@ -34,12 +35,15 @@ namespace Renderer {
 	extern ComPtr<ID3D12RootSignature> rRootSignature;
 	extern ComPtr<ID3DBlob> rVertexShader;
 	extern ComPtr<ID3DBlob> rPixelShader;
+	extern ComPtr<ID3DBlob> rPixelPBRShader;
 
 	extern D3D12_INPUT_LAYOUT_DESC rInputLayoutDesc;
 	extern CD3DX12_DEPTH_STENCIL_DESC rDepthStencilDesc;
 
 	extern ComPtr<ID3D12PipelineState> rPso;
 	extern ComPtr<ID3D12PipelineState> rPsoShadow;
+	extern ComPtr<ID3D12PipelineState> rPsoWireframe;
+	extern ComPtr<ID3D12PipelineState> rPsoPBR;
 
 	extern ComPtr<ID3D12GraphicsCommandList> rCommandList;
 	extern ComPtr<ID3D12CommandAllocator> rCommandAlloc;
@@ -59,5 +63,8 @@ namespace Renderer {
 	extern UINT texSRVHeapIndexStart;
 	extern UINT guiSRVHeapIndexStart;
 
+	//UI interactable parameters 
 	extern int rframeRateCap60;
+	extern int shaderSelector;
+	extern bool wireframeMode;
 }

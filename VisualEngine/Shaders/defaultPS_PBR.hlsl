@@ -15,14 +15,9 @@ Texture2D normalMap : register(t3);
 Texture2D occlusionMap: register(t4);
 Texture2D emissiveMap: register(t5);
 
-static const float PI = 3.14159265;
-static const float3 dielectricSpecular = float3(0.04, 0.04, 0.04);
 
-cbuffer cbPerObject : register(b0)
-{
-	float4x4 WorldMatrix;
-	float4x4 WorldITMatrix;
-};
+
+
 
 cbuffer cbGlobal : register(b1)
 {
@@ -31,6 +26,7 @@ cbuffer cbGlobal : register(b1)
 	float4x4 ProjMatrix;
 	float3 CameraPos;
 	float NearZ;
+	int shaderSelector;
 	float FarZ;
 }
 
@@ -55,17 +51,9 @@ cbuffer cbLight: register(b3)
 	SceneLighting lights;
 }
 
-struct VertexIn
-{
 
-	float3 pos : POSITION;
-	float3 normal : NORMAL;
-	float2 tex : TEXCOORD;
-	float3 tangent : TANGENT;
-	float4 color : COLOR;
-};
 
-struct VertexOut
+struct PixelIn
 {
 	float4 position  : SV_POSITION;
 	float4 tangent: TANGENT;
@@ -75,29 +63,15 @@ struct VertexOut
 	
 };
 
-VertexOut VS(VertexIn vin)
-{
-	VertexOut vout;
 
-	// Transform to homogeneous clip space.
-	vout.positionWorld = mul( float4(vin.pos, 1), WorldMatrix);
-	vout.position = mul( vout.positionWorld, ViewProjMatrix);
-	//normal vector transformation 
-	vout.normal = mul(   float4(vin.normal, 1) * 2 - 1, WorldITMatrix ).xyz;
-	vout.tangent = mul( float4(vin.tangent, 1) * 2 - 1, WorldITMatrix);
-	vout.uv = vin.tex;
-	//vout.color = float4(1.0f, 0.0f, 0.0f, 0.5f);
-	return vout;
-}
-
-float4 PS(VertexOut pin) : SV_Target
+float4 PS(PixelIn pin) : SV_Target
 {
 	float4 diffuseAlbedo;
 	float2 metallicRoughnessFactor;
 	float4 roughnessmetallic;
-	float4 emissiveAlbedo;
+	float4 emissive;
 	//float4 normalAlbedo;
-	//float4 aoAlbedo;
+	float ao;
 	if (HasDiffuseTexture==1) {
 		//float4 temp = DiffuseFactor * metallicRoughnessMap.Sample(samPointWrap, pin.uv);
 		//diffuseAlbedo += temp;
@@ -108,26 +82,31 @@ float4 PS(VertexOut pin) : SV_Target
 	}
 
 	if (HasMetallicRoughnessTexture == 1) {
-		metallicRoughnessFactor = float2(MetallicFactor, RoughnessFactor);
-		roughnessmetallic = DiffuseFactor * metallicRoughnessMap.Sample(samPointWrap, pin.uv);
+		roughnessmetallic =  metallicRoughnessMap.Sample(samPointWrap, pin.uv);
 	}
 	else {
 		metallicRoughnessFactor = float2(0.25, 0.25);
 	}
 
-	/*
+	
 	if (HasEmissiveTexture == 1) {
-		emissiveAlbedo = DiffuseFactor * emissiveMap.Sample(samPointWrap, pin.uv);
+		emissive =  emissiveMap.Sample(samPointWrap, pin.uv);
 
 	}
-	
+	else {
+		emissive = float4(0, 0, 0, 0);
+	}
+	/*
 	if (HasNormalTexture) {
 		normalAlbedo = float4(0.1, 0.1, 0.1, 0.1) * normalMap.Sample(samPointWrap, pin.uv);
 	}
-
+	*/
 	if (HasOcclusionTexture) {
-		aoAlbedo = float4(0.1, 0.1, 0.1, 0.1) * occlusionMap.Sample(samPointWrap, pin.uv);
-	}*/
+		ao =  occlusionMap.Sample(samPointWrap, pin.uv).r;
+	}
+	else {
+		ao = 1.0;
+	}
 
 	//
 
@@ -147,24 +126,23 @@ float4 PS(VertexOut pin) : SV_Target
 	surface.N = normalize(pin.normal);
 	surface.V = normalize(CameraPos - pin.positionWorld.xyz);
 	surface.NdotV = saturate(dot(surface.N, surface.V));
-	surface.diffuse = diffuseAlbedo.rgb * (1 - dielectricSpecular) * (1 - metallicRoughness.x) * 1;
 	
+	MaterialParameters materialParams;
+	materialParams.albedo = diffuseAlbedo.rgb;
+	materialParams.metallic = diffuseAlbedo.b;
+	materialParams.roughness = roughnessmetallic.g;
+	materialParams.ao = 0;
 	
 
 	//phong lighting 
-	float4 phongLightingFactor = ComputePhongLighting(surface, lights, CameraPos, pin.positionWorld.xyz);
-	diffuseAlbedo = phongLightingFactor * diffuseAlbedo;
+	float4 pbrLighting = ComputePBRLighting(surface, lights, materialParams, CameraPos, pin.positionWorld.xyz);
 
-
-	//if (lights.numDirectionalLights > 0) {
-	//	diffuseAlbedo.rgb = float3(0.2, 0.3, 0.4);
-	//}
 
 	
-	return float4(diffuseAlbedo.rgb, diffuseAlbedo.a);
+	return float4(pbrLighting.rgb+ emissive.rgb, diffuseAlbedo.a);
 }
 
-float3 ComputeNormal(VertexOut pin) {
+float3 ComputeNormal(PixelIn pin) {
 	float3 normal = normalize(pin.normal);
 	float3 tangent = normalize(pin.tangent.xyz);
 	float3 bitangent = normalize(cross(normal, tangent)) * pin.tangent.w;

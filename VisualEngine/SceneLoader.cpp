@@ -201,7 +201,7 @@ namespace Scene {
 					primitive.vbTangentBufferByteSize = end - start;
 					model.vertexTangentBufferByteSize += end - start;
 				}
-				Utils::Print(attribute.first.c_str());
+				//Utils::Print(attribute.first.c_str());
 				
 
 				switch (accessor.componentType)
@@ -280,7 +280,7 @@ namespace Scene {
 				scale = DirectX::XMMatrixScaling((float)tinyNode.scale[0] * 1.0, (float)tinyNode.scale[1] * 1.0, (float)tinyNode.scale[2] * 1.0);
 			}
 			else {
-				scale = DirectX::XMMatrixScaling(1, 1, 1);
+				scale = DirectX::XMMatrixScaling(20, 20, 20);
 			}
 			if (tinyNode.rotation.size() == 4) {
 				DirectX::XMVECTOR rv = DirectX::XMVectorSet(tinyNode.rotation[0], tinyNode.rotation[1], tinyNode.rotation[2], tinyNode.rotation[3]);
