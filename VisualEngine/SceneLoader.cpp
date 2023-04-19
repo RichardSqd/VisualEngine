@@ -20,6 +20,66 @@ namespace Scene {
 	ComPtr<ID3D12Resource> vertexColorUploader;
 
 	ComPtr<ID3D12Resource> indexUploader;
+
+	void LoadIBLImage(ComPtr<ID3D12GraphicsCommandList> commandList, Scene::Model& model) {
+		stbi_set_flip_vertically_on_load(true);
+		int width, height, nrComponents;
+		unsigned char* data = stbi_load(Config::iblImagePath.c_str(), &width, &height, &nrComponents, 0);
+		if (data) {
+			auto iblTex = std::make_unique<Texture>();
+			iblTex->name = "IBL_Texture";
+			iblTex->uri = Config::iblImagePath;
+			iblTex->width = width;
+			iblTex->height = height;
+			iblTex->component = nrComponents;
+			iblTex->bits = 32;
+
+			D3D12_SUBRESOURCE_DATA subresource{};
+			subresource.pData = data;
+			subresource.RowPitch = width * 3;
+			subresource.SlicePitch = width * height * 3;
+
+			D3D12_RESOURCE_DESC textureDesc = {};
+			textureDesc.MipLevels = 1;
+			textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+			textureDesc.Width = width;
+			textureDesc.Height = height;
+			textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+			textureDesc.DepthOrArraySize = 1;
+			textureDesc.SampleDesc.Count = 1;
+			textureDesc.SampleDesc.Quality = 0;
+			textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+			Graphics::gDevice.Get()->CreateCommittedResource(
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&textureDesc,
+				D3D12_RESOURCE_STATE_COPY_DEST,
+				nullptr,
+				IID_PPV_ARGS(iblTex->textureResource.GetAddressOf()));
+
+			const UINT64 uploadBufferSize = GetRequiredIntermediateSize(iblTex->textureResource.Get(), 0, 1);
+
+			Graphics::gDevice.Get()->CreateCommittedResource(
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+				D3D12_HEAP_FLAG_NONE,
+				&CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				nullptr,
+				IID_PPV_ARGS(iblTex->textureUploader.GetAddressOf()));
+
+			UpdateSubresources(commandList.Get(), iblTex->textureResource.Get(), iblTex->textureUploader.Get(),
+				0, 0, 1, &subresource);
+			commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(iblTex->textureResource.Get(),
+				D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+			//UploadToDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), iblTex->textureResource, iblTex->textureUploader, subresource);
+			//auto diffuseName = std::wstring(diffuseTex->name.begin(), diffuseTex->name.end());
+			iblTex->textureUploader->SetName(L"IBL Uploader");
+			iblTex->textureResource->SetName(L"IBL Default");
+			model.textures[iblTex->name] = std::move(iblTex);
+			
+		}
+	}
 	
 	void SolveMeshs(tinygltf::Model& tinyModel, int meshIndex , Scene::Model& model, Scene::Node& node, DirectX::XMMATRIX& localToObject) {
 		

@@ -42,4 +42,7 @@ namespace Config {
 	const std::wstring defaultPixelShaderFilePath = L"Shaders\\defaultPhongPS.hlsl";
 	const std::wstring defaultPBRPixelShaderFilePath = L"Shaders\\defaultPS_PBR.hlsl";
 
+
+	//IBL image 
+	const std::string iblImagePath = "Models\\\HDR\\brown_photostudio_05_2k.hdr";
 }
