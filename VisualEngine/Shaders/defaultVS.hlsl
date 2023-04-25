@@ -13,6 +13,7 @@ cbuffer cbGlobal : register(b1)
 	float4x4 ProjMatrix;
 	float3 CameraPos;
 	float NearZ;
+	int shaderSelector;
 	float FarZ;
 }
 

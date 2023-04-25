@@ -8,6 +8,8 @@
 #include "ResourceUploadBatch.h"
 #include "ShaderLightingData.h"
 #include "pix3.h"
+#include "Cubemap.h"
+#include "DirectXTex.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -21,29 +23,34 @@ namespace Scene {
 
 	ComPtr<ID3D12Resource> indexUploader;
 
+	void CreateCubeMapGeo(ComPtr<ID3D12GraphicsCommandList> commandList);
+
 	void LoadIBLImage(ComPtr<ID3D12GraphicsCommandList> commandList, Scene::Model& model) {
 		stbi_set_flip_vertically_on_load(true);
-		int width, height, nrComponents;
-		unsigned char* data = stbi_load(Config::iblImagePath.c_str(), &width, &height, &nrComponents, 0);
-		if (data) {
+		int width = 0;
+		int height = 0;
+
+		DirectX::TexMetadata metadata {};
+		DirectX::ScratchImage scratchImage{};
+		DirectX::LoadFromHDRFile(L"Models\\\HDR\\brown_photostudio_05_2k.hdr", &metadata, scratchImage);
+
+		if (metadata.mipLevels>0) {
 			auto iblTex = std::make_unique<Texture>();
 			iblTex->name = "IBL_Texture";
 			iblTex->uri = Config::iblImagePath;
-			iblTex->width = width;
-			iblTex->height = height;
-			iblTex->component = nrComponents;
-			iblTex->bits = 32;
+			iblTex->width = metadata.width;
+			iblTex->height = metadata.height;
 
 			D3D12_SUBRESOURCE_DATA subresource{};
-			subresource.pData = data;
-			subresource.RowPitch = width * 3;
-			subresource.SlicePitch = width * height * 3;
+			subresource.pData = scratchImage.GetImages()->pixels;
+			subresource.RowPitch = scratchImage.GetImages()->rowPitch;
+			subresource.SlicePitch = scratchImage.GetImages()->slicePitch;
 
 			D3D12_RESOURCE_DESC textureDesc = {};
-			textureDesc.MipLevels = 1;
-			textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-			textureDesc.Width = width;
-			textureDesc.Height = height;
+			textureDesc.MipLevels = metadata.mipLevels;
+			textureDesc.Format = metadata.format;
+			textureDesc.Width = metadata.width;
+			textureDesc.Height = metadata.height;
 			textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 			textureDesc.DepthOrArraySize = 1;
 			textureDesc.SampleDesc.Count = 1;
@@ -752,7 +759,47 @@ namespace Scene {
 	}
 
 	
+	void CreateCubeMapGeo(ComPtr<ID3D12GraphicsCommandList> commandList) {
 
+
+		std::vector<float> vertices =
+		{
+
+				1.0,  - 1.0,    1.0 ,
+			  - 1.0,    1.0,  - 1.0 ,
+				1.0,    1.0,  - 1.0 ,
+				1.0,  - 1.0,  - 1.0 ,
+			  - 1.0,  - 1.0,    1.0 ,
+			  - 1.0,    1.0,    1.0 ,
+				1.0,    1.0,    1.0 ,
+			  - 1.0,  - 1.0,  - 1.0
+		};
+
+		std::array<std::uint16_t, 36> indices =
+		{
+
+			7, 1, 2,
+			7, 2, 3,
+			4, 6, 5,
+			4, 0, 6,
+			4, 5, 1,
+			4, 1, 7,
+			3, 2, 6,
+			3, 6, 0,
+			1, 5, 6,
+			1, 6, 2,
+			4, 7, 3,
+			4, 3, 0
+
+		};
+		Cubemap::indexCount = indices.size();
+		Cubemap::indexBufferByteSize = (UINT)indices.size() * sizeof(std::uint16_t) ;
+		Cubemap::vertexPosBufferByteSize = (UINT)vertices.size() * sizeof(float);
+
+		Cubemap::indexBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), indices.data(), Cubemap::indexBufferByteSize, Cubemap::indexUploader);
+		Cubemap::vertexPosBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), vertices.data(), Cubemap::vertexPosBufferByteSize, Cubemap::vertexPosUploader);
+
+	}
 
 
 	int LoadScene(std::wstring filename, Model& model, ComPtr<ID3D12GraphicsCommandList> commandList) {
@@ -815,6 +862,8 @@ namespace Scene {
 			model.vertexTangentBufferGPU = CreateDefaultBuffer(Graphics::gDevice.Get(), commandList.Get(), model.vertexTangentBufferCPU.data(), model.vertexTangentBufferByteSize, vertexTangentUploader);
 		}
 
+
+		CreateCubeMapGeo(commandList);
 
 		return 1;
 	}

@@ -35,12 +35,17 @@ namespace Config {
 	
 	//const std::wstring gltfFileName = L"testscene16.gltf";
 
+
+	//hlsl
 	const std::wstring testSceneFilePath = L"Models\\skull.txt";
 	const std::wstring testShaderPath = L"Shaders\\testshader.hlsl";
 
 	const std::wstring defaultVertexShaderFilePath = L"Shaders\\defaultVS.hlsl";
 	const std::wstring defaultPixelShaderFilePath = L"Shaders\\defaultPhongPS.hlsl";
 	const std::wstring defaultPBRPixelShaderFilePath = L"Shaders\\defaultPS_PBR.hlsl";
+
+	const std::wstring cubemapVertexShaderFilePath = L"Shaders\\cubemapVS.hlsl";
+	const std::wstring cubemapPixelShaderFilePath = L"Shaders\\cubemapPS.hlsl";
 
 
 	//IBL image 

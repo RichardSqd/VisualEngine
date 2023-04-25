@@ -16,6 +16,7 @@ namespace Renderer {
 	extern void CreateSwapChain();
 	extern void CreateConstantBufferViews();
 	extern void CreateShaderResourceViews();
+	extern void CreateCubemapResources();
 	extern void Update();
 	extern void UpdateAnimation();
 	extern void UpdateInput();
@@ -29,7 +30,9 @@ namespace Renderer {
 	extern void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void OnResize();
+	extern void RenderSkyBox(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void RenderUI(ComPtr<ID3D12GraphicsCommandList> commandList);
+	extern void renderCubemap(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
 
 	extern ComPtr<ID3D12RootSignature> rRootSignature;

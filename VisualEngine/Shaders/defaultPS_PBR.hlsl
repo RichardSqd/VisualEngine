@@ -85,7 +85,7 @@ float4 PS(PixelIn pin) : SV_Target
 		roughnessmetallic =  metallicRoughnessMap.Sample(samPointWrap, pin.uv);
 	}
 	else {
-		metallicRoughnessFactor = float2(0.25, 0.25);
+		roughnessmetallic = float4(0.25, 0.25, 0.25, 0.25);
 	}
 
 	

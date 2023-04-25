@@ -96,7 +96,8 @@ void AVisualApp::Update() {
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 	ImGui::ShowDemoWindow(&show_demo_window);
-	//ImGui::
+	//ImGui::ShowMetricsWindow();
+
 	UpdateUI();
 	Renderer::Update();
 	
@@ -152,18 +153,31 @@ void AVisualApp::UpdateUI() {
 		ImGui::SliderFloat("Scaling y", &scaling.y, 0.0f, 20.0f, "ratio = %.3f");
 		ImGui::SliderFloat("Scaling z", &scaling.z, 0.0f, 20.0f, "ratio = %.3f");
 
-		if (ImGui::BeginMenu("Shader Settings"))
-		{
-			static bool enabled = true;
-			ImGui::MenuItem("Enabled", "", &enabled);
+		ImGui::Text("Shader Settings");
+
+		//if (ImGui::BeginMenu("Shader Settings"))
+		//{
+			//static bool enabled = true;
+			//ImGui::MenuItem("Enabled", "", &enabled);
 
 			//static int n = 0;
 			//ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
 			//ImGui::InputFloat("Input", &f, 0.1f);
 			ImGui::Combo("Shader selector", &Renderer::shaderSelector, "Phong\0Blinn-Phong\0PBR\0\0");
 			
-			ImGui::EndMenu();
+			//ImGui::EndMenu();
+		//}
+		ImGui::Text("HDR IBL INPUT");
+		auto skyTextureHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+		ImGui::Image((ImTextureID)skyTextureHandle.ptr, ImVec2((float)200, (float)100));
+		
+		ImGui::Text("Cubemaps");
+		for (int i = 0; i < 6; i++) {
+			skyTextureHandle.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
+			ImGui::Image((ImTextureID)skyTextureHandle.ptr, ImVec2((float)300, (float)300));
 		}
+		
+
 
 		// start required updates 
 		if (lastx != scaling.x || lasty != scaling.y || lastz != scaling.z) {
