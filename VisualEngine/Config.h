@@ -47,6 +47,9 @@ namespace Config {
 	const std::wstring cubemapVertexShaderFilePath = L"Shaders\\cubemapVS.hlsl";
 	const std::wstring cubemapPixelShaderFilePath = L"Shaders\\cubemapPS.hlsl";
 
+	const std::wstring skyboxVertexShaderFilePath = L"Shaders\\skyboxVS.hlsl";
+	const std::wstring skyboxPixelShaderFilePath = L"Shaders\\skyboxPS.hlsl";
+
 
 	//IBL image 
 	const std::string iblImagePath = "Models\\\HDR\\brown_photostudio_05_2k.hdr";
