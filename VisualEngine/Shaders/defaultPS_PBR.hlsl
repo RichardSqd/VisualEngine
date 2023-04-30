@@ -15,6 +15,7 @@ Texture2D normalMap : register(t3);
 Texture2D occlusionMap: register(t4);
 Texture2D emissiveMap: register(t5);
 
+TextureCube<float3> irradianceCubeMap : register(t6);
 
 
 
@@ -133,9 +134,11 @@ float4 PS(PixelIn pin) : SV_Target
 	materialParams.roughness = roughnessmetallic.g;
 	materialParams.ao = 0;
 	
+	//irradiance 
+	float3 irradiance = irradianceCubeMap.Sample(samAnisotropicWrap, surface.N);
 
 	//phong lighting 
-	float4 pbrLighting = ComputePBRLighting(surface, lights, materialParams, CameraPos, pin.positionWorld.xyz);
+	float4 pbrLighting = ComputePBRLighting(surface, lights, materialParams, CameraPos, pin.positionWorld.xyz, irradiance);
 
 
 	

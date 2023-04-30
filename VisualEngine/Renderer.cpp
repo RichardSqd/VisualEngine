@@ -140,22 +140,24 @@ namespace Renderer {
 		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 		BREAKIFFAILED(Graphics::gDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData)));
 
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[6] = {};
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse,metalicroughness, normal, AO textures, register t1,2,3 
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[7] = {};
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse,metalicroughness, normal, AO textures, emmision, register t1,2,3 
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //object constant buffer
 		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //global constant buffer
 		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //mat constant buffer
 		ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 3, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //light constant buffer
 		ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); //shadow texture
+		ranges[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
 		//ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
 
-		CD3DX12_ROOT_PARAMETER1 rootParameters[6] = {};
+		CD3DX12_ROOT_PARAMETER1 rootParameters[7] = {};
 		rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
 		rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[3].InitAsDescriptorTable(1, &ranges[3], D3D12_SHADER_VISIBILITY_ALL);
 		rootParameters[4].InitAsDescriptorTable(1, &ranges[4], D3D12_SHADER_VISIBILITY_PIXEL);
 		rootParameters[5].InitAsDescriptorTable(1, &ranges[5], D3D12_SHADER_VISIBILITY_PIXEL);
+		rootParameters[6].InitAsDescriptorTable(1, &ranges[6], D3D12_SHADER_VISIBILITY_PIXEL);
 		//rootParameters[4].InitAsDescriptorTable(1, &ranges[4], D3D12_SHADER_VISIBILITY_PIXEL);
 
 		CD3DX12_DESCRIPTOR_RANGE1 cubemapRanges[2] = {};
@@ -1266,6 +1268,11 @@ namespace Renderer {
 		}
 		commandList->SetPipelineState(pso);
 		commandList->SetGraphicsRootSignature(rRootSignature.Get());
+
+		auto cubemapHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+		cubemapHandle.Offset(13 + 6 + 1, Graphics::gCbvSrvUavDescriptorSize);
+		commandList->SetGraphicsRootDescriptorTable(6, cubemapHandle);
+
 
 		UINT curFrameIndex = Graphics::gFrameResourceManager.GetCurrentIndex();
 		
