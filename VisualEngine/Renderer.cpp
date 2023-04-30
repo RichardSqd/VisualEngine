@@ -23,6 +23,8 @@ namespace Renderer {
 	ComPtr<ID3DBlob> rPixelPBRShader = nullptr;
 	ComPtr<ID3DBlob> rCubemapVertexShader = nullptr;
 	ComPtr<ID3DBlob> rCubemapPixelShader = nullptr;
+	ComPtr<ID3DBlob> rIrradianceVertexShader = nullptr;
+	ComPtr<ID3DBlob> rIrradiancePixelShader = nullptr;
 	ComPtr<ID3DBlob> rSkyboxVertexShader = nullptr;
 	ComPtr<ID3DBlob> rSkyboxPixelShader = nullptr;
 
@@ -31,6 +33,7 @@ namespace Renderer {
 	ComPtr<ID3D12PipelineState> rPsoWireframe = nullptr;
 	ComPtr<ID3D12PipelineState> rPsoPBR = nullptr;
 	ComPtr<ID3D12PipelineState> rPsoCubemap = nullptr;
+	ComPtr<ID3D12PipelineState> rPsoIrradiance = nullptr;
 	ComPtr<ID3D12PipelineState> rPsoSkybox = nullptr;
 	ComPtr<ID3D12GraphicsCommandList> rCommandList = nullptr;
 	ComPtr<ID3D12CommandAllocator> rCommandAlloc = nullptr;
@@ -42,6 +45,7 @@ namespace Renderer {
 	ComPtr<ID3D12Resource> rDepthStencilBuffer;
 	ComPtr<ID3D12Resource> rCubemapDepthStencilBuffer;
 	ComPtr<ID3D12Resource> rSkyboxArray;
+	ComPtr<ID3D12Resource> rIrradianceSkyboxArray;
 
 	D3D12_VIEWPORT gScreenViewport {};
 	INT gCurBackBufferIndex = 0;
@@ -87,7 +91,7 @@ namespace Renderer {
 
 	void InitCamera() {
 		gMainCam.camPhi =  DirectX::XM_PIDIV4;
-		gMainCam.camTheta = 0;// 1.5f * DirectX::XM_PI;
+		gMainCam.camTheta =  1.5f * DirectX::XM_PI;
 		gMainCam.camRadius = 5.0f;
 		XMStoreFloat4x4(&gMainCam.proj,Math::IdentityMatrix());
 
@@ -230,6 +234,17 @@ namespace Renderer {
 			Utils::Print((char*)errors->GetBufferPointer());
 		}
 
+		//irradiance hlsl 
+		BREAKIFFAILED(D3DCompileFromFile(Config::irradianceVertexShaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS", "vs_5_0", compileFlags, 0, &rIrradianceVertexShader, &errors));
+		if (errors != nullptr && errors->GetBufferSize() > 0) {
+			Utils::Print((char*)errors->GetBufferPointer());
+		}
+
+		BREAKIFFAILED(D3DCompileFromFile(Config::irradiancePixelShaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS", "ps_5_0", compileFlags, 0, &rIrradiancePixelShader, &errors));
+		if (errors != nullptr && errors->GetBufferSize() > 0) {
+			Utils::Print((char*)errors->GetBufferPointer());
+		}
+
 		//skybox shader
 		BREAKIFFAILED(D3DCompileFromFile(Config::skyboxVertexShaderFilePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS", "vs_5_0", compileFlags, 0, &rSkyboxVertexShader, &errors));
 		if (errors != nullptr && errors->GetBufferSize() > 0) {
@@ -326,6 +341,11 @@ namespace Renderer {
 		psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPsoCubemap)));
 
+		//create irradiance pso
+		psoDesc.VS = CD3DX12_SHADER_BYTECODE(rIrradianceVertexShader.Get());
+		psoDesc.PS = CD3DX12_SHADER_BYTECODE(rIrradiancePixelShader.Get());
+		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPsoIrradiance)));
+
 		//skybox pso
 		psoDesc.InputLayout.NumElements = 0;
 		psoDesc.InputLayout.pInputElementDescs = nullptr;
@@ -370,7 +390,7 @@ namespace Renderer {
 		UINT objectCBByteSize = Graphics::gObjectCBByteSize;
 		UINT primCount = model.numPrimitives;
 
-
+		//hdr map srv
 		{
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 
@@ -393,6 +413,7 @@ namespace Renderer {
 
 		objectCBVHeapIndexStart = 1  //hdr environmental texture 
 								+ 6  //cubemap faces as seperate srv
+								+ 6  //irradiance maps 
 								+ 6  //global pass constants for perparing cubemap faces
 								+ 2; //cubemap as irradiance & specular srvs
 
@@ -630,7 +651,10 @@ namespace Renderer {
 	void CreateDescriptorHeaps() {
 		//create rtv desc heap 
 		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
-		rtvHeapDesc.NumDescriptors = Graphics::gSwapChainBufferCount + 6;//hdr cube map render target
+		rtvHeapDesc.NumDescriptors = 
+				Graphics::gSwapChainBufferCount 
+				+ 6 //hdr cube map render target views
+				+ 6;//irradiance render target views
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 		rtvHeapDesc.NodeMask = 0;
@@ -648,6 +672,7 @@ namespace Renderer {
 		UINT numDescriptors = (static_cast<unsigned long long>(EngineCore::eModel.numNodes) 
 			+ 1 //skybox
 			+ 6 //cubemap faces as seperate texture resources
+			+ 6 //irradiance maps
 			+ 6 //cubemap global parameters 
 			+ 2 //cubemap srv irradiance & specular
 			+ (UINT)EngineCore::eModel.materials.size()) * Graphics::gNumFrameResources //materials 
@@ -764,7 +789,7 @@ namespace Renderer {
 		//update the projection matrix after the aspect ratio has been changed
 		
 		DirectX::XMMATRIX P = DirectX::XMMatrixPerspectiveFovLH(0.25f * Math::PI, Graphics::AspectRatio(), 0.1f, 1000.0f);
-		DirectX::XMMATRIX P2 = DirectX::XMMatrixPerspectiveFovRH(0.25f * Math::PI, Graphics::AspectRatio(), 0.1f, 1000.0f);
+		DirectX::XMMATRIX P2 = DirectX::XMMatrixPerspectiveFovRH(0.25f * Math::PI, Graphics::AspectRatio(), 0.1f, 100.0f);
 
 		
 		//DirectX::XMFLOAT4X4 X;
@@ -804,6 +829,7 @@ namespace Renderer {
 		clearValue.Color[2] = 0.0f;
 		clearValue.Color[3] = 1.0f;
 
+		//create irradiance/specular cubemap resource
 		Graphics::gDevice.Get()->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
@@ -811,6 +837,15 @@ namespace Renderer {
 			D3D12_RESOURCE_STATE_RENDER_TARGET,
 			&clearValue,
 			IID_PPV_ARGS(rSkyboxArray.ReleaseAndGetAddressOf()));
+
+		Graphics::gDevice.Get()->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&texArrayDesc,
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			&clearValue,
+			IID_PPV_ARGS(rIrradianceSkyboxArray.ReleaseAndGetAddressOf()));
+
 		
 		CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 		handle.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
@@ -902,6 +937,22 @@ namespace Renderer {
 
 		}
 
+		for (int i = 0; i < 6; i++) {
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+			srvDesc.Texture2DArray.ArraySize = 1;
+			srvDesc.Texture2DArray.FirstArraySlice = i;
+			srvDesc.Texture2DArray.MipLevels = 1;
+			srvDesc.Texture2DArray.PlaneSlice = 0;
+			srvDesc.Texture2DArray.MostDetailedMip = 0;
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Format = texArrayDesc.Format;
+
+			Graphics::gDevice->CreateShaderResourceView(rIrradianceSkyboxArray.Get(), &srvDesc, handle);
+			handle.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
+		}
+		
+
 		//pass constant buffer view
 		for (int i = 0; i < 6; i++) {
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
@@ -911,7 +962,7 @@ namespace Renderer {
 			handle.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
 		}
 
-		//cubemap irradiance 
+		//cubemap 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
@@ -921,10 +972,25 @@ namespace Renderer {
 		srvDesc.Format = texArrayDesc.Format;
 		Graphics::gDevice->CreateShaderResourceView(rSkyboxArray.Get(), &srvDesc, handle);
 
-		//cubemap specular 
+		//cubemap irradiance 
 		handle.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
-		Graphics::gDevice->CreateShaderResourceView(rSkyboxArray.Get(), &srvDesc, handle);
+		Graphics::gDevice->CreateShaderResourceView(rIrradianceSkyboxArray.Get(), &srvDesc, handle);
 		
+		//irradiancce rtv
+		for (int i = 0; i < 6; i++) {
+			D3D12_RENDER_TARGET_VIEW_DESC cubemapImagesRTV = {};
+			cubemapImagesRTV.Format = texArrayDesc.Format;
+			cubemapImagesRTV.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+			cubemapImagesRTV.Texture2DArray.MipSlice = 0;
+			cubemapImagesRTV.Texture2DArray.PlaneSlice = 0;
+			cubemapImagesRTV.Texture2DArray.ArraySize = 1;
+			cubemapImagesRTV.Texture2DArray.FirstArraySlice = i;
+
+			Graphics::gDevice->CreateRenderTargetView(rIrradianceSkyboxArray.Get(), &cubemapImagesRTV, rtvHandle);
+			rtvHandle.Offset(1, Graphics::gRTVDescriptorSize);
+		}
+
+
 	}
 
 	void CreateRTVDSV() {
@@ -1155,6 +1221,7 @@ namespace Renderer {
 		//prepare for the skybox from hdr image
 		if (runAtIFirstIteration) {
 			renderCubemap(commandList);
+			renderIrradiancemap(commandList);
 			runAtIFirstIteration = false;
 		}
 
@@ -1338,7 +1405,7 @@ namespace Renderer {
 
 		D3D12_RECT ScissorRect = { 0,0,static_cast<int>(1024), static_cast<int>(1024) };
 		commandList->RSSetScissorRects(1, &ScissorRect);
-		auto& commandContext = Graphics::gFrameResourceManager.GetCurrentFrameResource()->comandContext;
+		//auto& commandContext = Graphics::gFrameResourceManager.GetCurrentFrameResource()->comandContext;
 
 
 		commandList->SetPipelineState(rPsoCubemap.Get());
@@ -1348,8 +1415,6 @@ namespace Renderer {
 		//clear back buffer and depth buffer
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvcubeHandle(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart());
 		rtvcubeHandle.Offset(Graphics::gSwapChainBufferCount, Graphics::gRTVDescriptorSize);
-
-
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
 		dsvHandle.Offset(1, Graphics::gDSVDescriptorSize);
@@ -1397,7 +1462,7 @@ namespace Renderer {
 			DirectX::XMVectorSet(0.0f, -1.0f,  0.0f, 0.0f)
 		};
 
-		UINT cbvIndex = 7;
+		UINT cbvIndex = 1+6+6;//hdr + cubemap srv + irradiance srv
 		auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 		cbvHandle.Offset(cbvIndex, Graphics::gCbvSrvUavDescriptorSize);
 
@@ -1462,6 +1527,136 @@ namespace Renderer {
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
 	}
 
+	void renderIrradiancemap(ComPtr<ID3D12GraphicsCommandList> commandList) {
+		D3D12_VIEWPORT viewport = {};
+		viewport.TopLeftX = 0.0f;
+		viewport.TopLeftY = 0.0f;
+		viewport.Width = 1024;
+		viewport.Height = 1024;
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+
+		commandList->RSSetViewports(1, &viewport);
+		D3D12_RECT ScissorRect = { 0,0,static_cast<int>(1024), static_cast<int>(1024) };
+		commandList->RSSetScissorRects(1, &ScissorRect);
+
+		commandList->SetPipelineState(rPsoIrradiance.Get());
+		commandList->SetGraphicsRootSignature(rCubemapRootSignature.Get());
+
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvcubeHandle(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart());
+		rtvcubeHandle.Offset(Graphics::gSwapChainBufferCount + 6, Graphics::gRTVDescriptorSize);
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
+		dsvHandle.Offset(1, Graphics::gDSVDescriptorSize);
+		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rCubemapDepthStencilBuffer.Get(),
+		//	D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
+
+		D3D12_VERTEX_BUFFER_VIEW vbvPos = {};
+		vbvPos.StrideInBytes = sizeof(DirectX::XMFLOAT3);
+		vbvPos.SizeInBytes = Cubemap::vertexPosBufferByteSize;
+		vbvPos.BufferLocation = Cubemap::vertexPosBufferGPU->GetGPUVirtualAddress();
+
+		D3D12_INDEX_BUFFER_VIEW ibv = {};
+		ibv.Format = DXGI_FORMAT_R16_UINT;
+		ibv.SizeInBytes = Cubemap::indexBufferByteSize;
+		ibv.BufferLocation = Cubemap::indexBufferGPU->GetGPUVirtualAddress();
+
+		commandList->IASetVertexBuffers(0, 1, &vbvPos);
+
+		commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		commandList->IASetIndexBuffer(&ibv);
+
+		auto cubemapHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+		cubemapHandle.Offset(1+6+6+6, Graphics::gCbvSrvUavDescriptorSize);
+		commandList->SetGraphicsRootDescriptorTable(0, cubemapHandle);
+
+		UINT cbvIndex = 1+6+6;
+		auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+		cbvHandle.Offset(cbvIndex, Graphics::gCbvSrvUavDescriptorSize);
+
+		DirectX::XMVECTOR lookats[6] = {
+			DirectX::XMVectorSet(1.0f,  0.0f,  0.0f, 0.0f),
+			DirectX::XMVectorSet(-1.0f,  0.0f,  0.0f, 0.0f),
+			DirectX::XMVectorSet(0.0f, -1.0f,  0.0f, 0.0f),
+			DirectX::XMVectorSet(0.0f,  1.0f,  0.0f, 0.0f),
+
+			DirectX::XMVectorSet(0.0f,  0.0f,  1.0f, 0.0f),
+			DirectX::XMVectorSet(0.0f,  0.0f, -1.0f, 0.0f)
+
+		};
+
+		DirectX::XMVECTOR ups[6] = {
+			DirectX::XMVectorSet(0.0f, -1.0f,  0.0f, 0.0f),
+			DirectX::XMVectorSet(0.0f, -1.0f,  0.0f, 0.0f),
+			DirectX::XMVectorSet(0.0f,  0.0f, -1.0f, 0.0f),
+			DirectX::XMVectorSet(0.0f,  0.0f,  1.0f, 0.0f),
+			DirectX::XMVectorSet(0.0f, -1.0f,  0.0f, 0.0f),
+			DirectX::XMVectorSet(0.0f, -1.0f,  0.0f, 0.0f)
+		};
+		
+
+		for (int i = 0; i < 6; i++) {
+			commandList->SetGraphicsRootDescriptorTable(1, cbvHandle);
+			cbvHandle.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
+			//update pass parameters
+			{
+
+				DirectX::XMVECTOR pos = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+				DirectX::XMVECTOR lookat = lookats[i];//DirectX::XMVectorZero();
+				DirectX::XMVECTOR up = ups[i];
+
+				//DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&gMainCam.camPos);
+				//DirectX::XMVECTOR lookat = DirectX::XMVectorZero();
+				//DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f);
+
+				DirectX::XMMATRIX view = DirectX::XMMatrixLookAtRH(pos, lookat, up);
+
+				DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovRH(0.5f * Math::PI, 1.0f, 0.1f, 10.0f);
+				DirectX::XMMATRIX viewProj = view * proj;
+
+
+				PassConstants pConsts;
+				DirectX::XMStoreFloat4x4(&pConsts.ViewProjMatrix, DirectX::XMMatrixTranspose(viewProj));
+				DirectX::XMStoreFloat4x4(&pConsts.ViewMatrix, DirectX::XMMatrixTranspose(view));
+				DirectX::XMStoreFloat4x4(&pConsts.ProjMatrix, DirectX::XMMatrixTranspose(proj));
+				pConsts.CameraPos.x = 0.0;
+				pConsts.CameraPos.y = 0.0;
+				pConsts.CameraPos.z = 0.0;
+
+				pConsts.NearZ = 1.0;
+				pConsts.FarZ = 10.0;
+				pConsts.shaderSelector = shaderSelector;
+
+				Cubemap::passCB[i]->CopyData(0, &pConsts);
+			}
+
+			commandList->ClearRenderTargetView(
+				rtvcubeHandle,
+				DirectX::Colors::Red, 0, nullptr);
+
+
+			commandList->ClearDepthStencilView(
+				dsvHandle,
+				D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+			commandList->OMSetRenderTargets(1,
+				&rtvcubeHandle,
+				false,
+				&dsvHandle);
+
+			commandList->DrawIndexedInstanced(Cubemap::indexCount, 1, 0, 0, 0);
+
+			rtvcubeHandle.Offset(1, Graphics::gRTVDescriptorSize);	
+		
+		}
+
+		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rIrradianceSkyboxArray.Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+
+	}
+
 	void RenderSkyBox(ComPtr<ID3D12GraphicsCommandList> commandList) {
 		//commandList->RSSetViewports(1, &Graphics::gScreenViewport);
 		//commandList->RSSetScissorRects(1, &Graphics::gScissorRect);
@@ -1473,7 +1668,7 @@ namespace Renderer {
 		commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		auto cubemapHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-		cubemapHandle.Offset(13, Graphics::gCbvSrvUavDescriptorSize);
+		cubemapHandle.Offset(13+6, Graphics::gCbvSrvUavDescriptorSize);
 		commandList->SetGraphicsRootDescriptorTable(0, cubemapHandle);
 
 

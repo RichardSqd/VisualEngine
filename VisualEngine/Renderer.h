@@ -33,6 +33,7 @@ namespace Renderer {
 	extern void RenderSkyBox(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void RenderUI(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void renderCubemap(ComPtr<ID3D12GraphicsCommandList> commandList);
+	extern void renderIrradiancemap(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
 
 	extern ComPtr<ID3D12RootSignature> rRootSignature;

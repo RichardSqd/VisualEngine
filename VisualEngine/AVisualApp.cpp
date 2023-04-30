@@ -171,14 +171,54 @@ void AVisualApp::UpdateUI() {
 		auto skyTextureHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 		ImGui::Image((ImTextureID)skyTextureHandle.ptr, ImVec2((float)200, (float)100));
 		
-		ImGui::Text("Cubemaps");
-		for (int i = 0; i < 6; i++) {
-			skyTextureHandle.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
-			ImGui::Image((ImTextureID)skyTextureHandle.ptr, ImVec2((float)300, (float)300));
-		}
 		
+		if (ImGui::BeginMenu("Cubemap details"))
+		{
+			//static bool enabled = true;
+			//ImGui::MenuItem("Enabled", "", &enabled);
+
+			//static int n = 0;
+			//ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
+			//ImGui::InputFloat("Input", &f, 0.1f);
+			//ImGui::Combo("Shader selector", &Renderer::shaderSelector, "Phong\0Blinn-Phong\0PBR\0\0");
+			//if (ImGui::BeginMenu("Shader Settings"))
+		//{
+			//static bool enabled = true;
+			//ImGui::MenuItem("Enabled", "", &enabled);
+
+			//static int n = 0;
+			//ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
+			//ImGui::InputFloat("Input", &f, 0.1f);
+			//ImGui::Combo("Shader selector", &Renderer::shaderSelector, "Phong\0Blinn-Phong\0PBR\0\0");
+			auto h = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+
+			for (int i = 0; i < 6; i++) {
+				h.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
+				ImGui::Image((ImTextureID)h.ptr, ImVec2((float)200, (float)200));
+			}
+
+			
+			ImGui::EndMenu();
+		}
+
+		
+		if (ImGui::BeginMenu("Irradiance maps"))
+		{
+
+			auto h = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+			h.Offset(6, Graphics::gCbvSrvUavDescriptorSize);
+
+			for (int i = 0; i < 6; i++) {
+				h.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
+				ImGui::Image((ImTextureID)h.ptr, ImVec2((float)200, (float)200));
+			}
 
 
+			ImGui::EndMenu();
+		}
+
+		
+		
 		// start required updates 
 		if (lastx != scaling.x || lasty != scaling.y || lastz != scaling.z) {
 			for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {

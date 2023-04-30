@@ -53,6 +53,8 @@ float4 PS(pixelIn pin) : SV_Target
 
 	float2 uv = SampleSphericalMap(normalize(pin.positionWorld.xyz));
 	float3 color = iblTexutreHDR.Sample(samAnisotropicWrap, uv).xyz;
+	color = color / (color + float3(1.0, 1.0, 1.0));
+	color = pow(color, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
 	
 	return float4(color, 1.0);
 
