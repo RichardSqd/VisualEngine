@@ -33,7 +33,7 @@ cbuffer cbMaterial : register(b2)
 	float4 DiffuseFactor;
 	float MetallicFactor;
 	float RoughnessFactor;
-	int HasDiffuseTexture; 
+	int HasDiffuseTexture;
 	int HasMetallicRoughnessTexture;
 
 	int HasNormalTexture;
@@ -41,8 +41,9 @@ cbuffer cbMaterial : register(b2)
 	int HasEmissiveTexture;
 	int dummy1;
 
-	
+
 }
+
 
 cbuffer cbLight: register(b3)
 {
@@ -67,7 +68,7 @@ float4 PS(PixelIn pin) : SV_Target
 	float4 diffuseAlbedo;
 	float2 metallicRoughnessFactor;
 	float4 roughnessmetallic;
-	float4 emissiveAlbedo;
+	float4 emissive;
 	//float4 normalAlbedo;
 	//float4 aoAlbedo;
 	if (HasDiffuseTexture==1) {
@@ -86,30 +87,12 @@ float4 PS(PixelIn pin) : SV_Target
 	else {
 		metallicRoughnessFactor = float2(0.25, 0.25);
 	}
-
-	/*
 	if (HasEmissiveTexture == 1) {
-		emissiveAlbedo = DiffuseFactor * emissiveMap.Sample(samPointWrap, pin.uv);
-
+		emissive = emissiveMap.Sample(samPointWrap, pin.uv);
 	}
-	
-	if (HasNormalTexture) {
-		normalAlbedo = float4(0.1, 0.1, 0.1, 0.1) * normalMap.Sample(samPointWrap, pin.uv);
+	else {
+		emissive = float4(0, 0, 0, 0);
 	}
-
-	if (HasOcclusionTexture) {
-		aoAlbedo = float4(0.1, 0.1, 0.1, 0.1) * occlusionMap.Sample(samPointWrap, pin.uv);
-	}*/
-
-	//
-
-	//diffuseAlbedo = // diffuseAlbedo + roughnessmetallic; + emissiveAlbedo + roughnessmetallic + normalAlbedo + aoAlbedo;
-	//if (HasEmissiveTexture == 1) {
-		//emissiveAlbedo = 
-	//}
-	
-
-
 
 	float2 metallicRoughness = metallicRoughnessFactor * metallicRoughnessMap.Sample(samLinearClamp, pin.uv).bg;
 
@@ -140,8 +123,8 @@ float4 PS(PixelIn pin) : SV_Target
 	//	diffuseAlbedo.rgb = float3(0.2, 0.3, 0.4);
 	//}
 
-	
-	return float4(diffuseAlbedo.rgb, diffuseAlbedo.a);
+	float3 color = diffuseAlbedo.rgb + emissive.rgb;
+	return float4(color, diffuseAlbedo.a);
 }
 
 float3 ComputeNormal(PixelIn pin) {

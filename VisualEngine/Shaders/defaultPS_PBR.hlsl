@@ -15,10 +15,12 @@ Texture2D normalMap : register(t3);
 Texture2D occlusionMap: register(t4);
 Texture2D emissiveMap: register(t5);
 
-TextureCube<float3> irradianceCubeMap : register(t6);
+TextureCube<float3> specularCubeMap : register(t6);
+TextureCube<float3> irradianceCubeMap : register(t7);
 
 
-
+float3 diffuseIBL(SurfaceProperties surface, MaterialParameters materialParams);
+float3 specularIBL(SurfaceProperties surface, MaterialParameters materialParams);
 
 cbuffer cbGlobal : register(b1)
 {
@@ -92,7 +94,6 @@ float4 PS(PixelIn pin) : SV_Target
 	
 	if (HasEmissiveTexture == 1) {
 		emissive =  emissiveMap.Sample(samPointWrap, pin.uv);
-
 	}
 	else {
 		emissive = float4(0, 0, 0, 0);
@@ -109,16 +110,7 @@ float4 PS(PixelIn pin) : SV_Target
 		ao = 1.0;
 	}
 
-	//
-
-	//diffuseAlbedo = // diffuseAlbedo + roughnessmetallic; + emissiveAlbedo + roughnessmetallic + normalAlbedo + aoAlbedo;
-	//if (HasEmissiveTexture == 1) {
-		//emissiveAlbedo = 
-	//}
 	
-
-
-
 	float2 metallicRoughness = metallicRoughnessFactor * metallicRoughnessMap.Sample(samLinearClamp, pin.uv).bg;
 
 	
@@ -141,9 +133,34 @@ float4 PS(PixelIn pin) : SV_Target
 	float4 pbrLighting = ComputePBRLighting(surface, lights, materialParams, CameraPos, pin.positionWorld.xyz, irradiance);
 
 
-	
-	return float4(pbrLighting.rgb+ emissive.rgb, diffuseAlbedo.a);
+	float3 dIBL = diffuseIBL(surface, materialParams);
+	float3 sIBL = specularIBL(surface, materialParams);
+	float3 color = dIBL  + emissive.rgb;//+ pbrLighting.rgb;
+	return float4(color, 1.0);
 }
+
+float3 Fresnel_Shlick(float3 F0, float3 F90, float cosine)
+{
+	float pow5 = (1.0 - cosine) * (1.0 - cosine) * (1.0 - cosine) * (1.0 - cosine) * (1.0 - cosine);
+	return lerp(F0, F90, pow5);
+}
+
+float3 diffuseIBL(SurfaceProperties surface, MaterialParameters materialParams) {
+	float3 cdiff = materialParams.albedo * (1 - materialParams.metallic) * (1 - float3(0.04, 0.04, 0.04));
+	float LdotH = saturate(dot(surface.N, normalize(surface.N + surface.V)));
+	float fd90 = 0.5 + 2.0 * materialParams.roughness * LdotH * LdotH;
+	float3 DiffuseBurley = cdiff * Fresnel_Shlick(1, fd90, surface.NdotV);
+	return DiffuseBurley * irradianceCubeMap.Sample(samAnisotropicWrap, surface.N) * 2.5;
+}
+
+float3 specularIBL(SurfaceProperties surface, MaterialParameters materialParams) {
+	float lod = materialParams.roughness * 10 + 0;
+	float3 c_spec = lerp(float3(0.04, 0.04, 0.04), materialParams.albedo, materialParams.metallic)* 1.0;
+	float3 specular = Fresnel_Shlick(c_spec, 1, surface.NdotV);
+	return specular * specularCubeMap.Sample(samAnisotropicWrap, reflect(-surface.V, surface.N));
+
+}
+
 
 float3 ComputeNormal(PixelIn pin) {
 	float3 normal = normalize(pin.normal);

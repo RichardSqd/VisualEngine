@@ -148,13 +148,13 @@ float4 ComputePBRLighting(SurfaceProperties surface, SceneLighting lights, Mater
 		
 	}
 
-	float3 ks = SchlickFresnel(max(dot(surface.N, normalize(cameraPos - worldPos)), 0.0), f0);
-	float3 kd = 1.0 - ks; 
-	kd *= 1.0 - materialParams.metallic;
-	float3 diffuse = irradiance * materialParams.albedo;
-	float3 ambient =  kd * diffuse * ao;
+	//float3 ks = SchlickFresnel(max(dot(surface.N, normalize(cameraPos - worldPos)), 0.0), f0);
+	//float3 kd = 1.0 - ks; 
+	//kd *= 1.0 - materialParams.metallic;
+	//float3 diffuse = irradiance * materialParams.albedo;
+	//float3 ambient =  kd * diffuse * ao;
 
-	//float3 ambient = float3(0.03, 0.03, 0.03) * materialParams.albedo;// *materialParams.ao;
+	float3 ambient = float3(0.03, 0.03, 0.03) * materialParams.albedo;// *materialParams.ao;
 	float3 color = ambient + Lo;
 
 	//gamma correct

@@ -31,11 +31,7 @@ cbuffer cbGlobal : register(b0)
 struct pixelIn
 {
 	float4 position  : SV_POSITION;
-	//float4 tangent: TANGENT;
 	float4 positionWorld: POSITION;
-	//float3 normal : NORMAL;
-	//float2 uv: TEXCOORD;
-	
 };
 
 
@@ -52,8 +48,7 @@ float4 PS(pixelIn pin) : SV_Target
 {
 	float3 N = normalize(pin.positionWorld.xyz);
 	float3 irradiance = float3(0.0, 0.0, 0.0);
-	//float2 uv = SampleSphericalMap(normalize(pin.positionWorld.xyz));
-	//float3 color = iblTexutreHDR.Sample(samAnisotropicWrap, uv).xyz;
+
 	
 	float3 up = float3(0.0, 1.0, 0.0);
 	float3 right = normalize(cross(up, N));

@@ -147,7 +147,7 @@ namespace Renderer {
 		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //mat constant buffer
 		ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 3, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //light constant buffer
 		ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); //shadow texture
-		ranges[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 6, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
+		ranges[6].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 6, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC); //diffuse & specular ibl cubemap 
 		//ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
 
 		CD3DX12_ROOT_PARAMETER1 rootParameters[7] = {};
@@ -1269,8 +1269,9 @@ namespace Renderer {
 		commandList->SetPipelineState(pso);
 		commandList->SetGraphicsRootSignature(rRootSignature.Get());
 
+		//set diffuse & specular cubemaps
 		auto cubemapHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-		cubemapHandle.Offset(13 + 6 + 1, Graphics::gCbvSrvUavDescriptorSize);
+		cubemapHandle.Offset(13 + 6 + 0, Graphics::gCbvSrvUavDescriptorSize);
 		commandList->SetGraphicsRootDescriptorTable(6, cubemapHandle);
 
 

@@ -27,18 +27,13 @@ struct pixelIn
 {
 	float4 position  : SV_POSITION;
 	float3 viewDir: TEXCOORD3;
-	//float2 uv: TEXCOORD;
+
 	
 };
 
 
 float4 PS(pixelIn pin) : SV_Target
 {
-	//return float4(cubeMap.SampleLevel(samAnisotropicWrap, pin.viewDir, 0), 1);
-	//return float4(0.3, 0.0, 1, 1);
-	return float4( cubeMap.Sample(samLinearWrap, pin.viewDir), 1);  //float4(0.3,0.0,0.0,0.5);// cubeMap.Sample(samAnisotropicWrap, pin.viewDir);
-	//return float4(cubeMap.SampleLevel(samPointWrap, pin.viewDir, 0), 1);
-	//return panoramaToCubeMap()
-
+	return float4( cubeMap.Sample(samLinearWrap, pin.viewDir), 1);  
 }
 
