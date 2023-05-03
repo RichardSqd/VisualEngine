@@ -14,6 +14,7 @@
 //#pragma comment(lib, "dxgi.lib") 
 //#pragma comment(lib, "dxguid.lib")
 
+
 namespace Renderer {
 	
 	ComPtr<ID3D12RootSignature> rRootSignature = nullptr;
@@ -59,6 +60,10 @@ namespace Renderer {
 	int shaderSelector = 0;
 	bool wireframeMode = 0;
 
+	UINT hdriImageCBVHeapIndexStart = 0;
+	UINT cubemapIndividualSRVHeapIndexStart = 0;
+	UINT cubemappassCBVHeapIndexStart = 0;
+	UINT cubemapSRVHeapIndexStart = 0;
 	UINT objectCBVHeapIndexStart = 0;
 	UINT passCBVHeapIndexStart = 0;
 	UINT lightCBVHeapIndexStart = 0;
@@ -83,9 +88,10 @@ namespace Renderer {
 		CreateRootSigniture();
 		CreatePipelineState();	
 		CreateFrameResources();
+		CreateCubemapResources();
 		CreateConstantBufferViews();
 		CreateShaderResourceViews();
-		CreateCubemapResources();
+		
 		
 	}
 
@@ -412,12 +418,8 @@ namespace Renderer {
 			
 		}
 
+		objectCBVHeapIndexStart = cubemapSRVHeapIndexStart + 2;//cubemap as irradiance & specular srvs
 
-		objectCBVHeapIndexStart = 1  //hdr environmental texture 
-								+ 6  //cubemap faces as seperate srv
-								+ 6  //irradiance maps 
-								+ 6  //global pass constants for perparing cubemap faces
-								+ 2; //cubemap as irradiance & specular srvs
 
 		//generate constant buffer views for all frame resources 
 		for (UINT frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
@@ -848,9 +850,10 @@ namespace Renderer {
 			&clearValue,
 			IID_PPV_ARGS(rIrradianceSkyboxArray.ReleaseAndGetAddressOf()));
 
-		
+		int cbvhandleIndex = 0;
 		CD3DX12_CPU_DESCRIPTOR_HANDLE handle(Graphics::gCbvSrvHeap->GetCPUDescriptorHandleForHeapStart());
 		handle.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
+		cbvhandleIndex += 1;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart());
 		rtvHandle.Offset(Graphics::gSwapChainBufferCount, Graphics::gRTVDescriptorSize);
@@ -898,7 +901,7 @@ namespace Renderer {
 		
 		Graphics::gDevice->CreateDepthStencilView(rCubemapDepthStencilBuffer.Get(), &dsvDesc, dsvHandle);
 
-
+		cubemapIndividualSRVHeapIndexStart = cbvhandleIndex;
 		for (int i = 0; i < 6; i++) {
 
 
@@ -922,7 +925,7 @@ namespace Renderer {
 			
 			Graphics::gDevice->CreateShaderResourceView(rSkyboxArray.Get(), &srvDesc, handle);
 			handle.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
-			
+			cbvhandleIndex += 1;
 
 			D3D12_RENDER_TARGET_VIEW_DESC cubemapImagesRTV = {};
 			cubemapImagesRTV.Format = texArrayDesc.Format;
@@ -936,7 +939,7 @@ namespace Renderer {
 			
 			Graphics::gDevice->CreateRenderTargetView(rSkyboxArray.Get(), &cubemapImagesRTV, rtvHandle);
 			rtvHandle.Offset(1, Graphics::gRTVDescriptorSize);
-
+			
 		}
 
 		for (int i = 0; i < 6; i++) {
@@ -952,9 +955,10 @@ namespace Renderer {
 
 			Graphics::gDevice->CreateShaderResourceView(rIrradianceSkyboxArray.Get(), &srvDesc, handle);
 			handle.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
+			cbvhandleIndex += 1;
 		}
 		
-
+		cubemappassCBVHeapIndexStart = cbvhandleIndex;
 		//pass constant buffer view
 		for (int i = 0; i < 6; i++) {
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
@@ -962,8 +966,10 @@ namespace Renderer {
 			cbvDesc.SizeInBytes = Graphics::gPassCBByteSize;
 			Graphics::gDevice->CreateConstantBufferView(&cbvDesc, handle);
 			handle.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
+			cbvhandleIndex += 1;
 		}
 
+		cubemapSRVHeapIndexStart = cbvhandleIndex;
 		//cubemap 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -1271,7 +1277,7 @@ namespace Renderer {
 
 		//set diffuse & specular cubemaps
 		auto cubemapHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-		cubemapHandle.Offset(13 + 6 + 0, Graphics::gCbvSrvUavDescriptorSize);
+		cubemapHandle.Offset(cubemapSRVHeapIndexStart, Graphics::gCbvSrvUavDescriptorSize);
 		commandList->SetGraphicsRootDescriptorTable(6, cubemapHandle);
 
 
@@ -1470,7 +1476,7 @@ namespace Renderer {
 			DirectX::XMVectorSet(0.0f, -1.0f,  0.0f, 0.0f)
 		};
 
-		UINT cbvIndex = 1+6+6;//hdr + cubemap srv + irradiance srv
+		UINT cbvIndex = cubemappassCBVHeapIndexStart;//hdr + cubemap srv + irradiance srv
 		auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 		cbvHandle.Offset(cbvIndex, Graphics::gCbvSrvUavDescriptorSize);
 
@@ -1577,10 +1583,10 @@ namespace Renderer {
 		commandList->IASetIndexBuffer(&ibv);
 
 		auto cubemapHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-		cubemapHandle.Offset(1+6+6+6, Graphics::gCbvSrvUavDescriptorSize);
+		cubemapHandle.Offset(cubemapSRVHeapIndexStart, Graphics::gCbvSrvUavDescriptorSize);
 		commandList->SetGraphicsRootDescriptorTable(0, cubemapHandle);
 
-		UINT cbvIndex = 1+6+6;
+		UINT cbvIndex = cubemappassCBVHeapIndexStart;
 		auto cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 		cbvHandle.Offset(cbvIndex, Graphics::gCbvSrvUavDescriptorSize);
 
@@ -1666,17 +1672,14 @@ namespace Renderer {
 	}
 
 	void RenderSkyBox(ComPtr<ID3D12GraphicsCommandList> commandList) {
-		//commandList->RSSetViewports(1, &Graphics::gScreenViewport);
-		//commandList->RSSetScissorRects(1, &Graphics::gScissorRect);
-		//ID3D12DescriptorHeap* descriptorHeaps[] = { Graphics::gCbvSrvHeap.Get() };
-		//commandList->SetDescriptorHeaps(1, descriptorHeaps);
 
 		commandList->SetPipelineState(rPsoSkybox.Get());
 		commandList->SetGraphicsRootSignature(rCubemapRootSignature.Get());
 		commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+
 		auto cubemapHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-		cubemapHandle.Offset(13+6, Graphics::gCbvSrvUavDescriptorSize);
+		cubemapHandle.Offset(cubemapSRVHeapIndexStart, Graphics::gCbvSrvUavDescriptorSize);
 		commandList->SetGraphicsRootDescriptorTable(0, cubemapHandle);
 
 

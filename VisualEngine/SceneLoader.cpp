@@ -32,12 +32,12 @@ namespace Scene {
 
 		DirectX::TexMetadata metadata {};
 		DirectX::ScratchImage scratchImage{};
-		DirectX::LoadFromHDRFile(L"Models\\\HDR\\brown_photostudio_05_2k.hdr", &metadata, scratchImage);
+		DirectX::LoadFromHDRFile(Config::iblImagePath.c_str(), &metadata, scratchImage);
 
 		if (metadata.mipLevels>0) {
 			auto iblTex = std::make_unique<Texture>();
 			iblTex->name = "IBL_Texture";
-			iblTex->uri = Config::iblImagePath;
+			iblTex->uri = Utils::to_byte_str(Config::iblImagePath) ;
 			iblTex->width = metadata.width;
 			iblTex->height = metadata.height;
 

@@ -135,7 +135,7 @@ float4 PS(PixelIn pin) : SV_Target
 
 	float3 dIBL = diffuseIBL(surface, materialParams);
 	float3 sIBL = specularIBL(surface, materialParams);
-	float3 color = dIBL  + emissive.rgb;//+ pbrLighting.rgb;
+	float3 color = dIBL + sIBL + emissive.rgb;//+ pbrLighting.rgb;
 	return float4(color, 1.0);
 }
 
