@@ -39,8 +39,8 @@ namespace Scene {
 			indexCount(0),
 			ibOffset(0),
 			vbOffset(0),
-			numFrameDirty(0){}
-
+			numFrameDirty(0){
+	}
 
 
 }

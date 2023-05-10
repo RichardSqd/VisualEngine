@@ -12,6 +12,8 @@ namespace Scene {
 	extern DirectX::XMFLOAT4 sceneScaling;
 	extern DirectX::XMFLOAT4 sceneTranslation;
 
+	
+
 	/*
 	const D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
 	{
@@ -147,6 +149,42 @@ namespace Scene {
 		
 	};
 
+	struct AnimationChannels {
+		AnimationChannels() : AnimationChannels(0, 0, 0) {}
+
+		AnimationChannels(
+			int rotation,
+			int scaling,
+			int translation
+		) : hasRotationAnimation(rotation),
+			hasScalingAnimation(scaling),
+			hasTranslationAnimation(translation) {
+			DirectX::XMStoreFloat4x4(&rotationChannel, DirectX::XMMatrixScaling(1, 1, 1));
+			DirectX::XMStoreFloat4x4(&scalingChannel, DirectX::XMMatrixIdentity());
+			DirectX::XMStoreFloat4x4(&translationChannel, DirectX::XMMatrixIdentity());
+			//DirectX::XMStoreFloat4x4(&animatedMatrix, DirectX::XMMatrixIdentity());
+		}
+
+		int hasRotationAnimation;
+		int hasScalingAnimation;
+		int hasTranslationAnimation;
+
+		std::vector<float> rotationTime;
+		std::vector <DirectX::XMFLOAT4> rotationAnimation;
+		DirectX::XMFLOAT4X4 rotationChannel;
+
+		std::vector<float> scalingTime;
+		std::vector <DirectX::XMFLOAT4> scalingAnimation;
+		DirectX::XMFLOAT4X4 scalingChannel;
+
+		std::vector<float> translationTime;
+		std::vector<DirectX::XMFLOAT3> translationAnimation;
+		DirectX::XMFLOAT4X4 translationChannel;
+
+		//DirectX::XMFLOAT4X4 animatedMatrix;
+
+	};
+
 	struct Node {
 		Node();
 		DirectX::XMFLOAT4X4 toWorldmatrix;
@@ -161,6 +199,9 @@ namespace Scene {
 
 		UINT32 numFrameDirty;
 		std::vector<UINT32> cbdHeapIndexByFrames;
+
+		AnimationChannels animation;
+
 	};
 
 	struct Model {
@@ -233,28 +274,6 @@ namespace Scene {
 
 	};
 
-
-	struct AnimationChannel {
-		int sampler;            
-		int target_node;         
-		std::string target_path;  // one of "translation", "rotation", "scale", "weights" 
-		
-
-		AnimationChannel() : sampler(-1), target_node(-1) {}
-		
-	};
-
-	struct AnimationSampler {
-		int input;
-		int output;
-		std::string interpolation;  // "LINEAR", "STEP","CUBICSPLINE", default "LINEAR"
-
-		AnimationSampler() : input(-1), output(-1) {}
-	};
-
-	struct Animation {
-		std::vector<AnimationChannel> channels;
-		std::vector<AnimationSampler> samplers;
-	};
+	
 
 }

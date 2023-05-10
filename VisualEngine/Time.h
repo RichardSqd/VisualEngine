@@ -18,5 +18,6 @@ namespace Time{
 	extern double tFPS;
 	extern double tFreq;
 	extern int tNumFrames;
+	extern double tAnimationTimer;
 	
 }

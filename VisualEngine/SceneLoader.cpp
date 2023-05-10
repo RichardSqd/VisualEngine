@@ -347,7 +347,7 @@ namespace Scene {
 				scale = DirectX::XMMatrixScaling((float)tinyNode.scale[0] * 1.0, (float)tinyNode.scale[1] * 1.0, (float)tinyNode.scale[2] * 1.0);
 			}
 			else {
-				scale = DirectX::XMMatrixScaling(20, 20, 20);
+				scale = DirectX::XMMatrixScaling(1, 1, 1);
 			}
 			if (tinyNode.rotation.size() == 4) {
 				DirectX::XMVECTOR rv = DirectX::XMVectorSet(tinyNode.rotation[0], tinyNode.rotation[1], tinyNode.rotation[2], tinyNode.rotation[3]);
@@ -695,6 +695,7 @@ namespace Scene {
 		
 	}
 
+	//TODO: apply animations to children nodes
 	void SolveAnimations(tinygltf::Model& tinyModel, Scene::Model& model) {
 		auto& tinyAnimations = tinyModel.animations;
 		for (auto& tinyAnimation : tinyAnimations) {
@@ -702,14 +703,131 @@ namespace Scene {
 				auto& sampler = tinyAnimation.samplers[channel.sampler];
 				auto& node = model.nodes[channel.target_node];
 				
+				
+				
 				//path
 				if (channel.target_path == "translation") {
-					//node.translation
+					node.animation.hasTranslationAnimation = 1;
+					auto& target = node.animation.translationTime;
+					{
+						tinygltf::Accessor timeAccessor = tinyModel.accessors[sampler.input];
+						tinygltf::BufferView& timeBufferview = tinyModel.bufferViews[timeAccessor.bufferView];
+						auto& timeBuffer = tinyModel.buffers[timeBufferview.buffer];
+						auto numElements = 0;
+						if (timeAccessor.type != TINYGLTF_TYPE_SCALAR) {
+							__debugbreak();
+						}
+						numElements = 1;
+						auto stride = 0;
+						if (timeAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
+							stride = 4;
+						}
+						else {
+							__debugbreak();
+						}
+						auto start = timeBufferview.byteOffset + timeAccessor.byteOffset;
+						auto end = start + timeAccessor.count * stride * numElements;
+
+						auto itBegin = std::next(timeBuffer.data.begin(), start);
+						auto itEnd = std::next(timeBuffer.data.begin(), end);
+
+						std::vector<byte> timeTemp{ itBegin , itEnd };
+						target.resize(timeAccessor.count);
+						std::memcpy(target.data(), timeTemp.data(), timeTemp.size());
+					}
+
+					auto& target2 = node.animation.translationAnimation;
+					{
+						tinygltf::Accessor actionAccessor = tinyModel.accessors[sampler.output];
+						tinygltf::BufferView& actionBufferview = tinyModel.bufferViews[actionAccessor.bufferView];
+						auto& actionBuffer = tinyModel.buffers[actionBufferview.buffer];
+						auto numElements = 0;
+						if (actionAccessor.type != TINYGLTF_TYPE_VEC3) {
+							__debugbreak();
+						}
+						numElements = 3;
+						auto stride = 0;
+						if (actionAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
+							stride = 4;
+						}
+						else {
+							__debugbreak();
+						}
+						auto start = actionBufferview.byteOffset + actionAccessor.byteOffset;
+						auto end = start + actionAccessor.count * stride * numElements;
+
+						auto itBegin = std::next(actionBuffer.data.begin(), start);
+						auto itEnd = std::next(actionBuffer.data.begin(), end);
+
+						std::vector<byte> temp{ itBegin , itEnd };
+						target2.resize(actionAccessor.count);
+						std::memcpy(target2.data(), temp.data(), temp.size());
+
+					}
+
 				}
 				else if (channel.target_path == "rotation") {
+					node.animation.hasRotationAnimation = 1;
+					auto& target  = node.animation.rotationTime;
+					{
+						tinygltf::Accessor timeAccessor = tinyModel.accessors[sampler.input];
+						tinygltf::BufferView& timeBufferview = tinyModel.bufferViews[timeAccessor.bufferView];
+						auto& timeBuffer = tinyModel.buffers[timeBufferview.buffer];
+						auto numElements = 0;
+						if (timeAccessor.type != TINYGLTF_TYPE_SCALAR) {
+							__debugbreak();
+						}
+						numElements = 1;
+						auto stride = 0;
+						if (timeAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
+							stride = 4;
+						}
+						else {
+							__debugbreak();
+						}
+						auto start = timeBufferview.byteOffset + timeAccessor.byteOffset;
+						auto end = start + timeAccessor.count * stride * numElements;
+
+						auto itBegin = std::next(timeBuffer.data.begin(), start);
+						auto itEnd = std::next(timeBuffer.data.begin(), end);
+
+						std::vector<byte> timeTemp{ itBegin , itEnd };
+						target.resize(timeAccessor.count);
+						std::memcpy(target.data(), timeTemp.data(), timeTemp.size());
+
+					}
+
+					auto& target2 = node.animation.rotationAnimation;
+					{
+						tinygltf::Accessor actionAccessor = tinyModel.accessors[sampler.output];
+						tinygltf::BufferView& actionBufferview = tinyModel.bufferViews[actionAccessor.bufferView];
+						auto& actionBuffer = tinyModel.buffers[actionBufferview.buffer];
+						auto numElements = 0;
+						if (actionAccessor.type != TINYGLTF_TYPE_VEC4) {
+							__debugbreak();
+						}
+						numElements = 4;
+						auto stride = 0;
+						if (actionAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT) {
+							stride = 4;
+						}
+						else {
+							__debugbreak();
+						}
+						auto start = actionBufferview.byteOffset + actionAccessor.byteOffset;
+						auto end = start + actionAccessor.count * stride * numElements;
+
+						auto itBegin = std::next(actionBuffer.data.begin(), start);
+						auto itEnd = std::next(actionBuffer.data.begin(), end);
+
+						std::vector<byte> temp{ itBegin , itEnd };
+						target2.resize(actionAccessor.count);
+						std::memcpy(target2.data(), temp.data(), temp.size());
+					}
 
 				}
 				else if (channel.target_path == "scale") {
+					node.animation.hasScalingAnimation = 1;
 
 				}
 				else {//weights

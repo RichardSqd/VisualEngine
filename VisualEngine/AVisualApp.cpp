@@ -7,6 +7,7 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
+#include "Model.h"
 
 AVisualApp::AVisualApp() {
 
@@ -107,6 +108,7 @@ void AVisualApp::Update() {
 
 void AVisualApp::UpdateUI() {
 	ImGuiIO& io = ImGui::GetIO();
+	
 
 	auto& sceneLighting = EngineCore::eModel.lights;
 	auto& axis = Scene::axis;
@@ -114,6 +116,7 @@ void AVisualApp::UpdateUI() {
 	auto& translation = Scene::sceneTranslation;
 	auto& scaling = Scene::sceneScaling;
 	bool wireframeMode = Renderer::wireframeMode;
+	bool animationEnabled = Renderer::animationEnabled;
 	bool limitFrameRate = Renderer::rframeRateCap60;
 	{
 		static float f = 0.0f;
@@ -125,6 +128,7 @@ void AVisualApp::UpdateUI() {
 		ImGui::Text("Current window size (%.1f, %.1f) ", Graphics::gWidth, Graphics::gHeight);
 		ImGui::Text("Camera Position %.3f %.3f %.3f (x,y,z) ", Renderer::gMainCam.camPos.x, Renderer::gMainCam.camPos.y, Renderer::gMainCam.camPos.z);
 		ImGui::Checkbox("Wireframe Mode", &wireframeMode);
+		ImGui::Checkbox("Animation Start", &animationEnabled);
 
 		if (sceneLighting.numDirectionalLights > 0) {
 			ImGui::SeparatorText("Directional Lights");
@@ -174,22 +178,7 @@ void AVisualApp::UpdateUI() {
 		
 		if (ImGui::BeginMenu("Cubemap details"))
 		{
-			//static bool enabled = true;
-			//ImGui::MenuItem("Enabled", "", &enabled);
-
-			//static int n = 0;
-			//ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
-			//ImGui::InputFloat("Input", &f, 0.1f);
-			//ImGui::Combo("Shader selector", &Renderer::shaderSelector, "Phong\0Blinn-Phong\0PBR\0\0");
-			//if (ImGui::BeginMenu("Shader Settings"))
-		//{
-			//static bool enabled = true;
-			//ImGui::MenuItem("Enabled", "", &enabled);
-
-			//static int n = 0;
-			//ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
-			//ImGui::InputFloat("Input", &f, 0.1f);
-			//ImGui::Combo("Shader selector", &Renderer::shaderSelector, "Phong\0Blinn-Phong\0PBR\0\0");
+			
 			auto h = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 
 			for (int i = 0; i < 6; i++) {
@@ -232,6 +221,18 @@ void AVisualApp::UpdateUI() {
 
 		if (wireframeMode != Renderer::wireframeMode ) {
 			Renderer::wireframeMode = wireframeMode;
+		}
+
+		if (animationEnabled != Renderer::animationEnabled) {
+			Renderer::animationEnabled = animationEnabled;
+			Time::tAnimationTimer = 0.0;
+			if (animationEnabled == false) {
+				for (auto& node : EngineCore::eModel.nodes) {
+					//DirectX::XMStoreFloat4x4(&node.animation.animatedMatrix, DirectX::XMMatrixIdentity());
+					node.numFrameDirty = Config::numFrameResource;
+				}
+			
+			}
 		}
 
 		ImGui::End();

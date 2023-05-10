@@ -71,4 +71,5 @@ namespace Renderer {
 	extern int rframeRateCap60;
 	extern int shaderSelector;
 	extern bool wireframeMode;
+	extern bool animationEnabled;
 }

@@ -88,7 +88,7 @@ float4 PS(PixelIn pin) : SV_Target
 		roughnessmetallic =  metallicRoughnessMap.Sample(samPointWrap, pin.uv);
 	}
 	else {
-		roughnessmetallic = float4(0.25, 0.25, 0.25, 0.25);
+		roughnessmetallic = float4(0.25,  RoughnessFactor, MetallicFactor, 0.25);
 	}
 
 	
@@ -109,10 +109,6 @@ float4 PS(PixelIn pin) : SV_Target
 	else {
 		ao = 1.0;
 	}
-
-	
-	float2 metallicRoughness = metallicRoughnessFactor * metallicRoughnessMap.Sample(samLinearClamp, pin.uv).bg;
-
 	
 	
 	SurfaceProperties surface; 
@@ -122,7 +118,7 @@ float4 PS(PixelIn pin) : SV_Target
 	
 	MaterialParameters materialParams;
 	materialParams.albedo = diffuseAlbedo.rgb;
-	materialParams.metallic = diffuseAlbedo.b;
+	materialParams.metallic = roughnessmetallic.b;
 	materialParams.roughness = roughnessmetallic.g;
 	materialParams.ao = 0;
 	
@@ -135,7 +131,7 @@ float4 PS(PixelIn pin) : SV_Target
 
 	float3 dIBL = diffuseIBL(surface, materialParams);
 	float3 sIBL = specularIBL(surface, materialParams);
-	float3 color = dIBL + sIBL + emissive.rgb;//+ pbrLighting.rgb;
+	float3 color = dIBL + sIBL + emissive.rgb;
 	return float4(color, 1.0);
 }
 
@@ -157,7 +153,7 @@ float3 specularIBL(SurfaceProperties surface, MaterialParameters materialParams)
 	float lod = materialParams.roughness * 10 + 0;
 	float3 c_spec = lerp(float3(0.04, 0.04, 0.04), materialParams.albedo, materialParams.metallic)* 1.0;
 	float3 specular = Fresnel_Shlick(c_spec, 1, surface.NdotV);
-	return specular * specularCubeMap.Sample(samAnisotropicWrap, reflect(-surface.V, surface.N));
+	return specular * specularCubeMap.Sample(samAnisotropicWrap, reflect(surface.V, surface.N));
 
 }
 

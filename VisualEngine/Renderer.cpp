@@ -59,6 +59,7 @@ namespace Renderer {
 	int rframeRateCap60 = 1;
 	int shaderSelector = 0;
 	bool wireframeMode = 0;
+	bool animationEnabled = false;
 
 	UINT hdriImageCBVHeapIndexStart = 0;
 	UINT cubemapIndividualSRVHeapIndexStart = 0;
@@ -73,6 +74,7 @@ namespace Renderer {
 
 	
 	bool runAtIFirstIteration = true;
+
 
 
 	void Init(CommandContext* context) {
@@ -279,6 +281,18 @@ namespace Renderer {
 
 	
 	void CreatePipelineState() {
+
+		//D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels;
+		//msQualityLevels.Format = mBackBufferFormat;
+		//msQualityLevels.SampleCount = 4;
+		//msQualityLevels.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
+		//msQualityLevels.NumQualityLevels = 0;
+		//ThrowIfFailed(md3dDevice->CheckFeatureSupport(
+		//	D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
+		//	&msQualityLevels,
+		//	sizeof(msQualityLevels)));
+
+		//m4xMsaaQuality = msQualityLevels.NumQualityLevels;
 
 		CD3DX12_DEPTH_STENCIL_DESC DepthStateDisabled = {};
 		DepthStateDisabled.DepthEnable = FALSE;
@@ -904,8 +918,6 @@ namespace Renderer {
 		cubemapIndividualSRVHeapIndexStart = cbvhandleIndex;
 		for (int i = 0; i < 6; i++) {
 
-
-
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
 			srvDesc.Texture2DArray.ArraySize = 1;
@@ -1011,7 +1023,7 @@ namespace Renderer {
 	void Update() {
 		UpdateInput();
 		UpdateCamera();
-		UpdateAnimation();
+		
 
 		//advance the frame index, check the status of GPU completion on current frame resources 
 		Graphics::gFrameResourceManager.NextFrameResource();
@@ -1041,7 +1053,7 @@ namespace Renderer {
 			CloseHandle(eventHandle);
 		}
 
-
+		UpdateAnimation();
 		UpdateObjCBs(currentFrameResource);
 		UpdateMaterialCBs(currentFrameResource);
 		UpdatePassCB(currentFrameResource);
@@ -1049,6 +1061,136 @@ namespace Renderer {
 	}
 
 	void UpdateAnimation() {
+		if (!animationEnabled) {
+			return;
+		}
+		ImGuiIO& io = ImGui::GetIO();
+		Time::tAnimationTimer += io.DeltaTime;
+		float currentTime = Time::tAnimationTimer;
+		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
+			auto& node = EngineCore::eModel.nodes[i];
+			
+			DirectX::XMMATRIX rotate = {};
+			DirectX::XMMATRIX scale = {};
+			DirectX::XMMATRIX translate = {};
+
+			if (node.animation.hasRotationAnimation && currentTime < node.animation.rotationTime[node.animation.rotationTime.size()-1]) {
+				DirectX::XMFLOAT4 currentRotaton = {};
+				int previousTimeIndex = 0;
+				Utils::Print(std::to_string(currentTime).c_str());
+				//Utils::Print("\n");
+				for (; previousTimeIndex < node.animation.rotationTime.size()-1; previousTimeIndex++) {
+					float previousTime = node.animation.rotationTime[previousTimeIndex];
+					int nextTimeIndex = previousTimeIndex + 1;
+					float nextTime = node.animation.rotationTime[nextTimeIndex];
+					if (currentTime >= previousTime && currentTime < nextTime) {
+						//Utils::Print(std::to_string(previousTimeIndex).c_str());
+
+						//Utils::Print("\n");
+
+						auto& previousRotation = node.animation.rotationAnimation[previousTimeIndex];
+						auto& nextRotation = node.animation.rotationAnimation[nextTimeIndex];
+
+						float interpolationValue = (currentTime - previousTime) / (nextTime - previousTime);
+						Utils::Print("  next time  ");
+						Utils::Print(std::to_string(nextTime).c_str());
+						Utils::Print("  previous time  ");
+						Utils::Print(std::to_string(previousTime).c_str());
+						Utils::Print("    ");
+						Utils::Print(std::to_string(interpolationValue).c_str());
+						//Utils::Print("\n");
+
+						Utils::Print("    ");
+						//Utils::Print(std::to_string(previousRotation.x + interpolationValue * (nextRotation.x - previousRotation.x)).c_str());
+						//Utils::Print("    ");
+						//Utils::Print(std::to_string(previousRotation.y + interpolationValue * (nextRotation.y - previousRotation.y)).c_str());
+						//Utils::Print("    ");
+						Utils::Print(std::to_string(previousRotation.z + interpolationValue * (nextRotation.z - previousRotation.z)).c_str());
+						Utils::Print("    ");
+						Utils::Print(std::to_string(previousRotation.w + interpolationValue * (nextRotation.w - previousRotation.w)).c_str());
+						Utils::Print("\n");
+
+						currentRotaton = {
+							 previousRotation.x + interpolationValue * (nextRotation.x - previousRotation.x)
+							,previousRotation.y + interpolationValue * (nextRotation.y - previousRotation.y)
+							,previousRotation.z + interpolationValue * (nextRotation.z - previousRotation.z)
+							,previousRotation.w + interpolationValue * (nextRotation.w - previousRotation.w) };
+
+						break;
+					}
+					
+				}			
+
+				DirectX::XMVECTOR rv = DirectX::XMVectorSet(currentRotaton.x, currentRotaton.y, currentRotaton.z, currentRotaton.w);
+				rotate = DirectX::XMMatrixRotationQuaternion(rv);
+
+				//DirectX::XMVECTOR vec = DirectX::XMVectorSet(0, 1, 0, 0);
+				//rotate = DirectX::XMMatrixRotationAxis(vec, currentTime);
+				//rotate = DirectX::XMMatrixIdentity();
+		
+				DirectX::XMStoreFloat4x4(&node.animation.rotationChannel, rotate);
+				
+				node.numFrameDirty = Config::numFrameResource;
+			
+			}
+
+			if (node.animation.hasTranslationAnimation && currentTime < node.animation.translationTime[node.animation.translationTime.size() - 1]) {
+				DirectX::XMFLOAT3 currentTranslation = {};
+				int previousTimeIndex = 0;
+				Utils::Print(std::to_string(currentTime).c_str());
+				//Utils::Print("\n");
+				for (; previousTimeIndex < node.animation.translationTime.size() - 1; previousTimeIndex++) {
+					float previousTime = node.animation.translationTime[previousTimeIndex];
+					int nextTimeIndex = previousTimeIndex + 1;
+					float nextTime = node.animation.translationTime[nextTimeIndex];
+					if (currentTime >= previousTime && currentTime < nextTime) {
+						//Utils::Print(std::to_string(previousTimeIndex).c_str());
+
+						//Utils::Print("\n");
+
+						auto& previousTranslation = node.animation.translationAnimation[previousTimeIndex];
+						auto& nextTranslation = node.animation.translationAnimation[nextTimeIndex];
+
+						float interpolationValue = (currentTime - previousTime) / (nextTime - previousTime);
+						Utils::Print("  next time  ");
+						Utils::Print(std::to_string(nextTime).c_str());
+						Utils::Print("  previous time  ");
+						Utils::Print(std::to_string(previousTime).c_str());
+						Utils::Print("    ");
+						Utils::Print(std::to_string(interpolationValue).c_str());
+						//Utils::Print("\n");
+
+						Utils::Print("    ");
+						//Utils::Print(std::to_string(previousRotation.x + interpolationValue * (nextRotation.x - previousRotation.x)).c_str());
+						//Utils::Print("    ");
+						//Utils::Print(std::to_string(previousRotation.y + interpolationValue * (nextRotation.y - previousRotation.y)).c_str());
+						//Utils::Print("    ");
+						//Utils::Print(std::to_string(previousRotation.z + interpolationValue * (nextRotation.z - previousRotation.z)).c_str());
+						//Utils::Print("    ");
+						//Utils::Print(std::to_string(previousRotation.w + interpolationValue * (nextRotation.w - previousRotation.w)).c_str());
+						//Utils::Print("\n");
+
+						currentTranslation = {
+							 previousTranslation.x + interpolationValue * (nextTranslation.x - previousTranslation.x)
+							,previousTranslation.y + interpolationValue * (nextTranslation.y - previousTranslation.y)
+							,previousTranslation.z + interpolationValue * (nextTranslation.z - previousTranslation.z)
+							 };
+
+						break;
+					}
+
+				}
+
+				translate = DirectX::XMMatrixTranslation((float)currentTranslation.x, (float)currentTranslation.y, (float)currentTranslation.z);
+
+				DirectX::XMStoreFloat4x4(&node.animation.translationChannel, translate);
+				
+				node.numFrameDirty = Config::numFrameResource;
+
+			}
+			
+				
+		}
 
 	}
 
@@ -1094,16 +1236,28 @@ namespace Renderer {
 		auto curFrameObjCB = currentFrameResource->objCB.get();
 		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
 			auto& node = EngineCore::eModel.nodes[i];
+
 			if (node.numFrameDirty > 0) {
 				DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&node.toWorldmatrix);
+				
+				if (animationEnabled 
+					&& (node.animation.hasRotationAnimation || node.animation.hasScalingAnimation || node.animation.hasTranslationAnimation) ) {
+					auto scale = DirectX::XMLoadFloat4x4(&node.animation.scalingChannel);
+					auto rotate = DirectX::XMLoadFloat4x4(&node.animation.rotationChannel);
+					auto translate = DirectX::XMLoadFloat4x4(&node.animation.translationChannel);
+					
+					world = scale * rotate * translate;		
+				}
 
+				
+				//DirectX::XMMATRIX animated = DirectX::XMLoadFloat4x4(&node.animatedMatrix);
 				DirectX::XMFLOAT4 sceneScaling = Scene::sceneScaling;
 				DirectX::XMFLOAT4 sceneTranslation = Scene::sceneTranslation;
 				DirectX::XMMATRIX temp = 
 					DirectX::XMMatrixScaling(sceneScaling.x, sceneScaling.y, sceneScaling.z) 
 					* DirectX::XMMatrixRotationAxis(DirectX::XMLoadFloat4(&Scene::axis), Scene::angle) 
 					* DirectX::XMMatrixTranslation(sceneTranslation.x, sceneTranslation.y, sceneTranslation.z);
-				world = world * temp ;
+				world = world;//* temp;
 				
 				ObjectConstants objConsts;
 				DirectX::XMStoreFloat4x4(&objConsts.World, DirectX::XMMatrixTranspose(world));
