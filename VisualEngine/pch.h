@@ -24,6 +24,8 @@
 
 #define WIN32_LEAN_AND_MEAN
 
+#define SINGLETHREADED FALSE
+
 #include <windows.h>
 #include <wrl.h>
 #include <vector>

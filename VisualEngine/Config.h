@@ -21,8 +21,8 @@ namespace Config {
 	//const std::wstring gltfFileName = L"SciFiHelmet.gltf";
 	//const std::wstring gltfFileDirectory  = L"Models\\SciFiHelmet\\glTF";
 	// BoomBox 
-	const std::wstring gltfFileName = L"\BoomBox.gltf";
-	const std::wstring gltfFileDirectory  = L"Models\\\BoomBox\\glTF";
+	//const std::wstring gltfFileName = L"\BoomBox.gltf";
+	//const std::wstring gltfFileDirectory  = L"Models\\\BoomBox\\glTF";
 	//Suzanne
 	//const std::wstring gltfFileName = L"\Suzanne.gltf";
 	//const std::wstring gltfFileDirectory  = L"Models\\\Suzanne\\glTF";
@@ -30,9 +30,18 @@ namespace Config {
 	//const std::wstring gltfFileDirectory  = L"Models\\Buggy\\glTF";
 	//const std::wstring gltfFileName = L"Buggy.gltf";
 	
-	//const std::wstring gltfFileDirectory  = L"Models\\testscene";
-	//const std::wstring gltfFileName = L"testscene45.gltf";
-	
+	const std::wstring gltfFileDirectory  = L"Models\\testscene";
+	//const std::wstring gltfFileName = L"minimum_animation.gltf";
+	//const std::wstring gltfFileName = L"animated_translated_cube.gltf";
+	//const std::wstring gltfFileName = L"animated_translated_objects.gltf";
+	//const std::wstring gltfFileName = L"balckb.gltf";
+	//const std::wstring gltfFileName = L"test_board.gltf";
+	//const std::wstring gltfFileName = L"chess_board_static.gltf";
+	//const std::wstring gltfFileName = L"chess_board_static2.gltf";
+
+	const std::wstring gltfFileName = L"animated_chess_animated6.gltf";
+	//const std::wstring gltfFileName = L"rougnness_test.gltf";
+	//const std::wstring gltfFileName = L"animated_cube.gltf";
 	//const std::wstring gltfFileName = L"testscene16.gltf";
 
 
@@ -54,5 +63,9 @@ namespace Config {
 	const std::wstring irradiancePixelShaderFilePath = L"Shaders\\irradiancePS.hlsl";
 
 	//IBL image 
-	const std::string iblImagePath = "Models\\\HDR\\brown_photostudio_05_2k.hdr";
+	//const std::wstring iblImagePath = L"Models\\\HDR\\brown_photostudio_05_2k.hdr";
+	const std::wstring iblImagePath = L"Models\\HDR\\blue_photo_studio_2k.hdr";
+	//const std::wstring iblImagePath = L"Models\\\HDR\\lilienstein_2k.hdr";
+	
+	
 }

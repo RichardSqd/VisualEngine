@@ -38,8 +38,8 @@ namespace Scene {
 			auto iblTex = std::make_unique<Texture>();
 			iblTex->name = "IBL_Texture";
 			iblTex->uri = Utils::to_byte_str(Config::iblImagePath) ;
-			iblTex->width = metadata.width;
-			iblTex->height = metadata.height;
+			iblTex->width = (int)metadata.width;
+			iblTex->height = (int)metadata.height;
 
 			D3D12_SUBRESOURCE_DATA subresource{};
 			subresource.pData = scratchImage.GetImages()->pixels;
@@ -47,7 +47,7 @@ namespace Scene {
 			subresource.SlicePitch = scratchImage.GetImages()->slicePitch;
 
 			D3D12_RESOURCE_DESC textureDesc = {};
-			textureDesc.MipLevels = metadata.mipLevels;
+			textureDesc.MipLevels = (UINT16)metadata.mipLevels;
 			textureDesc.Format = metadata.format;
 			textureDesc.Width = metadata.width;
 			textureDesc.Height = metadata.height;
@@ -344,13 +344,13 @@ namespace Scene {
 			DirectX::XMMATRIX rotate;
 			DirectX::XMMATRIX translate;
 			if (tinyNode.scale.size() == 3) {
-				scale = DirectX::XMMatrixScaling((float)tinyNode.scale[0] * 1.0, (float)tinyNode.scale[1] * 1.0, (float)tinyNode.scale[2] * 1.0);
+				scale = DirectX::XMMatrixScaling((float)tinyNode.scale[0] , (float)tinyNode.scale[1] , (float)tinyNode.scale[2] );
 			}
 			else {
 				scale = DirectX::XMMatrixScaling(1, 1, 1);
 			}
 			if (tinyNode.rotation.size() == 4) {
-				DirectX::XMVECTOR rv = DirectX::XMVectorSet(tinyNode.rotation[0], tinyNode.rotation[1], tinyNode.rotation[2], tinyNode.rotation[3]);
+				DirectX::XMVECTOR rv = DirectX::XMVectorSet((float)tinyNode.rotation[0], (float)tinyNode.rotation[1], (float)tinyNode.rotation[2], (float)tinyNode.rotation[3]);
 				rotate = DirectX::XMMatrixRotationQuaternion(rv);
 			}
 			else {
@@ -910,7 +910,7 @@ namespace Scene {
 			4, 3, 0
 
 		};
-		Cubemap::indexCount = indices.size();
+		Cubemap::indexCount = (UINT)indices.size();
 		Cubemap::indexBufferByteSize = (UINT)indices.size() * sizeof(std::uint16_t) ;
 		Cubemap::vertexPosBufferByteSize = (UINT)vertices.size() * sizeof(float);
 

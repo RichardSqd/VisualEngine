@@ -1066,7 +1066,7 @@ namespace Renderer {
 		}
 		ImGuiIO& io = ImGui::GetIO();
 		Time::tAnimationTimer += io.DeltaTime;
-		float currentTime = Time::tAnimationTimer;
+		float currentTime = (float)Time::tAnimationTimer;
 		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
 			auto& node = EngineCore::eModel.nodes[i];
 			
@@ -1591,12 +1591,12 @@ namespace Renderer {
 
 		D3D12_VERTEX_BUFFER_VIEW vbvPos = {};
 		vbvPos.StrideInBytes = sizeof(DirectX::XMFLOAT3);
-		vbvPos.SizeInBytes = Cubemap::vertexPosBufferByteSize;
+		vbvPos.SizeInBytes = (UINT)Cubemap::vertexPosBufferByteSize;
 		vbvPos.BufferLocation = Cubemap::vertexPosBufferGPU->GetGPUVirtualAddress();
 
 		D3D12_INDEX_BUFFER_VIEW ibv = {};
 		ibv.Format = DXGI_FORMAT_R16_UINT;
-		ibv.SizeInBytes = Cubemap::indexBufferByteSize;
+		ibv.SizeInBytes = (UINT)Cubemap::indexBufferByteSize;
 		ibv.BufferLocation = Cubemap::indexBufferGPU->GetGPUVirtualAddress();
 
 		commandList->IASetVertexBuffers(0, 1, &vbvPos);
@@ -1722,12 +1722,12 @@ namespace Renderer {
 
 		D3D12_VERTEX_BUFFER_VIEW vbvPos = {};
 		vbvPos.StrideInBytes = sizeof(DirectX::XMFLOAT3);
-		vbvPos.SizeInBytes = Cubemap::vertexPosBufferByteSize;
+		vbvPos.SizeInBytes = (UINT)Cubemap::vertexPosBufferByteSize;
 		vbvPos.BufferLocation = Cubemap::vertexPosBufferGPU->GetGPUVirtualAddress();
 
 		D3D12_INDEX_BUFFER_VIEW ibv = {};
 		ibv.Format = DXGI_FORMAT_R16_UINT;
-		ibv.SizeInBytes = Cubemap::indexBufferByteSize;
+		ibv.SizeInBytes = (UINT)Cubemap::indexBufferByteSize;
 		ibv.BufferLocation = Cubemap::indexBufferGPU->GetGPUVirtualAddress();
 
 		commandList->IASetVertexBuffers(0, 1, &vbvPos);
