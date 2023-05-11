@@ -10,7 +10,11 @@ PBR with IBL
 Blinn Phong
 ![](Images/phong_example2.png)
 Sample Chess Animatgion (model by Puppetswar Miniatures)
-Images/recording.mp4
+
+
+
+https://github.com/RichardSqd/VisualEngine/assets/100163115/f8da159d-1ebe-42ba-a322-178b92ea08f5
+
 
 
 ## Features
