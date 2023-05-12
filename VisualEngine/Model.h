@@ -7,6 +7,13 @@
 
 using Microsoft::WRL::ComPtr;
 namespace Scene {
+	extern DirectX::XMFLOAT4 axis;
+	extern float angle;
+	extern DirectX::XMFLOAT4 sceneScaling;
+	extern DirectX::XMFLOAT4 sceneTranslation;
+
+	
+
 	/*
 	const D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
 	{
@@ -25,6 +32,12 @@ namespace Scene {
 		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 3, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 4, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
+
+	const D3D12_INPUT_ELEMENT_DESC cubeMapinputLayoutDesc[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+	};
+
 
 	struct VertexPos 
 	{
@@ -136,6 +149,42 @@ namespace Scene {
 		
 	};
 
+	struct AnimationChannels {
+		AnimationChannels() : AnimationChannels(0, 0, 0) {}
+
+		AnimationChannels(
+			int rotation,
+			int scaling,
+			int translation
+		) : hasRotationAnimation(rotation),
+			hasScalingAnimation(scaling),
+			hasTranslationAnimation(translation) {
+			DirectX::XMStoreFloat4x4(&rotationChannel, DirectX::XMMatrixScaling(1, 1, 1));
+			DirectX::XMStoreFloat4x4(&scalingChannel, DirectX::XMMatrixIdentity());
+			DirectX::XMStoreFloat4x4(&translationChannel, DirectX::XMMatrixIdentity());
+			//DirectX::XMStoreFloat4x4(&animatedMatrix, DirectX::XMMatrixIdentity());
+		}
+
+		int hasRotationAnimation;
+		int hasScalingAnimation;
+		int hasTranslationAnimation;
+
+		std::vector<float> rotationTime;
+		std::vector <DirectX::XMFLOAT4> rotationAnimation;
+		DirectX::XMFLOAT4X4 rotationChannel;
+
+		std::vector<float> scalingTime;
+		std::vector <DirectX::XMFLOAT4> scalingAnimation;
+		DirectX::XMFLOAT4X4 scalingChannel;
+
+		std::vector<float> translationTime;
+		std::vector<DirectX::XMFLOAT3> translationAnimation;
+		DirectX::XMFLOAT4X4 translationChannel;
+
+		//DirectX::XMFLOAT4X4 animatedMatrix;
+
+	};
+
 	struct Node {
 		Node();
 		DirectX::XMFLOAT4X4 toWorldmatrix;
@@ -150,6 +199,9 @@ namespace Scene {
 
 		UINT32 numFrameDirty;
 		std::vector<UINT32> cbdHeapIndexByFrames;
+
+		AnimationChannels animation;
+
 	};
 
 	struct Model {
@@ -222,5 +274,6 @@ namespace Scene {
 
 	};
 
+	
 
 }

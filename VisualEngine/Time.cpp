@@ -12,6 +12,8 @@ namespace Time {
 	double tFreq;
 	int tNumFrames;
 
+	double tAnimationTimer;
+
 	void Init() {
 
 		LARGE_INTEGER freq;
@@ -21,6 +23,7 @@ namespace Time {
 		tCurTime = 0.0;
 		tTimeElapsed = 0.0;
 		tNumFrames = 0;
+		tAnimationTimer = 0.0;
 		
 		
 	}

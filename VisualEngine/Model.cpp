@@ -2,6 +2,10 @@
 #include "Model.h"
 
 namespace Scene {
+	DirectX::XMFLOAT4 axis = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
+	float angle = 0.0;
+	DirectX::XMFLOAT4 sceneScaling = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f);
+	DirectX::XMFLOAT4 sceneTranslation = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 	Mesh::Mesh() {
 
 	}
@@ -35,8 +39,8 @@ namespace Scene {
 			indexCount(0),
 			ibOffset(0),
 			vbOffset(0),
-			numFrameDirty(0){}
-
+			numFrameDirty(0){
+	}
 
 
 }

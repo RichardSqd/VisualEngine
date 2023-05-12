@@ -7,6 +7,7 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
+#include "Model.h"
 
 AVisualApp::AVisualApp() {
 
@@ -96,17 +97,38 @@ void AVisualApp::Update() {
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 	ImGui::ShowDemoWindow(&show_demo_window);
-	//ImGui::
+	//ImGui::ShowMetricsWindow();
+
+	UpdateUI();
+	Renderer::Update();
+	
+	
+
+}
+
+void AVisualApp::UpdateUI() {
 	ImGuiIO& io = ImGui::GetIO();
 	
+
 	auto& sceneLighting = EngineCore::eModel.lights;
+	auto& axis = Scene::axis;
+	auto& angle = Scene::angle;
+	auto& translation = Scene::sceneTranslation;
+	auto& scaling = Scene::sceneScaling;
+	bool wireframeMode = Renderer::wireframeMode;
+	bool animationEnabled = Renderer::animationEnabled;
+	bool limitFrameRate = Renderer::rframeRateCap60;
 	{
 		static float f = 0.0f;
 		static int counter = 0;
-
-		ImGui::Begin("Welcome to Visual Engine!");                          // Create a window called "Hello, world!" and append into it.
+		
+		ImGui::Begin("Welcome to Visual Engine!");                          
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+		ImGui::Checkbox("Limit Frame Rate to 60 FPS", &limitFrameRate);
+		ImGui::Text("Current window size (%.1f, %.1f) ", Graphics::gWidth, Graphics::gHeight);
 		ImGui::Text("Camera Position %.3f %.3f %.3f (x,y,z) ", Renderer::gMainCam.camPos.x, Renderer::gMainCam.camPos.y, Renderer::gMainCam.camPos.z);
+		ImGui::Checkbox("Wireframe Mode", &wireframeMode);
+		ImGui::Checkbox("Animation Start", &animationEnabled);
 
 		if (sceneLighting.numDirectionalLights > 0) {
 			ImGui::SeparatorText("Directional Lights");
@@ -125,15 +147,96 @@ void AVisualApp::Update() {
 					EngineCore::eModel.lightnumFrameDirty = Config::numFrameResource;
 				}
 			}
-
 		}
+
+		ImGui::Text("Scene Scaling");
+		float lastx = scaling.x;
+		float lasty = scaling.y;
+		float lastz = scaling.z;
+		ImGui::SliderFloat("Scaling x", &scaling.x, 0.0f, 20.0f, "ratio = %.3f");
+		ImGui::SliderFloat("Scaling y", &scaling.y, 0.0f, 20.0f, "ratio = %.3f");
+		ImGui::SliderFloat("Scaling z", &scaling.z, 0.0f, 20.0f, "ratio = %.3f");
+
+		ImGui::Text("Shader Settings");
+
+		//if (ImGui::BeginMenu("Shader Settings"))
+		//{
+			//static bool enabled = true;
+			//ImGui::MenuItem("Enabled", "", &enabled);
+
+			//static int n = 0;
+			//ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
+			//ImGui::InputFloat("Input", &f, 0.1f);
+			ImGui::Combo("Shader selector", &Renderer::shaderSelector, "Phong\0Blinn-Phong\0PBR\0\0");
 			
+			//ImGui::EndMenu();
+		//}
+		ImGui::Text("HDR IBL INPUT");
+		auto skyTextureHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+		ImGui::Image((ImTextureID)skyTextureHandle.ptr, ImVec2((float)200, (float)100));
+		
+		
+		if (ImGui::BeginMenu("Cubemap details"))
+		{
+			
+			auto h = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+
+			for (int i = 0; i < 6; i++) {
+				h.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
+				ImGui::Image((ImTextureID)h.ptr, ImVec2((float)200, (float)200));
+			}
+
+			
+			ImGui::EndMenu();
+		}
+
+		
+		if (ImGui::BeginMenu("Irradiance maps"))
+		{
+
+			auto h = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+			h.Offset(6, Graphics::gCbvSrvUavDescriptorSize);
+
+			for (int i = 0; i < 6; i++) {
+				h.Offset(1, Graphics::gCbvSrvUavDescriptorSize);
+				ImGui::Image((ImTextureID)h.ptr, ImVec2((float)200, (float)200));
+			}
+
+
+			ImGui::EndMenu();
+		}
+
+		
+		
+		// start required updates 
+		if (lastx != scaling.x || lasty != scaling.y || lastz != scaling.z) {
+			for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
+				EngineCore::eModel.nodes[i].numFrameDirty = Config::numFrameResource;
+			}
+		}
+
+		if (limitFrameRate != (bool)Renderer::rframeRateCap60) {
+			Renderer::rframeRateCap60 = limitFrameRate;
+		}
+
+		if (wireframeMode != Renderer::wireframeMode ) {
+			Renderer::wireframeMode = wireframeMode;
+		}
+
+		if (animationEnabled != Renderer::animationEnabled) {
+			Renderer::animationEnabled = animationEnabled;
+			Time::tAnimationTimer = 0.0;
+			if (animationEnabled == false) {
+				for (auto& node : EngineCore::eModel.nodes) {
+					//DirectX::XMStoreFloat4x4(&node.animation.animatedMatrix, DirectX::XMMatrixIdentity());
+					node.numFrameDirty = Config::numFrameResource;
+				}
+			
+			}
+		}
+
 		ImGui::End();
 	}
-	Renderer::Update();
-	
-	
-
 }
 
 void AVisualApp::Draw(void)

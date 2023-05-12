@@ -26,7 +26,7 @@ public:
 		CameraPos = {};
 		NearZ = 0.0;
 		FarZ = 0.0;
-
+		shaderSelector = 0;
 	}
 
 	DirectX::XMFLOAT4X4 ViewProjMatrix;
@@ -35,9 +35,12 @@ public:
 	//DirectX::XMFLOAT4X4 CameraPos;
 	DirectX::XMFLOAT3 CameraPos;
 	float NearZ;
+	int shaderSelector;
 	float FarZ;
 
 };
+
+
 
 class MaterialConstants {
 

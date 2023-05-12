@@ -13,20 +13,20 @@ inline DirectX::XMMATRIX Math::IdentityMatrix() {
 }
 
 inline DirectX::XMMATRIX Math::VectorToMatrix(const std::vector<double> v) {
-	ASSERT(v.size() == 16);
+	ASSERT( ((int)v.size() == 16) );
 
-	return DirectX::XMMATRIX( v[0], v[1], v[2], v[3],
-								v[4], v[5], v[6], v[7],
-								v[8], v[9], v[10], v[11],
-								v[12], v[13], v[14], v[15]);
+	return DirectX::XMMATRIX((float)v[0], (float)v[1], (float)v[2], (float)v[3],
+		(float)v[4], (float)v[5], (float)v[6], (float)v[7],
+		(float)v[8], (float)v[9], (float)v[10], (float)v[11],
+		(float)v[12], (float)v[13], (float)v[14], (float)v[15]);
 }
 
 inline DirectX::XMMATRIX Math::QuaternionToMatrix(const std::vector<double> v) {
 	if (v.size() != 4)  return Math::IdentityMatrix();
-	float q0 = v[0];
-	float q1 = v[0];
-	float q2 = v[0];
-	float q3 = v[0];
+	float q0 = (float)v[0];
+	float q1 = (float)v[0];
+	float q2 = (float)v[0];
+	float q3 = (float)v[0];
 
 	float q00 = 2 * (q0 * q0 + q1 * q1) - 1;
 	float q01 = 2 * (q1 * q2 - q0 * q3);
@@ -60,10 +60,10 @@ inline DirectX::XMMATRIX Math::QuaternionToMatrix(const std::vector<double> v) {
 inline DirectX::XMMATRIX Math::Scale(const std::vector<double> v) {
 	if (v.size() != 3)  return Math::IdentityMatrix();
 
-	return DirectX::XMMATRIX(   v[0],       0,     0,    0,
-								   0,    v[1],     0,    0,
-								   0,       0,  v[2],    0,
-								   0,       0,     0,    1);
+	return DirectX::XMMATRIX((float)v[0],       0,     0,    0,
+								   0, (float)v[1],     0,    0,
+								   0,       0, (float)v[2],    0,
+								   0,       0,     0, (float)1);
 }
 inline DirectX::XMMATRIX Math::Trans(const std::vector<double> v) {
 	if (v.size() != 3)  return Math::IdentityMatrix();
@@ -71,7 +71,7 @@ inline DirectX::XMMATRIX Math::Trans(const std::vector<double> v) {
 	return DirectX::XMMATRIX(	   1,       0,     0,    0,
 								   0,       1,     0,    0,
 								   0,       0,     1,    0,
-								v[0],	 v[1],  v[2],    1);
+			(float)v[0], (float)v[1], (float)v[2], (float)1);
 
 }
 
