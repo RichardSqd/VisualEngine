@@ -7,8 +7,9 @@ SamplerState samLinearWrap	 : register(s2);
 SamplerState samLinearClamp : register(s3);
 SamplerState samAnisotropicWrap : register(s4);
 SamplerState samAnisotropicClamp : register(s5);
+SamplerComparisonState samShadow : register(s6);
 
-
+Texture2D shadowMap : register(t0);
 Texture2D diffuseMap : register(t1);
 Texture2D metallicRoughnessMap : register(t2);
 Texture2D normalMap : register(t3);
@@ -69,6 +70,7 @@ float4 PS(PixelIn pin) : SV_Target
 	float2 metallicRoughnessFactor;
 	float4 roughnessmetallic;
 	float4 emissive;
+
 	//float4 normalAlbedo;
 	//float4 aoAlbedo;
 	if (HasDiffuseTexture==1) {
@@ -113,15 +115,15 @@ float4 PS(PixelIn pin) : SV_Target
 	else if (shaderSelector == 1) {
 		phongLightingFactor = ComputeBlinnPhongLighting(surface, lights, CameraPos, pin.positionWorld.xyz);
 	}else{
-		phongLightingFactor = float4(0, 0, 0, 0);
+		phongLightingFactor = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	}
-	
-	diffuseAlbedo = phongLightingFactor * diffuseAlbedo;
 
+	//calculate shadow factor
+	float4 shadowPos = mul(pin.positionWorld, lights.directionalLights[0].shadowTransform);
+	float shadowFactor = ComputeShadowFactor(shadowPos, shadowMap, samShadow);
 
-	//if (lights.numDirectionalLights > 0) {
-	//	diffuseAlbedo.rgb = float3(0.2, 0.3, 0.4);
-	//}
+	diffuseAlbedo = phongLightingFactor * diffuseAlbedo * shadowFactor;
+
 
 	float3 color = diffuseAlbedo.rgb + emissive.rgb;
 	return float4(color, diffuseAlbedo.a);

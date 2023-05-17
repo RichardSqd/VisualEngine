@@ -115,6 +115,7 @@ void AVisualApp::UpdateUI() {
 	auto& angle = Scene::angle;
 	auto& translation = Scene::sceneTranslation;
 	auto& scaling = Scene::sceneScaling;
+	auto frameIndex = Graphics::gFrameResourceManager.GetCurrentIndex();
 	bool wireframeMode = Renderer::wireframeMode;
 	bool animationEnabled = Renderer::animationEnabled;
 	bool limitFrameRate = Renderer::rframeRateCap60;
@@ -206,6 +207,14 @@ void AVisualApp::UpdateUI() {
 			ImGui::EndMenu();
 		}
 
+		//if (ImGui::BeginMenu("shadow map"))
+		//{
+		//	auto h = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+		//	h.Offset(Renderer::shadowMapSRVHeapIndexStart + frameIndex, Graphics::gCbvSrvUavDescriptorSize);
+		//	ImGui::Image((ImTextureID)h.ptr, ImVec2((float)200, (float)200));
+			
+		//	ImGui::EndMenu();
+		//}
 		
 		
 		// start required updates 

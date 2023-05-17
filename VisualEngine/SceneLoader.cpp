@@ -684,11 +684,11 @@ namespace Scene {
 			model.lights.numPointLights = 0;
 			model.lights.numSpotLights = 0;
 
-			auto& directionalLight0 = model.lights.directionalLights[0];
-			directionalLight0.color = { 1.0f, 1.0f, 1.0f };
-			directionalLight0.lightDirection = { 0.57735f, -0.57735f, 0.57735f };
-			directionalLight0.strength = { 0.8f, 0.8f, 0.8f };
-			directionalLight0.enabled = 1;
+			auto& directionalLightDefault = model.lights.directionalLights[0];
+			directionalLightDefault.color = { 1.0f, 1.0f, 1.0f };
+			directionalLightDefault.lightDirection = { 0.57735f, -0.57735f, 0.57735f };
+			directionalLightDefault.strength = { 0.8f, 0.8f, 0.8f };
+			directionalLightDefault.enabled = 1;
 			return;
 		}
 

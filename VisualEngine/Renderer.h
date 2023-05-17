@@ -17,6 +17,7 @@ namespace Renderer {
 	extern void CreateConstantBufferViews();
 	extern void CreateShaderResourceViews();
 	extern void CreateCubemapResources();
+	extern void CreateShadowMapDsvs();
 	extern void Update();
 	extern void UpdateAnimation();
 	extern void UpdateInput();
@@ -24,17 +25,20 @@ namespace Renderer {
 	extern void UpdateObjCBs(FrameResource* currentFrameResource);
 	extern void UpdateMaterialCBs(FrameResource* currentFrameResource);
 	extern void UpdatePassCB(FrameResource* currentFrameResource);
+	extern void UpdateshadowmapCB(FrameResource* currentFrameResource);
 	extern void UpdateLightCBs(FrameResource* currentFrameResource);
 	extern void UpdatePipelineState();
 	extern void Draw();
 	extern void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList);
-	extern void OnResize();
+	extern void RenderShadowMap(ComPtr<ID3D12GraphicsCommandList> commandList);
+	extern void RenderColor(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void RenderSkyBox(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void RenderUI(ComPtr<ID3D12GraphicsCommandList> commandList);
-	extern void renderCubemap(ComPtr<ID3D12GraphicsCommandList> commandList);
-	extern void renderIrradiancemap(ComPtr<ID3D12GraphicsCommandList> commandList);
-	extern std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
+	extern void RenderCubemap(ComPtr<ID3D12GraphicsCommandList> commandList);
+	extern void RenderIrradiancemap(ComPtr<ID3D12GraphicsCommandList> commandList);
+	extern void OnResize();
+	extern std::array<const CD3DX12_STATIC_SAMPLER_DESC, 7> GetStaticSamplers();
 
 	extern ComPtr<ID3D12RootSignature> rRootSignature;
 	extern ComPtr<ID3DBlob> rVertexShader;
@@ -64,6 +68,7 @@ namespace Renderer {
 	extern UINT passCBVHeapIndexStart;
 	extern UINT lightCBVHeapIndexStart;
 	extern UINT matCBVHeapIndexStart;
+	extern UINT shadowMapSRVHeapIndexStart;
 	extern UINT texSRVHeapIndexStart;
 	extern UINT guiSRVHeapIndexStart;
 
