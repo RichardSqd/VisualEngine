@@ -1462,6 +1462,7 @@ namespace Renderer {
 		auto curshadowCB = currentFrameResource->shadowCB.get();
 		curshadowCB->CopyData(0, &shadowConsts);
 
+		currentFrameResource->shadowMapRenderRequired = true;
 
 		XMMATRIX T = {
 			0.5f, 0.0f, 0.0f, 0.0f,
@@ -1832,6 +1833,12 @@ namespace Renderer {
 
 	void RenderShadowMap(ComPtr<ID3D12GraphicsCommandList> commandList) {
 
+		FrameResource* currentFrameResource = Graphics::gFrameResourceManager.GetCurrentFrameResource();
+		if (!currentFrameResource->shadowMapRenderRequired) {
+			return;
+		}
+
+		currentFrameResource->shadowMapRenderRequired = false;
 		auto frameIndex = (int)Graphics::gFrameResourceManager.GetCurrentIndex();
 		auto& shadowmap = Graphics::gFrameResourceManager.GetCurrentFrameResource()->shadowMap;
 

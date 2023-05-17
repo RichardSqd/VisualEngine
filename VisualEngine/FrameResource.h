@@ -112,7 +112,9 @@ public:
 	std::unique_ptr<UploadBuffer> lightCB = nullptr;
 	std::unique_ptr<UploadBuffer> shadowCB = nullptr;
 
+	//shadow mapping related
 	ComPtr<ID3D12Resource> shadowMap;
+	bool shadowMapRenderRequired = false;
 
 	UINT64 fence = 0;
 
