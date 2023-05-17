@@ -1335,6 +1335,7 @@ namespace Renderer {
 					world = scale * rotate * translate;		
 				}
 
+				EngineCore::eModel.lightnumFrameDirty = Config::numFrameResource;
 				
 				//DirectX::XMMATRIX animated = DirectX::XMLoadFloat4x4(&node.animatedMatrix);
 				DirectX::XMFLOAT4 sceneScaling = Scene::sceneScaling;

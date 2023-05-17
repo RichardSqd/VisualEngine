@@ -7,8 +7,9 @@ SamplerState samLinearWrap	 : register(s2);
 SamplerState samLinearClamp : register(s3);
 SamplerState samAnisotropicWrap : register(s4);
 SamplerState samAnisotropicClamp : register(s5);
+SamplerComparisonState samShadow : register(s6);
 
-
+Texture2D shadowMap : register(t0);
 Texture2D diffuseMap : register(t1);
 Texture2D metallicRoughnessMap : register(t2);
 Texture2D normalMap : register(t3);
@@ -125,13 +126,16 @@ float4 PS(PixelIn pin) : SV_Target
 	//irradiance 
 	float3 irradiance = irradianceCubeMap.Sample(samAnisotropicWrap, surface.N);
 
-	//phong lighting 
+	//pbr lighting 
 	float4 pbrLighting = ComputePBRLighting(surface, lights, materialParams, CameraPos, pin.positionWorld.xyz, irradiance);
 
+	//calculate shadow factor
+	float4 shadowPos = mul(pin.positionWorld, lights.directionalLights[0].shadowTransform);
+	float shadowFactor = ComputeShadowFactor(shadowPos, shadowMap, samShadow);
 
 	float3 dIBL = diffuseIBL(surface, materialParams);
 	float3 sIBL = specularIBL(surface, materialParams);
-	float3 color = dIBL + sIBL + emissive.rgb;
+	float3 color = dIBL  * shadowFactor + sIBL + emissive.rgb;
 	return float4(color, 1.0);
 }
 
