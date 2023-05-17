@@ -2,9 +2,9 @@
 #include "FrameResource.h"
 #include "Graphics.h"
 #include "EngineCore.h"
+#include "Cubemap.h"
 
-
-LightConstant::LightConstant() {
+LightConstants::LightConstants() {
 	lights.numDirectionalLights = 0;
 	lights.numSpotLights = 0;
 	lights.numPointLights = 0;
@@ -20,7 +20,41 @@ FrameResource::FrameResource(UINT passCount, UINT objectCount, UINT materialCoun
 	passCB = std::make_unique<UploadBuffer>(sizeof(PassConstants), passCount, true);
 	objCB = std::make_unique<UploadBuffer>(sizeof(ObjectConstants),objectCount, true);
 	matCB = std::make_unique<UploadBuffer>(sizeof(MaterialConstants), materialCount, true);
-	lightCB = std::make_unique<UploadBuffer>(sizeof(LightConstant), 1, true);
+	lightCB = std::make_unique<UploadBuffer>(sizeof(LightConstants), 1, true);
+	shadowCB = std::make_unique<UploadBuffer>(sizeof(ShadowConstants), 1, true);
+
+	CreateShadowMapAsset();
+
+}
+
+void FrameResource::CreateShadowMapAsset() {
+	CD3DX12_RESOURCE_DESC shadowMapDesc(
+		D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+		0,
+		static_cast<UINT>(Graphics::gWidth),
+		static_cast<UINT>(Graphics::gHeight),
+		1,
+		1,
+		DXGI_FORMAT_R32_TYPELESS,
+		1,
+		0,
+		D3D12_TEXTURE_LAYOUT_UNKNOWN,
+		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+
+	D3D12_CLEAR_VALUE clearValue = {};
+	clearValue.Format = DXGI_FORMAT_D32_FLOAT;
+	clearValue.DepthStencil.Depth = 1.0f;
+	clearValue.DepthStencil.Stencil = 0;
+
+	//create shadow map resource for the frame
+	BREAKIFFAILED(Graphics::gDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&shadowMapDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		&clearValue,
+		IID_PPV_ARGS(&shadowMap)));
+	
 }
 
 UINT FrameResourceManager::curFrameIndex = Graphics::gNumFrameResources - 1;
@@ -47,6 +81,11 @@ void FrameResourceManager::CreateFrameResources(UINT numberOfFrameResources)
 		std::wstring allocatorName = L"Allocator for frame " + std::to_wstring(i);
 		mFrameResources.back()->comandContext->getCommandAllocator()->SetName(allocatorName.c_str());
 	}
+	for (int i = 0; i < 6; i++) {
+		Cubemap::passCB.push_back(std::make_unique<UploadBuffer>(sizeof(PassConstants), 1, true));
+	}
+
+
 
 }
 

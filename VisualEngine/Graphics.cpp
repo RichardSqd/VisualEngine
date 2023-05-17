@@ -39,6 +39,7 @@ namespace Graphics {
 	UINT gPassCBByteSize;
 	UINT gMatCBByteSize;
 	UINT gLightCBByteSize;
+	UINT gShadowCBByteSize;
 	UINT gNumFrameResources = Config::numFrameResource;
 	UINT gSwapChainBufferCount = Config::numRenderTargets;
 	UINT gFrameIndex = 0;
@@ -119,8 +120,8 @@ namespace Graphics {
 		gObjectCBByteSize = (sizeof(ObjectConstants) + 255) & ~255;
 		gPassCBByteSize = (sizeof(PassConstants) + 255) & ~255;
 		gMatCBByteSize = (sizeof(MaterialConstants) + 255) & ~255;
-		gLightCBByteSize = (sizeof(LightConstant) + 255) & ~255;
-		
+		gLightCBByteSize = (sizeof(LightConstants) + 255) & ~255;
+		gShadowCBByteSize = (sizeof(ShadowConstants) + 255) & ~255;
 		CheckDXRSupport(Graphics::gRayTraceEnvironmentActive);
 	}
 

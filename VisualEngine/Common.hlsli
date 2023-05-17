@@ -40,6 +40,37 @@ float4 ComputeLighting() {
 	ComputeDirectionalLight();
 }
 
+float ComputeShadowFactor(float4 shadowPos, Texture2D shadowMap, SamplerComparisonState samShadow) {
+	
+	uint width, height;
+	uint numMips;
+
+	shadowPos.xyz /= shadowPos.w;
+
+	float depth = shadowPos.z;
+
+	shadowMap.GetDimensions(0, width, height, numMips);
+
+	float dx = 1.0f / (float)width;
+
+	float percentOfLighting = 0.0f;
+	const float2 offsets[9] =
+	{
+		float2(-dx,  -dx), float2(0.0f,  -dx), float2(dx,  -dx),
+		float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
+		float2(-dx,  +dx), float2(0.0f,  +dx), float2(dx,  +dx)
+	};
+
+	for (int i = 0; i < 9; ++i)
+	{
+		percentOfLighting += shadowMap.SampleCmpLevelZero(samShadow,
+			shadowPos.xy + offsets[i], depth).r;
+	}
+	return percentOfLighting / 9.0f;
+
+}
+
+
 //I(d) = I0 / (d^2)
 //Linear Attenuation 
 float computeAttenuation(float d, float falloffStart, float falloffEnd) {
@@ -82,13 +113,14 @@ float GeometrySmith(float3 N, float3 V, float3 L, float roughness) {
 float4 ComputePhongLighting(SurfaceProperties surface, SceneLighting lights, float3 cameraPos, float3 positionWorld ) {
 
 	float4 ambientLight = float4(0.25f, 0.25f, 0.35f, 1.0f);
-	float3 lightDir = normalize(lights.directionalLights[0].lightDirection - positionWorld) * lights.directionalLights[0].strength;
+	float3 lightpos = -2.0f * SCENERANGE * lights.directionalLights[0].lightDirection;
+	float3 surfaceLightDir = normalize(lightpos - positionWorld) * lights.directionalLights[0].strength;
 	float3 norm = surface.N;
-	float4 diffuseLgt = max(dot(norm, lightDir), 0.0) ;
+	float4 diffuseLgt = max(dot(norm, surfaceLightDir), 0.0) ;
 
 	float specularStrength = 0.5;
 	float3 viewDir = normalize(cameraPos - positionWorld);
-	float3 reflectDir = reflect(-lightDir, norm);
+	float3 reflectDir = reflect(-surfaceLightDir, norm);
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
 	float4 specLgt = float4(specularStrength * spec * lights.directionalLights[0].color * lights.directionalLights[0].strength, 0.0);
 	return (diffuseLgt + ambientLight + specLgt);
@@ -96,14 +128,15 @@ float4 ComputePhongLighting(SurfaceProperties surface, SceneLighting lights, flo
 
 float4 ComputeBlinnPhongLighting(SurfaceProperties surface, SceneLighting lights, float3 cameraPos, float3 positionWorld) {
 	float4 ambientLight = float4(0.25f, 0.25f, 0.35f, 1.0f);
-	float3 lightDir = normalize(lights.directionalLights[0].lightDirection - positionWorld) * lights.directionalLights[0].strength;
+	float3 lightpos = -2.0f * SCENERANGE * lights.directionalLights[0].lightDirection;
+	float3 surfaceLightDir = normalize(lightpos - positionWorld) * lights.directionalLights[0].strength;
 	float3 norm = surface.N;
-	float4 diffuseLgt = max(dot(norm, lightDir), 0.0);
+	float4 diffuseLgt = max(dot(norm, surfaceLightDir), 0.0);
 
 	float specularStrength = 0.5;
 	float3 viewDir = normalize(cameraPos - positionWorld);
-	float3 halfwayDir = normalize(lightDir + viewDir);
-	float3 reflectDir = reflect(-lightDir, norm);
+	float3 halfwayDir = normalize(surfaceLightDir + viewDir);
+	float3 reflectDir = reflect(-surfaceLightDir, norm);
 	float spec = pow(max(dot(norm, halfwayDir), 0.0), 32);
 	float4 specLgt = float4(specularStrength * spec * lights.directionalLights[0].color * lights.directionalLights[0].strength, 0.0);
 	return (diffuseLgt + ambientLight + specLgt);

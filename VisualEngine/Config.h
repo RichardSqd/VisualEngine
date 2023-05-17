@@ -62,6 +62,8 @@ namespace Config {
 	const std::wstring irradianceVertexShaderFilePath = L"Shaders\\irradianceVS.hlsl";
 	const std::wstring irradiancePixelShaderFilePath = L"Shaders\\irradiancePS.hlsl";
 
+	const std::wstring shadowMapPixelShaderFilePath = L"Shaders\\shadowMapPS.hlsl";
+
 	//IBL image 
 	//const std::wstring iblImagePath = L"Models\\\HDR\\brown_photostudio_05_2k.hdr";
 	const std::wstring iblImagePath = L"Models\\HDR\\blue_photo_studio_2k.hdr";
