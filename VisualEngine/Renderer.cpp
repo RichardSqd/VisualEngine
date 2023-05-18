@@ -5,6 +5,7 @@
 #include "Control.h"
 #include "imgui_impl_dx12.h"
 #include "ShaderLightingData.h"
+#include "MultithreadingContext.h"
 #include "Cubemap.h"
 
 #include <stdio.h>

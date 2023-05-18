@@ -1,6 +1,6 @@
 #pragma once
 
-
+#define SINGLETHREADED False
 
 namespace Config {
 	//Graphics Related
@@ -8,7 +8,7 @@ namespace Config {
 	const int numRenderTargets = 3;
 	const bool RAYTRACE = true;
 	const bool useGPUBasedValidation = true;
-
+	const int NUMCONTEXTS = 4;
 	//Sponza
 	//const std::wstring gltfFileDirectory  = L"Models\\Sponza\\glTF";
 	//const std::wstring gltfFileName = L"Sponza.gltf";

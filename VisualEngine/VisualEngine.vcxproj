@@ -111,6 +111,7 @@
     <ClCompile Include="imgui_widgets.cpp" />
     <ClCompile Include="Launch.cpp" />
     <ClCompile Include="Model.cpp" />
+    <ClCompile Include="MultithreadingContext.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
@@ -134,6 +135,7 @@
     <ClInclude Include="EngineLoop.h" />
     <ClInclude Include="FrameResource.h" />
     <ClInclude Include="Graphics.h" />
+    <ClInclude Include="MultithreadingContext.h" />
     <ClInclude Include="ShaderLightingData.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="DXRRenderer.h" />

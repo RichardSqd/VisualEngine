@@ -8,6 +8,7 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
 #include "Model.h"
+#include "MultithreadingContext.h"
 
 AVisualApp::AVisualApp() {
 
@@ -32,6 +33,7 @@ void AVisualApp::InitApp() {
 	it to reuse the allocated memory for another command list.*/
 	commandList->Reset(context->getCommandAllocator().Get(), nullptr);
 	Renderer::Init(context);
+	MultithreadingContext::CreateContexts();
 	Control::InitControl(Graphics::ghWnd);
 	if (Graphics::gRayTraceEnvironmentActive) {
 		//DXRRenderer::Init(context);
