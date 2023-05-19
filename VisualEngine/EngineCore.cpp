@@ -107,11 +107,25 @@ namespace EngineCore {
             __debugbreak();
         }
         app->InitApp();
+        preRender();
         ShowWindow(ghWnd, SW_SHOW);
         app->Run();
         app->ShutDown();
         
         return 0;
+    }
+
+    void preRender() {
+        //prepare skybox texture
+        auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
+        BREAKIFFAILED(Renderer::rCommandAlloc->Reset());
+        BREAKIFFAILED(Renderer::rCommandList->Reset(Renderer::rCommandAlloc.Get(), Renderer::rPso.Get()));
+        Renderer::RenderCubemap(Renderer::rCommandList);
+        Renderer::RenderIrradiancemap(Renderer::rCommandList);
+        BREAKIFFAILED(Renderer::rCommandList->Close());
+        ID3D12CommandList* cmdsLists[] = { Renderer::rCommandList.Get() };
+        queue.ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+        queue.FlushCommandQueue();
     }
 
     void ShutDown() {

@@ -265,6 +265,7 @@ void AVisualApp::Draw(void)
 }
 
 void AVisualApp::Run() {
+
 	do {
 		MSG msg;
 		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {

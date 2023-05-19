@@ -16,7 +16,15 @@ FrameResource::FrameResource() {
 }
 
 FrameResource::FrameResource(UINT passCount, UINT objectCount, UINT materialCount) {
-	comandContext = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	
+	//initalize command contexts for each threads 
+	comandContexts.reserve(Config::NUMCONTEXTS);
+	for (int i = 0; i < Config::NUMCONTEXTS; i++) {
+		comandContexts.push_back( Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT));
+		std::wstring allocatorName = L"Allocator for thread # " + std::to_wstring(i);
+		comandContexts[i]->getCommandAllocator()->SetName(allocatorName.c_str());
+	}
+
 	passCB = std::make_unique<UploadBuffer>(sizeof(PassConstants), passCount, true);
 	objCB = std::make_unique<UploadBuffer>(sizeof(ObjectConstants),objectCount, true);
 	matCB = std::make_unique<UploadBuffer>(sizeof(MaterialConstants), materialCount, true);
@@ -78,9 +86,10 @@ void FrameResourceManager::CreateFrameResources(UINT numberOfFrameResources)
 	numFrameResources = numberOfFrameResources;
 	for (UINT i = 0; i < numberOfFrameResources; i++) {
 		mFrameResources.push_back(std::make_unique<FrameResource>(1, EngineCore::eModel.numNodes, EngineCore::eModel.materials.size()));
-		std::wstring allocatorName = L"Allocator for frame " + std::to_wstring(i);
-		mFrameResources.back()->comandContext->getCommandAllocator()->SetName(allocatorName.c_str());
+		
 	}
+
+	// create cubemap rendering constant buffer
 	for (int i = 0; i < 6; i++) {
 		Cubemap::passCB.push_back(std::make_unique<UploadBuffer>(sizeof(PassConstants), 1, true));
 	}

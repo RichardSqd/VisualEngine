@@ -6,7 +6,7 @@ namespace Config {
 	//Graphics Related
 	const int numFrameResource = 3;
 	const int numRenderTargets = 3;
-	const bool RAYTRACE = true;
+	const bool RAYTRACE = false;
 	const bool useGPUBasedValidation = true;
 	const int NUMCONTEXTS = 4;
 	//Sponza

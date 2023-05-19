@@ -51,6 +51,7 @@ namespace MultithreadingContext {
 #if !SINGLETHREADED
 
         while (threadIndex >= 0 && threadIndex < Config::NUMCONTEXTS) {
+
             WaitForSingleObject(workerBeginRenderFrame[threadIndex], INFINITE);
 
 #endif
