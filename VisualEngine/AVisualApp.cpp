@@ -170,7 +170,7 @@ void AVisualApp::UpdateUI() {
 			//static int n = 0;
 			//ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
 			//ImGui::InputFloat("Input", &f, 0.1f);
-			ImGui::Combo("Shader selector", &Renderer::shaderSelector, "Phong\0Blinn-Phong\0PBR\0\0");
+			ImGui::Combo("Shader selector", &Renderer::shaderSelector, "Phong\0Blinn-Phong\0PBR\0Hybrid Raytracing\0\0");
 			
 			//ImGui::EndMenu();
 		//}
@@ -179,9 +179,9 @@ void AVisualApp::UpdateUI() {
 		ImGui::Image((ImTextureID)skyTextureHandle.ptr, ImVec2((float)200, (float)100));
 		
 		
-		if (ImGui::BeginMenu("Cubemap details"))
+		//if (ImGui::BeginMenu("Cubemap details"))
 		{
-			
+			ImGui::Text("Processed Cubemaps");
 			auto h = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 
 			for (int i = 0; i < 6; i++) {
@@ -190,7 +190,7 @@ void AVisualApp::UpdateUI() {
 			}
 
 			
-			ImGui::EndMenu();
+			//ImGui::EndMenu();
 		}
 
 		

@@ -104,7 +104,7 @@ public:
 	void CreateShadowMapAsset();
 
 	std::vector<std::shared_ptr<CommandContext>> comandContexts;
-
+	std::shared_ptr<CommandContext> mainContext;
 
 	std::unique_ptr<UploadBuffer> objCB = nullptr;
 	std::unique_ptr<UploadBuffer> passCB = nullptr;

@@ -13,7 +13,7 @@ namespace MultithreadingContext {
     void CreateContexts() {
         struct threadwrapper
         {
-            static unsigned int WINAPI thunk(LPVOID lpParameter)
+            static unsigned int WINAPI prog(LPVOID lpParameter)
             {
                 ThreadParameter* parameter = reinterpret_cast<ThreadParameter*>(lpParameter);
                 WorkerThread(parameter->threadIndex);
@@ -29,7 +29,7 @@ namespace MultithreadingContext {
             threadHandles[i] = reinterpret_cast<HANDLE>(
                 _beginthreadex(nullptr,
                     0,
-                    threadwrapper::thunk,
+                    threadwrapper::prog,
                     reinterpret_cast<LPVOID>(&threadParameters[i]),
                     0,
                     nullptr)

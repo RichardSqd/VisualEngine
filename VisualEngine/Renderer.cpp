@@ -1483,9 +1483,9 @@ namespace Renderer {
 	void Draw() {
 		
 		auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
-		
+		FrameResource* fr = Graphics::gFrameResourceManager.GetCurrentFrameResource();
 		//prepare for rendering and proceed to evoking working threads 
-		{
+		
 			//Reset the worker command context for the current frame, as we know 
 			//the last commands in queue has been completed for this frame 
 			//for (int i = 0; i < Config::NUMCONTEXTS; i++) {
@@ -1496,13 +1496,15 @@ namespace Renderer {
 			//	BREAKIFFAILED(commandList->Reset(allocator.Get(), rPso.Get()));
 			//}
 
-			//Reset the main thread command context 
-			//BREAKIFFAILED(rCommandAlloc->Reset());
-			//BREAKIFFAILED(rCommandList->Reset(rCommandAlloc.Get(), rPso.Get()));
-			//rCommandList->Close();
-		}
+		//Reset the main thread command context 
+		auto mainAllocator = fr->mainContext->getCommandAllocator();
+		auto mainCommandList = fr->mainContext->getCommandList();
+		BREAKIFFAILED(mainAllocator->Reset());
+		BREAKIFFAILED(mainCommandList->Reset(mainAllocator.Get(), rPso.Get()));
+		mainCommandList->Close();
+		
 
-		auto& context = Graphics::gFrameResourceManager.GetCurrentFrameResource()->comandContexts[0];
+		auto& context = fr->comandContexts[0];
 		auto allocator = context->getCommandAllocator();
 		auto commandList = context->getCommandList();
 		BREAKIFFAILED(allocator->Reset());
@@ -1512,7 +1514,7 @@ namespace Renderer {
 		PopulateCommandList(commandList);
 		
 		//add the command list to queue
-		ID3D12CommandList* cmdsLists[] = { commandList.Get()};
+		ID3D12CommandList* cmdsLists[] = { commandList.Get(), mainCommandList.Get() };
 		queue.ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
 		//Swap back and front buffer 
