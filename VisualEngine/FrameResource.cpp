@@ -18,13 +18,23 @@ FrameResource::FrameResource() {
 FrameResource::FrameResource(UINT passCount, UINT objectCount, UINT materialCount) {
 	
 	//initalize command contexts for each threads 
-	comandContexts.reserve(Config::NUMCONTEXTS+1);
+	shadowComandContexts.reserve(Config::NUMCONTEXTS);
 	for (int i = 0; i < Config::NUMCONTEXTS; i++) {
-		comandContexts.push_back( Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT));
-		std::wstring allocatorName = L"Allocator for thread # " + std::to_wstring(i);
-		comandContexts[i]->getCommandAllocator()->SetName(allocatorName.c_str());
+		shadowComandContexts.push_back( Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT));
+		std::wstring allocatorName = L"Shadow allocator for thread # " + std::to_wstring(i);
+		shadowComandContexts[i]->getCommandAllocator()->SetName(allocatorName.c_str());
 	}
-	mainContext = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
+
+	sceneComandContexts.reserve(Config::NUMCONTEXTS);
+	for (int i = 0; i < Config::NUMCONTEXTS; i++) {
+		sceneComandContexts.push_back(Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT));
+		std::wstring allocatorName = L"Scene allocator for thread # " + std::to_wstring(i);
+		sceneComandContexts[i]->getCommandAllocator()->SetName(allocatorName.c_str());
+	}
+
+	mainContextPre = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	mainContextMid = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
+	mainContextPost = Graphics::gCommandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
 	passCB = std::make_unique<UploadBuffer>(sizeof(PassConstants), passCount, true);
 	objCB = std::make_unique<UploadBuffer>(sizeof(ObjectConstants),objectCount, true);
 	matCB = std::make_unique<UploadBuffer>(sizeof(MaterialConstants), materialCount, true);

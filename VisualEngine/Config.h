@@ -1,6 +1,6 @@
 #pragma once
 
-#define SINGLETHREADED False
+
 
 namespace Config {
 	//Graphics Related

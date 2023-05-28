@@ -29,7 +29,7 @@ namespace Renderer {
 	extern void UpdateLightCBs(FrameResource* currentFrameResource);
 	extern void UpdatePipelineState();
 	extern void Draw();
-	extern void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList> commandList);
+	extern void PopulateCommandList(FrameResource* currentFrameResource);
 	extern void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void RenderShadowMap(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void RenderColor(ComPtr<ID3D12GraphicsCommandList> commandList);
@@ -37,6 +37,7 @@ namespace Renderer {
 	extern void RenderUI(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void RenderCubemap(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void RenderIrradiancemap(ComPtr<ID3D12GraphicsCommandList> commandList);
+	extern void SetSharedCommandListStates(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void OnResize();
 	extern std::array<const CD3DX12_STATIC_SAMPLER_DESC, 7> GetStaticSamplers();
 

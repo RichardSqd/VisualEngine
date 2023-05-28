@@ -9,7 +9,7 @@ namespace MultithreadingContext {
     };
 
     void CreateContexts();
-    void WorkerThread(int threadIndex);
+    void WorkerThread( int threadIndex);
 
 
     extern ThreadParameter threadParameters[Config::NUMCONTEXTS];

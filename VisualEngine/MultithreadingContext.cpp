@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "MultithreadingContext.h"
+#include "Renderer.h"
 
 namespace MultithreadingContext {
 
@@ -11,12 +12,19 @@ namespace MultithreadingContext {
 
 
     void CreateContexts() {
+
+        auto threadLimit = std::thread::hardware_concurrency() - 1; 
+        if (Config::NUMCONTEXTS > threadLimit) {
+            throw("Thread Number Exceeded!");
+        }
+
+        
         struct threadwrapper
         {
             static unsigned int WINAPI prog(LPVOID lpParameter)
             {
                 ThreadParameter* parameter = reinterpret_cast<ThreadParameter*>(lpParameter);
-                WorkerThread(parameter->threadIndex);
+                WorkerThread( parameter->threadIndex);
                 return 0;
             }
         };
@@ -48,28 +56,33 @@ namespace MultithreadingContext {
         assert(threadIndex >= 0);
         assert(threadIndex < Config::NUMCONTEXTS);
 
-#if !SINGLETHREADED
 
         while (threadIndex >= 0 && threadIndex < Config::NUMCONTEXTS) {
 
             WaitForSingleObject(workerBeginRenderFrame[threadIndex], INFINITE);
 
-#endif
+            FrameResource* currentFrameResource = Graphics::gFrameResourceManager.GetCurrentFrameResource();
+            auto shadowCommandList = currentFrameResource->shadowComandContexts[threadIndex]->getCommandList();
 
+            Renderer::SetSharedCommandListStates(shadowCommandList);
 
+            Renderer::RenderShadowMap(shadowCommandList);
 
-#if !SINGLETHREADED
+            shadowCommandList->Close();
+
+            //tell the main thread the shadow command list is ready for submit
             SetEvent(workerFinishShadowPass[threadIndex]);
-#endif
+    
+            auto sceneCommandList = currentFrameResource->sceneComandContexts[threadIndex]->getCommandList();
 
+            Renderer::SetSharedCommandListStates(sceneCommandList);
+            Renderer::RenderColor(sceneCommandList);
 
+            sceneCommandList->Close();
 
-
-
-#if !SINGLETHREADED
             SetEvent(workerFinishedRenderFrame[threadIndex]);
         }
-#endif
+
     }
     
 }

@@ -1479,43 +1479,28 @@ namespace Renderer {
 		
 	}
 
+	void SetSharedCommandListStates(ComPtr<ID3D12GraphicsCommandList> commandList) {
+	
+		commandList->RSSetViewports(1, &Graphics::gScreenViewport);
+		commandList->RSSetScissorRects(1, &Graphics::gScissorRect);
+
+		ID3D12DescriptorHeap* descriptorHeaps[] = { Graphics::gCbvSrvHeap.Get() };
+		commandList->SetDescriptorHeaps(1, descriptorHeaps);
+		
+		
+		commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
+	}
+
 
 	void Draw() {
 		
 		auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
-		FrameResource* fr = Graphics::gFrameResourceManager.GetCurrentFrameResource();
-		//prepare for rendering and proceed to evoking working threads 
-		
-			//Reset the worker command context for the current frame, as we know 
-			//the last commands in queue has been completed for this frame 
-			//for (int i = 0; i < Config::NUMCONTEXTS; i++) {
-			//	auto& commandContext = Graphics::gFrameResourceManager.GetCurrentFrameResource()->comandContexts[i];
-			//	auto& allocator = commandContext->getCommandAllocator();
-			//	auto& commandList = commandContext->getCommandList();
-			//	BREAKIFFAILED(allocator->Reset());
-			//	BREAKIFFAILED(commandList->Reset(allocator.Get(), rPso.Get()));
-			//}
+		FrameResource* currentFrameResource = Graphics::gFrameResourceManager.GetCurrentFrameResource();
 
-		//Reset the main thread command context 
-		auto mainAllocator = fr->mainContext->getCommandAllocator();
-		auto mainCommandList = fr->mainContext->getCommandList();
-		BREAKIFFAILED(mainAllocator->Reset());
-		BREAKIFFAILED(mainCommandList->Reset(mainAllocator.Get(), rPso.Get()));
-		mainCommandList->Close();
-		
-
-		auto& context = fr->comandContexts[0];
-		auto allocator = context->getCommandAllocator();
-		auto commandList = context->getCommandList();
-		BREAKIFFAILED(allocator->Reset());
-		BREAKIFFAILED(commandList->Reset(allocator.Get(), rPso.Get()));
-
-		//clear depth stencil for shadow map rendering 
-		PopulateCommandList(commandList);
-		
-		//add the command list to queue
-		ID3D12CommandList* cmdsLists[] = { commandList.Get(), mainCommandList.Get() };
-		queue.ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+		PopulateCommandList(currentFrameResource);
+	
 
 		//Swap back and front buffer 
 		BREAKIFFAILED(Graphics::gSwapChain->Present(rframeRateCap60, 0));
@@ -1530,44 +1515,131 @@ namespace Renderer {
 
 	}
 
+	
 
 
-	void PopulateCommandList(ComPtr<ID3D12GraphicsCommandList> commandList) {
+	void PopulateCommandList(FrameResource* currentFrameResource) {
 
-		
+		auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
+
+		auto mainAllocatorPre = currentFrameResource->mainContextPre->getCommandAllocator();
+		auto mainCommandListPre = currentFrameResource->mainContextPre->getCommandList();
+		BREAKIFFAILED(mainAllocatorPre->Reset());
+		BREAKIFFAILED(mainCommandListPre->Reset(mainAllocatorPre.Get(), rPso.Get()));
+		//mainCommandList->Close();
+
+		auto mainAllocatorMid = currentFrameResource->mainContextMid->getCommandAllocator();
+		auto mainCommandListMid = currentFrameResource->mainContextMid->getCommandList();
+		BREAKIFFAILED(mainAllocatorMid->Reset());
+		BREAKIFFAILED(mainCommandListMid->Reset(mainAllocatorMid.Get(), rPso.Get()));
+
+		auto mainAllocatorPost = currentFrameResource->mainContextPost->getCommandAllocator();
+		auto mainCommandListPost = currentFrameResource->mainContextPost->getCommandList();
+		BREAKIFFAILED(mainAllocatorPost->Reset());
+		BREAKIFFAILED(mainCommandListPost->Reset(mainAllocatorPost.Get(), rPso.Get()));
+
+
+		SetSharedCommandListStates(mainCommandListPre);
+		SetSharedCommandListStates(mainCommandListMid);
 
 		//back buffer transition state from present to render target 
-		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
+		mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
 			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 		//clear back buffer and depth buffer
-		commandList->ClearRenderTargetView(
+		mainCommandListPre->ClearRenderTargetView(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
 				gCurBackBufferIndex, Graphics::gRTVDescriptorSize),
 			DirectX::Colors::LightGray, 0, nullptr);
-		commandList->ClearDepthStencilView(
+		mainCommandListPre->ClearDepthStencilView(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()),
 			D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-		//set cbvsrv descriptor heap
-		ID3D12DescriptorHeap* descriptorHeaps[] = { Graphics::gCbvSrvHeap.Get() };
-		commandList->SetDescriptorHeaps(1, descriptorHeaps);
 
-		RenderSkyBox(commandList);
+		RenderSkyBox(mainCommandListPre);
 
-		RenderShadowMap(commandList);
 
-		RenderColor(commandList);
+#if SINGLETHREADED
 
-		RenderUI(commandList);
+		
+
+		RenderShadowMap(mainCommandListPre);
+
+		RenderColor(mainCommandListPre);
+
+		BREAKIFFAILED(mainCommandListPre->Close());
+		BREAKIFFAILED(mainCommandListMid->Close());
+
+		ID3D12CommandList*  cmdsLists[] = { mainCommandListPre.Get(), mainCommandListMid.Get() };
+		queue.ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+#else 
+
+		auto& shadowcontext = currentFrameResource->shadowComandContexts[0];
+		auto shadowallocator = shadowcontext->getCommandAllocator();
+		auto shadowcommandList = shadowcontext->getCommandList();
+		BREAKIFFAILED(shadowallocator->Reset());
+		BREAKIFFAILED(shadowcommandList->Reset(shadowallocator.Get(), rPso.Get()));
+
+
+		auto& scenecontext = currentFrameResource->sceneComandContexts[0];
+		auto sceneallocator = scenecontext->getCommandAllocator();
+		auto scenecommandList = scenecontext->getCommandList();
+		BREAKIFFAILED(sceneallocator->Reset());
+		BREAKIFFAILED(scenecommandList->Reset(sceneallocator.Get(), rPso.Get()));
+
+
+		//evoke all worker threads 
+		for (int i = 0; i < 1; i++) {
+			SetEvent(MultithreadingContext::workerBeginRenderFrame[i]);
+		}
+		
+
+		//todo : do common shadow rendering prep by mid command list
+		BREAKIFFAILED(mainCommandListPre->Close());
+		BREAKIFFAILED(mainCommandListMid->Close());
+		
+
+		WaitForMultipleObjects(1, MultithreadingContext::workerFinishShadowPass, TRUE, INFINITE);
+
+		//todo : execute command lists for pre,mid and shadow 
+		auto shadow0 = currentFrameResource->shadowComandContexts[0]->getCommandList();
+		ID3D12CommandList* cmdsLists[] = { mainCommandListPre.Get() , shadow0.Get() };
+		queue.ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+		//waiting for command lists that do scene rendering 
+		WaitForMultipleObjects(1, MultithreadingContext::workerFinishedRenderFrame, TRUE, INFINITE);
+
+		
+#endif
+
+
+		RenderUI(mainCommandListPost);
+		
 		
 
 		//back buffer transition state from render target back to present
-		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
+		mainCommandListPost->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
 		//finish populating commandlist
-		BREAKIFFAILED(commandList->Close());
+		BREAKIFFAILED(mainCommandListPost->Close());
+
+
+		//auto scene0 = currentFrameResource->sceneComandContexts[0]->getCommandList();
+
+		//add remaining command list to queue
+		//ID3D12CommandList* remainingCmdsLists[] = { mainCommandListPost.Get() };
+		std::vector< ID3D12CommandList*> remainingCmdsLists; 
+
+#if !SINGLETHREADED
+		remainingCmdsLists.push_back(scenecommandList.Get());
+		scenecommandList->SetName(L"scene_commandlist");
+#endif
+
+		remainingCmdsLists.push_back(mainCommandListPost.Get());
+		mainCommandListPost->SetName(L"post_commandlist");
+		queue.ExecuteCommandLists(remainingCmdsLists.size(), remainingCmdsLists.data());
 
 	}
 
@@ -1863,24 +1935,22 @@ namespace Renderer {
 			return;
 		}
 
-		currentFrameResource->shadowMapRenderRequired = false;
-		auto frameIndex = (int)Graphics::gFrameResourceManager.GetCurrentIndex();
-		auto& shadowmap = Graphics::gFrameResourceManager.GetCurrentFrameResource()->shadowMap;
-
-		commandList->RSSetViewports(1, &Graphics::gScreenViewport);
-		commandList->RSSetScissorRects(1, &Graphics::gScissorRect);
+		//commandList->RSSetViewports(1, &Graphics::gScreenViewport);
+		//commandList->RSSetScissorRects(1, &Graphics::gScissorRect);
 
 		commandList->SetPipelineState(rPsoShadow.Get());
 		commandList->SetGraphicsRootSignature(rRootSignature.Get());
 
-
+		currentFrameResource->shadowMapRenderRequired = false;
+		auto frameIndex = (int)Graphics::gFrameResourceManager.GetCurrentIndex();
+		auto& shadowmapTexResource  = Graphics::gFrameResourceManager.GetCurrentFrameResource()->shadowMap;
 
 		//todo change to shadow pass
 		auto passCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 		passCbvHandle.Offset(shadowmapCBVHeapIndexStart+ frameIndex, Graphics::gCbvSrvUavDescriptorSize);
 		commandList->SetGraphicsRootDescriptorTable(2, passCbvHandle);
 
-		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(Graphics::gFrameResourceManager.GetCurrentFrameResource()->shadowMap.Get(),
+		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(shadowmapTexResource.Get(),
 			D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE ));
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
@@ -1892,7 +1962,7 @@ namespace Renderer {
 		DrawRenderItems(commandList);
 
 
-		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(Graphics::gFrameResourceManager.GetCurrentFrameResource()->shadowMap.Get(),
+		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(shadowmapTexResource.Get(),
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
 	
 
@@ -2036,14 +2106,9 @@ namespace Renderer {
 	}
 
 	void RenderSkyBox(ComPtr<ID3D12GraphicsCommandList> commandList) {
-		commandList->RSSetViewports(1, &Graphics::gScreenViewport);
-		commandList->RSSetScissorRects(1, &Graphics::gScissorRect);
-		
 
 		commandList->SetPipelineState(rPsoSkybox.Get());
 		commandList->SetGraphicsRootSignature(rCubemapRootSignature.Get());
-		commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
 
 		auto cubemapHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 		cubemapHandle.Offset(cubemapSRVHeapIndexStart, Graphics::gCbvSrvUavDescriptorSize);
@@ -2067,8 +2132,7 @@ namespace Renderer {
 
 	void RenderUI(ComPtr<ID3D12GraphicsCommandList> commandList) {
 		commandList->OMSetRenderTargets(1, &CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
-			gCurBackBufferIndex, Graphics::gRTVDescriptorSize), false, NULL
-		);
+			gCurBackBufferIndex, Graphics::gRTVDescriptorSize), false, NULL);
 		ID3D12DescriptorHeap* descriptorHeaps[] = { Graphics::gCbvSrvHeap.Get() };
 		commandList->SetDescriptorHeaps(1, descriptorHeaps);
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
