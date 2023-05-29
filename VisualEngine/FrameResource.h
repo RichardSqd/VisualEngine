@@ -103,8 +103,11 @@ public:
 	//FrameResource& operator=(const FrameResource rhs);
 	void CreateShadowMapAsset();
 
-	std::shared_ptr<CommandContext> comandContext;
-
+	std::vector<std::shared_ptr<CommandContext>> shadowComandContexts;
+	std::vector<std::shared_ptr<CommandContext>> sceneComandContexts;
+	std::shared_ptr<CommandContext> mainContextPre;
+	std::shared_ptr<CommandContext> mainContextMid;
+	std::shared_ptr<CommandContext> mainContextPost;
 
 	std::unique_ptr<UploadBuffer> objCB = nullptr;
 	std::unique_ptr<UploadBuffer> passCB = nullptr;
