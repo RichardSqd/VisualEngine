@@ -133,7 +133,7 @@ void CommandContextManager::CreateCommandContext(ComPtr<ID3D12Device> device, D3
 
 	ComPtr<ID3D12GraphicsCommandList> commandList;
 	
-	//TODO: For now the command queue manager creates a new allocator each time
+	//TODO: command queue manager creates a new allocator each time
 	ComPtr<ID3D12CommandAllocator> allocator = Graphics::gCommandQueueManager.GetGraphicsQueue().RequestAllocator();
 	BREAKIFFAILED(mDevice->CreateCommandList(0,
 		type,

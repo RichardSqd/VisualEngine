@@ -8,6 +8,7 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
 #include "Model.h"
+#include "MultithreadingContext.h"
 
 AVisualApp::AVisualApp() {
 
@@ -32,6 +33,7 @@ void AVisualApp::InitApp() {
 	it to reuse the allocated memory for another command list.*/
 	commandList->Reset(context->getCommandAllocator().Get(), nullptr);
 	Renderer::Init(context);
+	MultithreadingContext::CreateContexts();
 	Control::InitControl(Graphics::ghWnd);
 	if (Graphics::gRayTraceEnvironmentActive) {
 		//DXRRenderer::Init(context);
@@ -123,7 +125,15 @@ void AVisualApp::UpdateUI() {
 		static float f = 0.0f;
 		static int counter = 0;
 		
-		ImGui::Begin("Welcome to Visual Engine!");                          
+		ImGui::Begin("Welcome to Visual Engine!");        
+#if SINGLETHREADED
+		std::string thredinfo = "Single threaded mode: no working thread deployed...";
+#else
+		std::string thredinfo = "Multi threaded mode: [" + std::to_string(Config::NUMCONTEXTS) + "] working threads deployed...";
+		
+#endif
+		ImGui::Text(thredinfo.c_str());
+		
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 		ImGui::Checkbox("Limit Frame Rate to 60 FPS", &limitFrameRate);
 		ImGui::Text("Current window size (%.1f, %.1f) ", Graphics::gWidth, Graphics::gHeight);
@@ -168,7 +178,7 @@ void AVisualApp::UpdateUI() {
 			//static int n = 0;
 			//ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
 			//ImGui::InputFloat("Input", &f, 0.1f);
-			ImGui::Combo("Shader selector", &Renderer::shaderSelector, "Phong\0Blinn-Phong\0PBR\0\0");
+			ImGui::Combo("Shader selector", &Renderer::shaderSelector, "Phong\0Blinn-Phong\0PBR\0Hybrid Raytracing\0\0");
 			
 			//ImGui::EndMenu();
 		//}
@@ -177,9 +187,9 @@ void AVisualApp::UpdateUI() {
 		ImGui::Image((ImTextureID)skyTextureHandle.ptr, ImVec2((float)200, (float)100));
 		
 		
-		if (ImGui::BeginMenu("Cubemap details"))
+		//if (ImGui::BeginMenu("Cubemap details"))
 		{
-			
+			ImGui::Text("Processed Cubemaps");
 			auto h = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 
 			for (int i = 0; i < 6; i++) {
@@ -188,7 +198,7 @@ void AVisualApp::UpdateUI() {
 			}
 
 			
-			ImGui::EndMenu();
+			//ImGui::EndMenu();
 		}
 
 		
@@ -206,15 +216,6 @@ void AVisualApp::UpdateUI() {
 
 			ImGui::EndMenu();
 		}
-
-		//if (ImGui::BeginMenu("shadow map"))
-		//{
-		//	auto h = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-		//	h.Offset(Renderer::shadowMapSRVHeapIndexStart + frameIndex, Graphics::gCbvSrvUavDescriptorSize);
-		//	ImGui::Image((ImTextureID)h.ptr, ImVec2((float)200, (float)200));
-			
-		//	ImGui::EndMenu();
-		//}
 		
 		
 		// start required updates 
@@ -263,6 +264,7 @@ void AVisualApp::Draw(void)
 }
 
 void AVisualApp::Run() {
+
 	do {
 		MSG msg;
 		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {

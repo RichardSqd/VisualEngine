@@ -18,6 +18,8 @@ namespace EngineCore {
         _In_ LPSTR lpCmdLine,
         _In_ int nShowCmd);
 
+    void preRender();
+
     bool UpdateApp();
 
     void ShutDown();

@@ -116,6 +116,9 @@
     <ClCompile Include="Cubemap.cpp">
       <Filter>Source\Core</Filter>
     </ClCompile>
+    <ClCompile Include="MultithreadingContext.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineCore.h">
@@ -224,6 +227,9 @@
       <Filter>Assets\Shaders</Filter>
     </ClInclude>
     <ClInclude Include="Cubemap.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="MultithreadingContext.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
   </ItemGroup>
