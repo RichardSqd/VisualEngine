@@ -8,7 +8,7 @@ namespace Config {
 	const int numRenderTargets = 3;
 	const bool RAYTRACE = false;
 	const bool useGPUBasedValidation = true;
-	const int NUMCONTEXTS = 4;
+	const int NUMCONTEXTS = 2;
 	//Sponza
 	//const std::wstring gltfFileDirectory  = L"Models\\Sponza\\glTF";
 	//const std::wstring gltfFileName = L"Sponza.gltf";

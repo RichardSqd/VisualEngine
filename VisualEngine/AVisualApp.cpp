@@ -125,7 +125,15 @@ void AVisualApp::UpdateUI() {
 		static float f = 0.0f;
 		static int counter = 0;
 		
-		ImGui::Begin("Welcome to Visual Engine!");                          
+		ImGui::Begin("Welcome to Visual Engine!");        
+#if SINGLETHREADED
+		std::string thredinfo = "Single threaded mode: no working thread deployed...";
+#else
+		std::string thredinfo = "Multi threaded mode: [" + std::to_string(Config::NUMCONTEXTS) + "] working threads deployed...";
+		
+#endif
+		ImGui::Text(thredinfo.c_str());
+		
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 		ImGui::Checkbox("Limit Frame Rate to 60 FPS", &limitFrameRate);
 		ImGui::Text("Current window size (%.1f, %.1f) ", Graphics::gWidth, Graphics::gHeight);
@@ -208,15 +216,6 @@ void AVisualApp::UpdateUI() {
 
 			ImGui::EndMenu();
 		}
-
-		//if (ImGui::BeginMenu("shadow map"))
-		//{
-		//	auto h = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-		//	h.Offset(Renderer::shadowMapSRVHeapIndexStart + frameIndex, Graphics::gCbvSrvUavDescriptorSize);
-		//	ImGui::Image((ImTextureID)h.ptr, ImVec2((float)200, (float)200));
-			
-		//	ImGui::EndMenu();
-		//}
 		
 		
 		// start required updates 

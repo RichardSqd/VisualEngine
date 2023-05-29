@@ -65,18 +65,20 @@ namespace MultithreadingContext {
             auto shadowCommandList = currentFrameResource->shadowComandContexts[threadIndex]->getCommandList();
 
             Renderer::SetSharedCommandListStates(shadowCommandList);
-
-            Renderer::RenderShadowMap(shadowCommandList);
+            
+            if (currentFrameResource->shadowMapRenderRequired) {
+                Renderer::RenderShadowMap(shadowCommandList, threadIndex, Config::NUMCONTEXTS);
+            }          
 
             shadowCommandList->Close();
 
             //tell the main thread the shadow command list is ready for submit
             SetEvent(workerFinishShadowPass[threadIndex]);
-    
+
             auto sceneCommandList = currentFrameResource->sceneComandContexts[threadIndex]->getCommandList();
 
             Renderer::SetSharedCommandListStates(sceneCommandList);
-            Renderer::RenderColor(sceneCommandList);
+            Renderer::RenderColor(sceneCommandList, threadIndex, Config::NUMCONTEXTS);
 
             sceneCommandList->Close();
 

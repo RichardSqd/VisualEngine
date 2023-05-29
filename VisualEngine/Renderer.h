@@ -30,9 +30,9 @@ namespace Renderer {
 	extern void UpdatePipelineState();
 	extern void Draw();
 	extern void PopulateCommandList(FrameResource* currentFrameResource);
-	extern void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList);
-	extern void RenderShadowMap(ComPtr<ID3D12GraphicsCommandList> commandList);
-	extern void RenderColor(ComPtr<ID3D12GraphicsCommandList> commandList);
+	extern void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList, int thradIndex, int numThreads);
+	extern void RenderShadowMap(ComPtr<ID3D12GraphicsCommandList> commandList, int thradIndex, int numThreads);
+	extern void RenderColor(ComPtr<ID3D12GraphicsCommandList> commandList, int thradIndex, int numThreads);
 	extern void RenderSkyBox(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void RenderUI(ComPtr<ID3D12GraphicsCommandList> commandList);
 	extern void RenderCubemap(ComPtr<ID3D12GraphicsCommandList> commandList);

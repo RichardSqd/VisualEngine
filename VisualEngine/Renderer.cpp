@@ -1128,8 +1128,7 @@ namespace Renderer {
 		}
 		
 		auto frameTargetCompletionValue = currentFrameResource->fence;
-		//std::wstring index = L"frame" + std::to_wstring(Graphics::gFrameResourceManager.GetCurrentIndex())+ L"  "+ std::to_wstring(queue.GetCurrentFenceValue()) + +L"\n";
-		//Utils::Print(index.c_str());
+
 		if (frameTargetCompletionValue > 0 && queue.GetCompletedFenceValue() < frameTargetCompletionValue) {
 			//must wait until the queue has completed its tasks for the current frame 
 			HANDLE eventHandle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
@@ -1164,7 +1163,7 @@ namespace Renderer {
 			if (node.animation.hasRotationAnimation && currentTime < node.animation.rotationTime[node.animation.rotationTime.size()-1]) {
 				DirectX::XMFLOAT4 currentRotaton = {};
 				int previousTimeIndex = 0;
-				Utils::Print(std::to_string(currentTime).c_str());
+				//Utils::Print(std::to_string(currentTime).c_str());
 				//Utils::Print("\n");
 				for (; previousTimeIndex < node.animation.rotationTime.size()-1; previousTimeIndex++) {
 					float previousTime = node.animation.rotationTime[previousTimeIndex];
@@ -1179,23 +1178,23 @@ namespace Renderer {
 						auto& nextRotation = node.animation.rotationAnimation[nextTimeIndex];
 
 						float interpolationValue = (currentTime - previousTime) / (nextTime - previousTime);
-						Utils::Print("  next time  ");
-						Utils::Print(std::to_string(nextTime).c_str());
-						Utils::Print("  previous time  ");
-						Utils::Print(std::to_string(previousTime).c_str());
-						Utils::Print("    ");
-						Utils::Print(std::to_string(interpolationValue).c_str());
+						//Utils::Print("  next time  ");
+						//Utils::Print(std::to_string(nextTime).c_str());
+						//Utils::Print("  previous time  ");
+						//Utils::Print(std::to_string(previousTime).c_str());
+						//Utils::Print("    ");
+						//Utils::Print(std::to_string(interpolationValue).c_str());
 						//Utils::Print("\n");
 
-						Utils::Print("    ");
+						//Utils::Print("    ");
 						//Utils::Print(std::to_string(previousRotation.x + interpolationValue * (nextRotation.x - previousRotation.x)).c_str());
 						//Utils::Print("    ");
 						//Utils::Print(std::to_string(previousRotation.y + interpolationValue * (nextRotation.y - previousRotation.y)).c_str());
 						//Utils::Print("    ");
-						Utils::Print(std::to_string(previousRotation.z + interpolationValue * (nextRotation.z - previousRotation.z)).c_str());
-						Utils::Print("    ");
-						Utils::Print(std::to_string(previousRotation.w + interpolationValue * (nextRotation.w - previousRotation.w)).c_str());
-						Utils::Print("\n");
+						//Utils::Print(std::to_string(previousRotation.z + interpolationValue * (nextRotation.z - previousRotation.z)).c_str());
+						//Utils::Print("    ");
+						//Utils::Print(std::to_string(previousRotation.w + interpolationValue * (nextRotation.w - previousRotation.w)).c_str());
+						//Utils::Print("\n");
 
 						currentRotaton = {
 							 previousRotation.x + interpolationValue * (nextRotation.x - previousRotation.x)
@@ -1224,7 +1223,7 @@ namespace Renderer {
 			if (node.animation.hasTranslationAnimation && currentTime < node.animation.translationTime[node.animation.translationTime.size() - 1]) {
 				DirectX::XMFLOAT3 currentTranslation = {};
 				int previousTimeIndex = 0;
-				Utils::Print(std::to_string(currentTime).c_str());
+				//Utils::Print(std::to_string(currentTime).c_str());
 				//Utils::Print("\n");
 				for (; previousTimeIndex < node.animation.translationTime.size() - 1; previousTimeIndex++) {
 					float previousTime = node.animation.translationTime[previousTimeIndex];
@@ -1239,15 +1238,15 @@ namespace Renderer {
 						auto& nextTranslation = node.animation.translationAnimation[nextTimeIndex];
 
 						float interpolationValue = (currentTime - previousTime) / (nextTime - previousTime);
-						Utils::Print("  next time  ");
-						Utils::Print(std::to_string(nextTime).c_str());
-						Utils::Print("  previous time  ");
-						Utils::Print(std::to_string(previousTime).c_str());
-						Utils::Print("    ");
-						Utils::Print(std::to_string(interpolationValue).c_str());
+						//Utils::Print("  next time  ");
+						//Utils::Print(std::to_string(nextTime).c_str());
+						//Utils::Print("  previous time  ");
+						//Utils::Print(std::to_string(previousTime).c_str());
+						//Utils::Print("    ");
+						//Utils::Print(std::to_string(interpolationValue).c_str());
 						//Utils::Print("\n");
 
-						Utils::Print("    ");
+						//Utils::Print("    ");
 						//Utils::Print(std::to_string(previousRotation.x + interpolationValue * (nextRotation.x - previousRotation.x)).c_str());
 						//Utils::Print("    ");
 						//Utils::Print(std::to_string(previousRotation.y + interpolationValue * (nextRotation.y - previousRotation.y)).c_str());
@@ -1366,7 +1365,7 @@ namespace Renderer {
 		for (UINT i = 0; i < model.materials.size(); i++) {
 			auto& mat = model.materials[i];
 			if (mat->numFrameDirty > 0) {
-				Utils::Print("Update MAT CB LOOP");
+				//Utils::Print("Update MAT CB LOOP");
 
 
 				MaterialConstants materialConsts = {};
@@ -1520,6 +1519,7 @@ namespace Renderer {
 
 	void PopulateCommandList(FrameResource* currentFrameResource) {
 
+		auto frameIndex = (int)Graphics::gFrameResourceManager.GetCurrentIndex();
 		auto& queue = Graphics::gCommandQueueManager.GetGraphicsQueue();
 
 		auto mainAllocatorPre = currentFrameResource->mainContextPre->getCommandAllocator();
@@ -1562,10 +1562,25 @@ namespace Renderer {
 #if SINGLETHREADED
 
 		
+		if (currentFrameResource->shadowMapRenderRequired) {
+			auto& shadowmapTexResource = Graphics::gFrameResourceManager.GetCurrentFrameResource()->shadowMap;
+			mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(shadowmapTexResource.Get(),
+				D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
-		RenderShadowMap(mainCommandListPre);
 
-		RenderColor(mainCommandListPre);
+			CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
+			dsvHandle.Offset(2 + frameIndex, Graphics::gDSVDescriptorSize);
+			mainCommandListPre->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+			RenderShadowMap(mainCommandListPre,0,1);
+
+			mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(shadowmapTexResource.Get(),
+				D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
+
+			currentFrameResource->shadowMapRenderRequired = false;
+		}
+		
+		RenderColor(mainCommandListPre,0,1);
 
 		BREAKIFFAILED(mainCommandListPre->Close());
 		BREAKIFFAILED(mainCommandListMid->Close());
@@ -1574,41 +1589,67 @@ namespace Renderer {
 		queue.ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
 #else 
+		for (int i = 0; i < Config::NUMCONTEXTS; i++) {
+			auto& shadowcontext = currentFrameResource->shadowComandContexts[i];
+			auto shadowallocator = shadowcontext->getCommandAllocator();
+			auto shadowcommandList = shadowcontext->getCommandList();
+			BREAKIFFAILED(shadowallocator->Reset());
+			BREAKIFFAILED(shadowcommandList->Reset(shadowallocator.Get(), rPso.Get()));
 
-		auto& shadowcontext = currentFrameResource->shadowComandContexts[0];
-		auto shadowallocator = shadowcontext->getCommandAllocator();
-		auto shadowcommandList = shadowcontext->getCommandList();
-		BREAKIFFAILED(shadowallocator->Reset());
-		BREAKIFFAILED(shadowcommandList->Reset(shadowallocator.Get(), rPso.Get()));
+
+			auto& scenecontext = currentFrameResource->sceneComandContexts[i];
+			auto sceneallocator = scenecontext->getCommandAllocator();
+			auto scenecommandList = scenecontext->getCommandList();
+			BREAKIFFAILED(sceneallocator->Reset());
+			BREAKIFFAILED(scenecommandList->Reset(sceneallocator.Get(), rPso.Get()));
+		}
+
+		if (currentFrameResource->shadowMapRenderRequired) {
+			auto& shadowmapTexResource = Graphics::gFrameResourceManager.GetCurrentFrameResource()->shadowMap;
+			mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(shadowmapTexResource.Get(),
+			D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE ));
 
 
-		auto& scenecontext = currentFrameResource->sceneComandContexts[0];
-		auto sceneallocator = scenecontext->getCommandAllocator();
-		auto scenecommandList = scenecontext->getCommandList();
-		BREAKIFFAILED(sceneallocator->Reset());
-		BREAKIFFAILED(scenecommandList->Reset(sceneallocator.Get(), rPso.Get()));
-
+			CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
+			dsvHandle.Offset(2 + frameIndex, Graphics::gDSVDescriptorSize);
+			mainCommandListPre->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+		}
+		BREAKIFFAILED(mainCommandListPre->Close());
 
 		//evoke all worker threads 
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < Config::NUMCONTEXTS; i++) {
 			SetEvent(MultithreadingContext::workerBeginRenderFrame[i]);
 		}
 		
-
-		//todo : do common shadow rendering prep by mid command list
-		BREAKIFFAILED(mainCommandListPre->Close());
-		BREAKIFFAILED(mainCommandListMid->Close());
 		
+		WaitForMultipleObjects(Config::NUMCONTEXTS, MultithreadingContext::workerFinishShadowPass, TRUE, INFINITE);
 
-		WaitForMultipleObjects(1, MultithreadingContext::workerFinishShadowPass, TRUE, INFINITE);
+		//turn off shadow map rendering until lights have been updated next time 
+		if (currentFrameResource->shadowMapRenderRequired) {
+			auto& shadowmapTexResource = Graphics::gFrameResourceManager.GetCurrentFrameResource()->shadowMap;
+			mainCommandListMid->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(shadowmapTexResource.Get(),
+				D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
+			currentFrameResource->shadowMapRenderRequired = false;
+		}
+		//todo : do common shadow rendering prep by mid command list
+		
+		BREAKIFFAILED(mainCommandListMid->Close());
 
-		//todo : execute command lists for pre,mid and shadow 
-		auto shadow0 = currentFrameResource->shadowComandContexts[0]->getCommandList();
-		ID3D12CommandList* cmdsLists[] = { mainCommandListPre.Get() , shadow0.Get() };
-		queue.ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+		std::vector< ID3D12CommandList*> cmdsLists;
+		cmdsLists.push_back(mainCommandListPre.Get());
+		//ID3D12CommandList* cmdsLists[] = { mainCommandListPre.Get() , shadow0.Get() };
+		for (int i = 0; i < Config::NUMCONTEXTS; i++) {
+			auto& shadowcontext = currentFrameResource->shadowComandContexts[i];
+			auto shadowcommandList = shadowcontext->getCommandList();
+			cmdsLists.push_back(shadowcommandList.Get());
+			//scenecommandList->SetName(L"shadow_commandlist"+i);
+		}
+
+		queue.ExecuteCommandLists(cmdsLists.size(), cmdsLists.data());
 
 		//waiting for command lists that do scene rendering 
-		WaitForMultipleObjects(1, MultithreadingContext::workerFinishedRenderFrame, TRUE, INFINITE);
+		WaitForMultipleObjects(Config::NUMCONTEXTS, MultithreadingContext::workerFinishedRenderFrame, TRUE, INFINITE);
 
 		
 #endif
@@ -1626,15 +1667,14 @@ namespace Renderer {
 		BREAKIFFAILED(mainCommandListPost->Close());
 
 
-		//auto scene0 = currentFrameResource->sceneComandContexts[0]->getCommandList();
-
-		//add remaining command list to queue
-		//ID3D12CommandList* remainingCmdsLists[] = { mainCommandListPost.Get() };
 		std::vector< ID3D12CommandList*> remainingCmdsLists; 
 
 #if !SINGLETHREADED
-		remainingCmdsLists.push_back(scenecommandList.Get());
-		scenecommandList->SetName(L"scene_commandlist");
+		remainingCmdsLists.push_back(mainCommandListMid.Get());
+		for (int i = 0; i < Config::NUMCONTEXTS; i++) {
+			auto& scenecontext = currentFrameResource->sceneComandContexts[i];
+			remainingCmdsLists.push_back(scenecontext->getCommandList().Get());
+		}
 #endif
 
 		remainingCmdsLists.push_back(mainCommandListPost.Get());
@@ -1643,7 +1683,7 @@ namespace Renderer {
 
 	}
 
-	void RenderColor(ComPtr<ID3D12GraphicsCommandList> commandList) {
+	void RenderColor(ComPtr<ID3D12GraphicsCommandList> commandList, int thradIndex, int numThreads) {
 		
 
 		ID3D12PipelineState* pso;
@@ -1690,20 +1730,20 @@ namespace Renderer {
 			true,
 			&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()));
 
-		DrawRenderItems(commandList);
+		DrawRenderItems(commandList, thradIndex, numThreads);
 	}
 
 	
 	
-	void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList) {
+	void DrawRenderItems(ComPtr<ID3D12GraphicsCommandList> commandList, int thradIndex, int numThreads) {
 
 		Scene::Model& model = EngineCore::eModel;
 		//UINT objCount = model.numNodes;
 		UINT matCount = model.numMaterials;
 		
 		UINT curFrameIndex = Graphics::gFrameResourceManager.GetCurrentIndex();
-		for (UINT i = 0; i < EngineCore::eModel.numNodes; i++) {
-	
+
+		for (UINT i = thradIndex; i < EngineCore::eModel.numNodes; i += numThreads) {
 			auto& node = model.nodes[i];
 			if (node.mesh < 0 || node.mesh>=(int)model.numMeshes) {
 				continue;
@@ -1733,53 +1773,53 @@ namespace Renderer {
 			for (auto& prim : primitives) {
 				//set mat 		
 				
-					UINT matvIndex = matCBVHeapIndexStart +
+				UINT matvIndex = matCBVHeapIndexStart +
 						curFrameIndex * model.numMaterials + prim.matIndex;
-					auto matCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-					matCbvHandle.Offset(matvIndex, Graphics::gCbvSrvUavDescriptorSize);
-					commandList->SetGraphicsRootDescriptorTable(3, matCbvHandle);
+				auto matCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+				matCbvHandle.Offset(matvIndex, Graphics::gCbvSrvUavDescriptorSize);
+				commandList->SetGraphicsRootDescriptorTable(3, matCbvHandle);
 
 
-					//set textures 
-					auto& mat = model.materials[prim.matIndex];
-					UINT texDiffuseheapIndex = mat->diffuseMapSrvHeapIndex;
-					auto texDiffuseCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
-					texDiffuseCbvHandle.Offset(texDiffuseheapIndex, Graphics::gCbvSrvUavDescriptorSize);
-					commandList->SetGraphicsRootDescriptorTable(0, texDiffuseCbvHandle);
+				//set textures 
+				auto& mat = model.materials[prim.matIndex];
+				UINT texDiffuseheapIndex = mat->diffuseMapSrvHeapIndex;
+				auto texDiffuseCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+				texDiffuseCbvHandle.Offset(texDiffuseheapIndex, Graphics::gCbvSrvUavDescriptorSize);
+				commandList->SetGraphicsRootDescriptorTable(0, texDiffuseCbvHandle);
 
 
-					// set vertex/index for each render primitive
-					vbvPos.SizeInBytes = prim.vertexBufferPosByteSize;
-					vbvPos.BufferLocation = model.vertexPosBufferGPU->GetGPUVirtualAddress() + prim.vbPosOffset;
-					commandList->IASetVertexBuffers(0, 1, &vbvPos);
+				// set vertex/index for each render primitive
+				vbvPos.SizeInBytes = prim.vertexBufferPosByteSize;
+				vbvPos.BufferLocation = model.vertexPosBufferGPU->GetGPUVirtualAddress() + prim.vbPosOffset;
+				commandList->IASetVertexBuffers(0, 1, &vbvPos);
 
-					if (prim.vertexBufferTexCordByteSize>0) {
-						vbvTexCord.SizeInBytes = prim.vertexBufferTexCordByteSize;
-						vbvTexCord.BufferLocation = model.vertexTexCordBufferGPU->GetGPUVirtualAddress() + prim.vbTexOffset;
-						commandList->IASetVertexBuffers(2, 1, &vbvTexCord);
-					}
+				if (prim.vertexBufferTexCordByteSize>0) {
+					vbvTexCord.SizeInBytes = prim.vertexBufferTexCordByteSize;
+					vbvTexCord.BufferLocation = model.vertexTexCordBufferGPU->GetGPUVirtualAddress() + prim.vbTexOffset;
+					commandList->IASetVertexBuffers(2, 1, &vbvTexCord);
+				}
 
-					if (prim.vbNormalBufferByteSize) {
-						vbvNormal.SizeInBytes = prim.vbNormalBufferByteSize;
-						vbvNormal.BufferLocation = model.vertexNormalBufferGPU->GetGPUVirtualAddress() + prim.vbNormalOffset;
-						commandList->IASetVertexBuffers(1, 1, &vbvNormal);
-					}
+				if (prim.vbNormalBufferByteSize) {
+					vbvNormal.SizeInBytes = prim.vbNormalBufferByteSize;
+					vbvNormal.BufferLocation = model.vertexNormalBufferGPU->GetGPUVirtualAddress() + prim.vbNormalOffset;
+					commandList->IASetVertexBuffers(1, 1, &vbvNormal);
+				}
 					
 
-					commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				commandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 
-					if (prim.hasIndices) {
-						ibv.Format = prim.iformat;
-						ibv.SizeInBytes = prim.indexBufferByteSize;
-						ibv.BufferLocation = model.indexBufferGPU->GetGPUVirtualAddress() + prim.ibOffset;
-						commandList->IASetIndexBuffer(&ibv);
-						commandList->DrawIndexedInstanced(prim.indexCount, 1, 0, 0, 0);
-					}
-					else {
-						commandList->DrawInstanced(prim.vertexCount, 1, 0, 0);
+				if (prim.hasIndices) {
+					ibv.Format = prim.iformat;
+					ibv.SizeInBytes = prim.indexBufferByteSize;
+					ibv.BufferLocation = model.indexBufferGPU->GetGPUVirtualAddress() + prim.ibOffset;
+					commandList->IASetIndexBuffer(&ibv);
+					commandList->DrawIndexedInstanced(prim.indexCount, 1, 0, 0, 0);
+				}
+				else {
+					commandList->DrawInstanced(prim.vertexCount, 1, 0, 0);
 					
-					}
+				}
 			
 			
 			}
@@ -1928,20 +1968,17 @@ namespace Renderer {
 	}
 
 
-	void RenderShadowMap(ComPtr<ID3D12GraphicsCommandList> commandList) {
+	void RenderShadowMap(ComPtr<ID3D12GraphicsCommandList> commandList, int thradIndex, int numThreads) {
 
 		FrameResource* currentFrameResource = Graphics::gFrameResourceManager.GetCurrentFrameResource();
-		if (!currentFrameResource->shadowMapRenderRequired) {
-			return;
-		}
+		
 
-		//commandList->RSSetViewports(1, &Graphics::gScreenViewport);
+		//commandList->RSSetViewports(1, &Graphics::gScreenViewport); 
 		//commandList->RSSetScissorRects(1, &Graphics::gScissorRect);
 
 		commandList->SetPipelineState(rPsoShadow.Get());
 		commandList->SetGraphicsRootSignature(rRootSignature.Get());
-
-		currentFrameResource->shadowMapRenderRequired = false;
+		
 		auto frameIndex = (int)Graphics::gFrameResourceManager.GetCurrentIndex();
 		auto& shadowmapTexResource  = Graphics::gFrameResourceManager.GetCurrentFrameResource()->shadowMap;
 
@@ -1950,20 +1987,20 @@ namespace Renderer {
 		passCbvHandle.Offset(shadowmapCBVHeapIndexStart+ frameIndex, Graphics::gCbvSrvUavDescriptorSize);
 		commandList->SetGraphicsRootDescriptorTable(2, passCbvHandle);
 
-		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(shadowmapTexResource.Get(),
-			D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE ));
+		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(shadowmapTexResource.Get(),
+		//	D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE ));
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
 		dsvHandle.Offset(2 + frameIndex, Graphics::gDSVDescriptorSize);
 
-		commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+		//commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 		commandList->OMSetRenderTargets(0, nullptr, false, &dsvHandle);
-		DrawRenderItems(commandList);
+		DrawRenderItems(commandList, thradIndex, numThreads);
 
 
-		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(shadowmapTexResource.Get(),
-			D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
+		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(shadowmapTexResource.Get(),
+		//	D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
 	
 
 		auto srvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
