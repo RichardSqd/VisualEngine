@@ -7,6 +7,7 @@ using Microsoft::WRL::ComPtr;
 namespace Graphics {
 	extern bool gRayTraceEnvironmentActive;
 	extern bool gRayTraced;
+	extern bool gMsaaEnabled;
 	extern float gWidth;
 	extern float gHeight;
 	extern HWND ghWnd;
@@ -35,6 +36,7 @@ namespace Graphics {
 	extern UINT gMatCBByteSize;
 	extern UINT gLightCBByteSize;
 	extern UINT gShadowCBByteSize;
+	extern UINT g4xMsaaQuality;
 	extern std::vector<std::unique_ptr<FrameResource>> gFrameResources;
 
 	extern D3D12_VIEWPORT gScreenViewport;

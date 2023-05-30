@@ -18,6 +18,7 @@ namespace Graphics {
 	HWND ghWnd = nullptr;
 	bool gRayTraceEnvironmentActive = false;
 	bool gRayTraced = false;
+	bool gMsaaEnabled = true;
 	ComPtr<ID3D12Device> gDevice = nullptr;
 	ComPtr<ID3D12Device5> gDXRDevice = nullptr;
 	ComPtr<IDXGISwapChain3> gSwapChain = nullptr;
@@ -43,8 +44,10 @@ namespace Graphics {
 	UINT gNumFrameResources = Config::numFrameResource;
 	UINT gSwapChainBufferCount = Config::numRenderTargets;
 	UINT gFrameIndex = 0;
+	UINT g4xMsaaQuality;
+
 	DXGI_FORMAT gBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-	DXGI_FORMAT gDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	DXGI_FORMAT gDepthStencilFormat = DXGI_FORMAT_D32_FLOAT;
 	D3D12_VIEWPORT gScreenViewport;
 
 	D3D12_RECT gScissorRect;
@@ -95,7 +98,17 @@ namespace Graphics {
 #if defined(DEBUG) || defined(_DEBUG)
 		//gDevice->SetStablePowerState(1);
 #endif
-		
+		D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels = {};
+		msQualityLevels.Format = gBackBufferFormat;
+		msQualityLevels.SampleCount = 4;
+		msQualityLevels.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
+		msQualityLevels.NumQualityLevels = 0;
+		BREAKIFFAILED(gDevice->CheckFeatureSupport(
+			D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
+			&msQualityLevels,
+			sizeof(msQualityLevels)));
+		g4xMsaaQuality = msQualityLevels.NumQualityLevels;
+		assert(g4xMsaaQuality > 0);
 
 		//display port stats
 		gScreenViewport.TopLeftX = 0.0f;
