@@ -9,6 +9,8 @@ PBR with IBL
 ![](Images/PBR_example2.png)
 Blinn Phong
 ![](Images/phong_example2.png)
+Sponza
+![sponza](https://github.com/RichardSqd/VisualEngine/assets/100163115/26bbfbaf-e9a6-4dd0-9cfe-bfffcc06aacf)
 Sample Chess Animatgion (modeled by Puppetswar Miniatures)
 
 
