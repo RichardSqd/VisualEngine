@@ -46,6 +46,8 @@ namespace Renderer {
 	
 	ComPtr<ID3D12Resource> rRenderTargetBuffer[Config::numRenderTargets];
 	ComPtr<ID3D12Resource> rDepthStencilBuffer;
+	ComPtr<ID3D12Resource> rMsaaRenderTarget;
+	ComPtr<ID3D12Resource> rMsaaDepthStencil;
 	ComPtr<ID3D12Resource> rCubemapDepthStencilBuffer;
 	ComPtr<ID3D12Resource> rSkyboxArray;
 	ComPtr<ID3D12Resource> rIrradianceSkyboxArray;
@@ -63,6 +65,7 @@ namespace Renderer {
 	bool wireframeMode = 0;
 	bool animationEnabled = false;
 
+	//cbv&srv&uav indices on heap 
 	UINT hdriImageCBVHeapIndexStart = 0;
 	UINT cubemapIndividualSRVHeapIndexStart = 0;
 	UINT cubemappassCBVHeapIndexStart = 0;
@@ -75,6 +78,13 @@ namespace Renderer {
 	UINT matCBVHeapIndexStart = 0;
 	UINT texSRVHeapIndexStart = 0;
 	UINT guiSRVHeapIndexStart = 0;
+
+	//rtv indices on heap 
+	UINT backBufferRTVIndexStart = 0; 
+	UINT msaabackBufferRTVIndexStart = backBufferRTVIndexStart + Graphics::gSwapChainBufferCount;
+	UINT cubemapRTVIndexStart = msaabackBufferRTVIndexStart + Graphics::gSwapChainBufferCount;
+	UINT irradianceRTVIndexStart = cubemapRTVIndexStart + 6;
+
 	
 	
 	bool runAtIFirstIteration = true;
@@ -345,7 +355,13 @@ namespace Renderer {
 		psoDesc.NumRenderTargets = 1;
 		psoDesc.RTVFormats[0] = Graphics::gBackBufferFormat;
 		psoDesc.DSVFormat = Graphics::gDepthStencilFormat; // DXGI_FORMAT_D32_FLOAT;
-		psoDesc.SampleDesc.Count = 1; //no msaa for now 
+		if (Graphics::gMsaaEnabled) {//msaa sample count
+			psoDesc.SampleDesc.Count = Graphics::gMsaaSampleCount; 
+		}
+		else {
+			psoDesc.SampleDesc.Count = 1;
+		}
+		
 
 		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 
@@ -372,7 +388,8 @@ namespace Renderer {
 
 		cubemapPsoDes.NumRenderTargets = 1;
 		cubemapPsoDes.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-		cubemapPsoDes.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		cubemapPsoDes.DSVFormat = Graphics::gDepthStencilFormat;
+		cubemapPsoDes.SampleDesc.Count = 1;
 		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&cubemapPsoDes, IID_PPV_ARGS(&rPsoCubemap)));
 
 		//create irradiance pso
@@ -386,6 +403,13 @@ namespace Renderer {
 		skyboxPsoDes.InputLayout.NumElements = 0;
 		skyboxPsoDes.InputLayout.pInputElementDescs = nullptr;
 		skyboxPsoDes.pRootSignature = rCubemapRootSignature.Get();
+
+		if (Graphics::gMsaaEnabled) {//msaa sample count
+			skyboxPsoDes.SampleDesc.Count = Graphics::gMsaaSampleCount;
+		}
+		else {
+			skyboxPsoDes.SampleDesc.Count = 1;
+		}
 		//psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 		
 		//psoDesc.DepthStencilState.DepthEnable = true;
@@ -405,6 +429,7 @@ namespace Renderer {
 		shadowPsoDes.PS = CD3DX12_SHADER_BYTECODE(0,0);
 		shadowPsoDes.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
 		shadowPsoDes.NumRenderTargets = 0;
+		shadowPsoDes.SampleDesc.Count = 1;
 		shadowPsoDes.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 		shadowPsoDes.DepthStencilState.DepthEnable = true;
 		shadowPsoDes.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
@@ -426,7 +451,7 @@ namespace Renderer {
 	void CreateShadowMapDsvs() {
 	
 		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
-		dsvHandle.Offset(2, Graphics::gDSVDescriptorSize);
+		dsvHandle.Offset(3, Graphics::gDSVDescriptorSize);
 
 		for (UINT frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
 
@@ -753,7 +778,8 @@ namespace Renderer {
 		//create rtv desc heap 
 		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
 		rtvHeapDesc.NumDescriptors = 
-				Graphics::gSwapChainBufferCount 
+				  Graphics::gSwapChainBufferCount //render targets 
+				+ Graphics::gSwapChainBufferCount //msaa render targets
 				+ 6 //hdr cube map render target views
 				+ 6;//irradiance render target views
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
@@ -764,8 +790,10 @@ namespace Renderer {
 		//create dsv desc heap (one dsv for each frame buffers and one for the scene)
 		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc{};
 		dsvHeapDesc.NumDescriptors =  1 
+									+ 1 //msaa Dsv
 									+ 1 //cubemap
 									+ Graphics::gNumFrameResources;//shadow map
+
 		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 		dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 		dsvHeapDesc.NodeMask = 0;
@@ -821,7 +849,7 @@ namespace Renderer {
 
 		gCurBackBufferIndex = 0;
 
-		//create rtv on heap for render target buffers 
+		//create rtv on heap for render targets
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart());
 
 		for (UINT i = 0; i < Graphics::gSwapChainBufferCount; i++) {
@@ -832,6 +860,71 @@ namespace Renderer {
 			rtvHeapHandle.Offset(1, Graphics::gRTVDescriptorSize);
 		}
 
+		{
+			//create rtv on heap for msaa render targets 
+			CD3DX12_CPU_DESCRIPTOR_HANDLE msaaRtvHeapHandle(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart());
+			msaaRtvHeapHandle.Offset(msaabackBufferRTVIndexStart, Graphics::gRTVDescriptorSize);
+			D3D12_RESOURCE_DESC msaaRTDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+				Graphics::gBackBufferFormat,
+				(UINT)Graphics::gWidth,
+				(UINT)Graphics::gHeight,
+				1,
+				1,
+				Graphics::gMsaaSampleCount);
+			msaaRTDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+			D3D12_CLEAR_VALUE msaaClearValue = {};
+			msaaClearValue.Format = Graphics::gBackBufferFormat;
+			memcpy(msaaClearValue.Color, DirectX::Colors::LightGray, sizeof(float) * 4);
+
+			BREAKIFFAILED(Graphics::gDevice->CreateCommittedResource(
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&msaaRTDesc,
+				D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+				&msaaClearValue,
+				IID_PPV_ARGS(rMsaaRenderTarget.ReleaseAndGetAddressOf())));
+			rMsaaRenderTarget->SetName(L"msaaRT");
+		
+			D3D12_RENDER_TARGET_VIEW_DESC msaaRtvDesc = {};
+			msaaRtvDesc.Format = Graphics::gBackBufferFormat;
+			msaaRtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+
+
+			Graphics::gDevice->CreateRenderTargetView(rMsaaRenderTarget.Get(), &msaaRtvDesc, msaaRtvHeapHandle);
+
+			//create msaa dsv 
+			CD3DX12_CPU_DESCRIPTOR_HANDLE msaaDsvHeapHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
+			msaaDsvHeapHandle.Offset(1, Graphics::gDSVDescriptorSize);
+			D3D12_RESOURCE_DESC depthStencilDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+				Graphics::gDepthStencilFormat,
+				(UINT)Graphics::gWidth,
+				(UINT)Graphics::gHeight,
+				1,
+				1,
+				Graphics::gMsaaSampleCount);
+			depthStencilDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+			D3D12_CLEAR_VALUE msaaDevClearValue = {};
+			msaaDevClearValue.Format = Graphics::gDepthStencilFormat;
+			msaaDevClearValue.DepthStencil.Depth = 1.0f;
+			msaaDevClearValue.DepthStencil.Stencil = 0;
+
+			Graphics::gDevice->CreateCommittedResource(
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&depthStencilDesc,
+				D3D12_RESOURCE_STATE_DEPTH_WRITE,
+				&msaaDevClearValue,
+				IID_PPV_ARGS(rMsaaDepthStencil.ReleaseAndGetAddressOf()));
+
+			D3D12_DEPTH_STENCIL_VIEW_DESC msaaDsvDesc = {};
+			msaaDsvDesc.Format = Graphics::gDepthStencilFormat;
+			msaaDsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+			Graphics::gDevice->CreateDepthStencilView(rMsaaDepthStencil.Get(), &msaaDsvDesc, msaaDsvHeapHandle);
+
+		}
+
 		//Create DS buffer and view 
 		D3D12_RESOURCE_DESC depthStencilDesc {};
 		depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -840,7 +933,7 @@ namespace Renderer {
 		depthStencilDesc.Height = (UINT)Graphics::gHeight;
 		depthStencilDesc.DepthOrArraySize = 1;
 		depthStencilDesc.MipLevels = 1;
-		depthStencilDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+		depthStencilDesc.Format = Graphics::gDepthStencilFormat;
 
 		depthStencilDesc.SampleDesc.Count = 1;//msaa
 		depthStencilDesc.SampleDesc.Quality = 0;
@@ -956,7 +1049,7 @@ namespace Renderer {
 		cbvhandleIndex += 1;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart());
-		rtvHandle.Offset(Graphics::gSwapChainBufferCount, Graphics::gRTVDescriptorSize);
+		rtvHandle.Offset(cubemapRTVIndexStart, Graphics::gRTVDescriptorSize);
 
 
 		//create dsv
@@ -967,7 +1060,7 @@ namespace Renderer {
 		depthStencilDesc.Height = height;
 		depthStencilDesc.DepthOrArraySize = 1;
 		depthStencilDesc.MipLevels = 1;
-		depthStencilDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+		depthStencilDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 
 		depthStencilDesc.SampleDesc.Count = 1;//msaa
 		depthStencilDesc.SampleDesc.Quality = 0;
@@ -975,7 +1068,7 @@ namespace Renderer {
 		depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
 		D3D12_CLEAR_VALUE optClear {};
-		optClear.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		optClear.Format = Graphics::gDepthStencilFormat;
 		optClear.DepthStencil.Depth = 1.0f;
 		optClear.DepthStencil.Stencil = 0;
 
@@ -992,11 +1085,11 @@ namespace Renderer {
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc {};
 		dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-		dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		dsvDesc.Format = Graphics::gDepthStencilFormat;
 		dsvDesc.Texture2D.MipSlice = 0;
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
-		dsvHandle.Offset(1, Graphics::gDSVDescriptorSize);
+		dsvHandle.Offset(2, Graphics::gDSVDescriptorSize);
 
 		
 		Graphics::gDevice->CreateDepthStencilView(rCubemapDepthStencilBuffer.Get(), &dsvDesc, dsvHandle);
@@ -1542,18 +1635,38 @@ namespace Renderer {
 		SetSharedCommandListStates(mainCommandListPre);
 		SetSharedCommandListStates(mainCommandListMid);
 
-		//back buffer transition state from present to render target 
-		mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
-			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+		if (Graphics::gMsaaEnabled) {
+			//use msaa render target for drawing
+			auto msaaRTVHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart());
+			msaaRTVHandle.Offset(msaabackBufferRTVIndexStart, Graphics::gRTVDescriptorSize);
 
-		//clear back buffer and depth buffer
-		mainCommandListPre->ClearRenderTargetView(
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
-				gCurBackBufferIndex, Graphics::gRTVDescriptorSize),
-			DirectX::Colors::LightGray, 0, nullptr);
-		mainCommandListPre->ClearDepthStencilView(
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()),
-			D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+			auto msaaDSVHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
+			msaaDSVHandle.Offset(1, Graphics::gDSVDescriptorSize);
+			
+			mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rMsaaRenderTarget.Get(),
+				D3D12_RESOURCE_STATE_RESOLVE_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+			mainCommandListPre->ClearRenderTargetView(
+				msaaRTVHandle,
+				DirectX::Colors::LightGray, 0, nullptr);
+			mainCommandListPre->ClearDepthStencilView(
+				msaaDSVHandle,
+				D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+		}
+		else {
+			//back buffer transition state from present to render target 
+			mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
+			 D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+			//clear back buffer and depth buffer
+			mainCommandListPre->ClearRenderTargetView(
+				CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
+					gCurBackBufferIndex, Graphics::gRTVDescriptorSize),
+				DirectX::Colors::LightGray, 0, nullptr);
+			mainCommandListPre->ClearDepthStencilView(
+				CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()),
+				D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+		}
+
+		
 
 
 		RenderSkyBox(mainCommandListPre);
@@ -1569,7 +1682,7 @@ namespace Renderer {
 
 
 			CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
-			dsvHandle.Offset(2 + frameIndex, Graphics::gDSVDescriptorSize);
+			dsvHandle.Offset(3 + frameIndex, Graphics::gDSVDescriptorSize);
 			mainCommandListPre->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 			RenderShadowMap(mainCommandListPre,0,1);
@@ -1611,7 +1724,7 @@ namespace Renderer {
 
 
 			CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
-			dsvHandle.Offset(2 + frameIndex, Graphics::gDSVDescriptorSize);
+			dsvHandle.Offset(3 + frameIndex, Graphics::gDSVDescriptorSize);
 			mainCommandListPre->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 		}
 		BREAKIFFAILED(mainCommandListPre->Close());
@@ -1653,6 +1766,29 @@ namespace Renderer {
 
 		
 #endif
+
+		//resolve the msaa render target
+		if (Graphics::gMsaaEnabled) {
+
+			D3D12_RESOURCE_BARRIER barriers[2] =		
+			{
+				CD3DX12_RESOURCE_BARRIER::Transition(	
+					rMsaaRenderTarget.Get(),
+					D3D12_RESOURCE_STATE_RENDER_TARGET,
+					D3D12_RESOURCE_STATE_RESOLVE_SOURCE),
+				CD3DX12_RESOURCE_BARRIER::Transition(	
+					rRenderTargetBuffer[gCurBackBufferIndex].Get(),
+					D3D12_RESOURCE_STATE_PRESENT,
+					D3D12_RESOURCE_STATE_RESOLVE_DEST)
+			};
+			mainCommandListPost->ResourceBarrier(2, barriers);
+			mainCommandListPost->ResolveSubresource(rRenderTargetBuffer[gCurBackBufferIndex].Get(), 0, rMsaaRenderTarget.Get(), 0, Graphics::gBackBufferFormat);
+
+
+			//after resolve change to render target state for UI 
+			mainCommandListPost->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rRenderTargetBuffer[gCurBackBufferIndex].Get(),
+				D3D12_RESOURCE_STATE_RESOLVE_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET));
+		}
 
 
 		RenderUI(mainCommandListPost);
@@ -1723,12 +1859,20 @@ namespace Renderer {
 		srvHandle.Offset(shadowMapSRVHeapIndexStart + curFrameIndex, Graphics::gCbvSrvUavDescriptorSize);
 		commandList->SetGraphicsRootDescriptorTable(5, srvHandle);
 		
-		commandList->OMSetRenderTargets(1,
-			&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
-				gCurBackBufferIndex,
-				Graphics::gRTVDescriptorSize),
-			true,
-			&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()));
+		if (Graphics::gMsaaEnabled) {
+			commandList->OMSetRenderTargets(1,
+				&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), msaabackBufferRTVIndexStart, Graphics::gRTVDescriptorSize),
+				true,
+				&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart(), 1, Graphics::gDSVDescriptorSize));
+		}
+		else {
+			commandList->OMSetRenderTargets(1,
+				&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
+					gCurBackBufferIndex,
+					Graphics::gRTVDescriptorSize),
+				true,
+				&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()));
+		}
 
 		DrawRenderItems(commandList, thradIndex, numThreads);
 	}
@@ -1853,10 +1997,10 @@ namespace Renderer {
 
 		//clear back buffer and depth buffer
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvcubeHandle(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart());
-		rtvcubeHandle.Offset(Graphics::gSwapChainBufferCount, Graphics::gRTVDescriptorSize);
+		rtvcubeHandle.Offset(cubemapRTVIndexStart, Graphics::gRTVDescriptorSize);
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
-		dsvHandle.Offset(1, Graphics::gDSVDescriptorSize);
+		dsvHandle.Offset(2, Graphics::gDSVDescriptorSize);
 		commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rCubemapDepthStencilBuffer.Get(),
 			D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
@@ -1991,7 +2135,7 @@ namespace Renderer {
 		//	D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE ));
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
-		dsvHandle.Offset(2 + frameIndex, Graphics::gDSVDescriptorSize);
+		dsvHandle.Offset(3 + frameIndex, Graphics::gDSVDescriptorSize);
 
 		//commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
@@ -2030,10 +2174,10 @@ namespace Renderer {
 
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvcubeHandle(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart());
-		rtvcubeHandle.Offset(Graphics::gSwapChainBufferCount + 6, Graphics::gRTVDescriptorSize);
+		rtvcubeHandle.Offset(irradianceRTVIndexStart, Graphics::gRTVDescriptorSize);
 
 		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart());
-		dsvHandle.Offset(1, Graphics::gDSVDescriptorSize);
+		dsvHandle.Offset(2, Graphics::gDSVDescriptorSize);
 		//commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(rCubemapDepthStencilBuffer.Get(),
 		//	D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
@@ -2157,12 +2301,20 @@ namespace Renderer {
 		commandList->SetGraphicsRootDescriptorTable(1, passCbvHandle);
 		
 		//set the back buffer for rendering 
-		commandList->OMSetRenderTargets(1,
-			&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
-				gCurBackBufferIndex,
-				Graphics::gRTVDescriptorSize),
-			true,
-			&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()));
+		if (Graphics::gMsaaEnabled) {
+			commandList->OMSetRenderTargets(1,
+				&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), msaabackBufferRTVIndexStart, Graphics::gRTVDescriptorSize),
+				true,
+				&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart(), 1, Graphics::gDSVDescriptorSize));
+		}
+		else {
+			commandList->OMSetRenderTargets(1,
+				&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
+					gCurBackBufferIndex,
+					Graphics::gRTVDescriptorSize),
+				true,
+				&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()));
+		}		
 
 		commandList->DrawInstanced(3, 1, 0, 0);
 	}
