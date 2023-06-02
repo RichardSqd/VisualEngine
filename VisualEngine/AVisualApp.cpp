@@ -121,6 +121,8 @@ void AVisualApp::UpdateUI() {
 	bool wireframeMode = Renderer::wireframeMode;
 	bool animationEnabled = Renderer::animationEnabled;
 	bool limitFrameRate = Renderer::rframeRateCap60;
+	bool msaaEnabled = Graphics::gMsaaEnabled;
+
 	{
 		static float f = 0.0f;
 		static int counter = 0;
@@ -139,6 +141,7 @@ void AVisualApp::UpdateUI() {
 		ImGui::Text("Current window size (%.1f, %.1f) ", Graphics::gWidth, Graphics::gHeight);
 		ImGui::Text("Camera Position %.3f %.3f %.3f (x,y,z) ", Renderer::gMainCam.camPos.x, Renderer::gMainCam.camPos.y, Renderer::gMainCam.camPos.z);
 		ImGui::Checkbox("Wireframe Mode", &wireframeMode);
+		ImGui::Checkbox("MSAA X4 Mode", &msaaEnabled);
 		ImGui::Checkbox("Animation Start", &animationEnabled);
 
 		if (sceneLighting.numDirectionalLights > 0) {
@@ -227,6 +230,10 @@ void AVisualApp::UpdateUI() {
 
 		if (limitFrameRate != (bool)Renderer::rframeRateCap60) {
 			Renderer::rframeRateCap60 = limitFrameRate;
+		}
+
+		if (msaaEnabled != (bool)Graphics::gMsaaEnabled) {
+			Graphics::gMsaaEnabled = msaaEnabled;
 		}
 
 		if (wireframeMode != Renderer::wireframeMode ) {

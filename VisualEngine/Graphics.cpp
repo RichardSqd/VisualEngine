@@ -44,7 +44,8 @@ namespace Graphics {
 	UINT gNumFrameResources = Config::numFrameResource;
 	UINT gSwapChainBufferCount = Config::numRenderTargets;
 	UINT gFrameIndex = 0;
-	UINT g4xMsaaQuality;
+	UINT g4xMsaaQuality = 0;
+	UINT gMsaaSampleCount = 4;
 
 	DXGI_FORMAT gBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	DXGI_FORMAT gDepthStencilFormat = DXGI_FORMAT_D32_FLOAT;

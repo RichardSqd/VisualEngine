@@ -37,6 +37,7 @@ namespace Graphics {
 	extern UINT gLightCBByteSize;
 	extern UINT gShadowCBByteSize;
 	extern UINT g4xMsaaQuality;
+	extern UINT gMsaaSampleCount;
 	extern std::vector<std::unique_ptr<FrameResource>> gFrameResources;
 
 	extern D3D12_VIEWPORT gScreenViewport;
