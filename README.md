@@ -1,7 +1,9 @@
 # Visual Engine (preview)
-Visual Engine is a multithreaded real-time DirectX 12 renderer that allows for experimentation with different rendering techniques and shading options.
+Visual Engine is a multithreaded real-time DirectX 12 renderer that has been developed from scratch, providing the ability to experiment with various rendering techniques and shading options.
 
 * The current preview version supports loading glTF 2.0 scenes and is integrated with an imGui user interface for making runtime modifications, which is handy for comparing rendering results and statistics using different rendering methods and combinations at runtime
+
+* One of the project's goals is to create a hybrid renderer capable of supporting both the rasterization pipeline and ray tracing pipeline, offering users sufficient control over essential rendering parameters to explore different rendering outcomes. While the current version only supports the rasterization portion, implementing the ray tracing component is a significant milestone that will be accomplished in the near future.
 
 ## Gallerys
 PBR with IBL
