@@ -140,6 +140,7 @@ void AVisualApp::UpdateUI() {
 		ImGui::Checkbox("Limit Frame Rate to 60 FPS", &limitFrameRate);
 		ImGui::Text("Current window size (%.1f, %.1f) ", Graphics::gWidth, Graphics::gHeight);
 		ImGui::Text("Camera Position %.3f %.3f %.3f (x,y,z) ", Renderer::gMainCam.camPos.x, Renderer::gMainCam.camPos.y, Renderer::gMainCam.camPos.z);
+		//ImGui::Text("Vertices Count: %d", 100);
 		ImGui::Checkbox("Wireframe Mode", &wireframeMode);
 		ImGui::Checkbox("MSAA X4 Mode", &msaaEnabled);
 		ImGui::Checkbox("Animation Start", &animationEnabled);
@@ -189,8 +190,42 @@ void AVisualApp::UpdateUI() {
 		auto skyTextureHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 		ImGui::Image((ImTextureID)skyTextureHandle.ptr, ImVec2((float)200, (float)100));
 		
+
+		ImGui::Text("Shadowmap");
+		auto h = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+		h.Offset(Renderer::shadowMapSRVHeapIndexStart, Graphics::gCbvSrvUavDescriptorSize);
+		//ImGui::Image((ImTextureID)h.ptr, ImVec2((float)200, (float)200));
+
+		if (!Graphics::gMsaaEnabled) {
+			ImGui::Text("G-Buffer");
+			
+			ImGui::Text("Diffuse");
+			auto diffuse = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+			int offset = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbDiffuse.srvHeapIndex;
+			diffuse.Offset(offset, Graphics::gCbvSrvUavDescriptorSize);
+			ImGui::Image((ImTextureID)diffuse.ptr, ImVec2((float)200, (float)200));
+			
+			ImGui::Text("Position");
+			auto position = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+			offset = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbPosition.srvHeapIndex;
+			position.Offset(offset, Graphics::gCbvSrvUavDescriptorSize);
+			ImGui::Image((ImTextureID)position.ptr, ImVec2((float)200, (float)200));
+
+			ImGui::Text("Specular");
+
+			ImGui::Text("Normal");
+			auto normal = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
+			offset = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbNormal.srvHeapIndex;
+			normal.Offset(offset, Graphics::gCbvSrvUavDescriptorSize);
+			ImGui::Image((ImTextureID)normal.ptr, ImVec2((float)200, (float)200));
+
+			
+
+
+		}
 		
-		//if (ImGui::BeginMenu("Cubemap details"))
+
+		if (ImGui::BeginMenu("Cubemap details"))
 		{
 			ImGui::Text("Processed Cubemaps");
 			auto h = CD3DX12_GPU_DESCRIPTOR_HANDLE(Graphics::gCbvSrvHeap->GetGPUDescriptorHandleForHeapStart());

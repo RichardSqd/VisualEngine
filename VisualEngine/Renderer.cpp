@@ -84,6 +84,7 @@ namespace Renderer {
 	UINT msaabackBufferRTVIndexStart = backBufferRTVIndexStart + Graphics::gSwapChainBufferCount;
 	UINT cubemapRTVIndexStart = msaabackBufferRTVIndexStart + Graphics::gSwapChainBufferCount;
 	UINT irradianceRTVIndexStart = cubemapRTVIndexStart + 6;
+	UINT gbufferRTVIndexStart = irradianceRTVIndexStart + 6;
 
 	
 	
@@ -108,7 +109,7 @@ namespace Renderer {
 		CreateShadowMapDsvs();
 		CreateConstantBufferViews();
 		CreateShaderResourceViews();
-		
+		CreateRTVDSV();
 		
 	}
 
@@ -352,7 +353,13 @@ namespace Renderer {
 		psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT); 
 		psoDesc.SampleMask = UINT_MAX;
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		psoDesc.NumRenderTargets = 1;
+		
+		//TODO: msaa has not been set up for deferred rendering, so conditional render target number is applied
+		psoDesc.NumRenderTargets = 7;
+		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+
+		
+
 		psoDesc.RTVFormats[0] = Graphics::gBackBufferFormat;
 		psoDesc.DSVFormat = Graphics::gDepthStencilFormat; // DXGI_FORMAT_D32_FLOAT;
 		if (Graphics::gMsaaEnabled) {//msaa sample count
@@ -363,18 +370,25 @@ namespace Renderer {
 		}
 		
 
-		psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+		
+		auto defaultPsoDes = psoDesc;
 
-		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&rPso)));
+		defaultPsoDes.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_SNORM;//diffuse 
+		defaultPsoDes.RTVFormats[2] = DXGI_FORMAT_R16G16B16A16_FLOAT;//position 
+		defaultPsoDes.RTVFormats[3] = DXGI_FORMAT_R8G8B8A8_UNORM;//specular 
+		defaultPsoDes.RTVFormats[4] = DXGI_FORMAT_R16G16B16A16_SNORM;//normal 
+		defaultPsoDes.RTVFormats[5] = DXGI_FORMAT_R16G16B16A16_FLOAT;//emmisive 
+		defaultPsoDes.RTVFormats[6] = DXGI_FORMAT_R16G16B16A16_FLOAT;//depth 
+		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&defaultPsoDes, IID_PPV_ARGS(&rPso)));
 
 
 		//wireframe
-		auto wireframePsoDes = psoDesc;
+		auto wireframePsoDes = defaultPsoDes;
 		wireframePsoDes.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
 		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&wireframePsoDes, IID_PPV_ARGS(&rPsoWireframe)));
 
 		//pbr
-		auto pbrPsoDes = psoDesc;
+		auto pbrPsoDes = defaultPsoDes;
 		pbrPsoDes.PS = CD3DX12_SHADER_BYTECODE(rPixelPBRShader.Get());
 		BREAKIFFAILED(Graphics::gDevice->CreateGraphicsPipelineState(&pbrPsoDes, IID_PPV_ARGS(&rPsoPBR)));
 
@@ -770,18 +784,30 @@ namespace Renderer {
 		}
 
 
+		//build gbuffer views for each frame resources 	
+		for (UINT frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {		
+			Graphics::gFrameResourceManager.GetFrameResourceByIndex(frameIndex)->gbuffer.BuildSRVs(heapIndex + frameIndex * 5);	
+		}
+
+		heapIndex += Graphics::gNumFrameResources * 5;
 		guiSRVHeapIndexStart = heapIndex;
 
+
+
+
 	}
+
 
 	void CreateDescriptorHeaps() {
 		//create rtv desc heap 
 		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
-		rtvHeapDesc.NumDescriptors = 
-				  Graphics::gSwapChainBufferCount //render targets 
-				+ Graphics::gSwapChainBufferCount //msaa render targets
-				+ 6 //hdr cube map render target views
-				+ 6;//irradiance render target views
+		rtvHeapDesc.NumDescriptors =
+			static_cast<unsigned long long>(Graphics::gSwapChainBufferCount) //render targets 
+			+ Graphics::gSwapChainBufferCount //msaa render targets
+			+ 6 //hdr cube map render target views
+			+ 6 //irradiance render target views
+			+ 5 * static_cast<unsigned long long>(Graphics::gNumFrameResources); // gbuffers
+
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 		rtvHeapDesc.NodeMask = 0;
@@ -811,7 +837,10 @@ namespace Renderer {
 			+ 1 * static_cast<unsigned long long>(Graphics::gNumFrameResources) //pass cbv
 			+ 1 * static_cast<unsigned long long>(Graphics::gNumFrameResources) //shadow maps for each frame resource
 			+ 1 //light 
+			+ 5 * static_cast<unsigned long long>(Graphics::gNumFrameResources) // gbuffers
 			+ 1; //gui
+
+
 		D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc{};
 		cbvSrvHeapDesc.NumDescriptors = numDescriptors;
 		cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -1193,9 +1222,20 @@ namespace Renderer {
 	}
 
 	void CreateRTVDSV() {
-		//ASSERT(Graphics::gDevice);
-		//ASSERT(Graphics::gSwapChain);
-		//ASSERT(Renderer::rCommandAlloc);
+		
+		int heapIndex = gbufferRTVIndexStart;
+		
+
+		for (UINT frameIndex = 0; frameIndex < Graphics::gNumFrameResources; frameIndex++) {
+			D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+			rtvDesc.Format = Graphics::gBackBufferFormat;
+			rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+
+			
+			Graphics::gFrameResourceManager.GetFrameResourceByIndex(frameIndex)->gbuffer.BuildRTVs(heapIndex + frameIndex * 5);
+		
+		}
+
 
 	}
 
@@ -1635,6 +1675,31 @@ namespace Renderer {
 		SetSharedCommandListStates(mainCommandListPre);
 		SetSharedCommandListStates(mainCommandListMid);
 
+		//deferred rendering gbuffer state switch, before rendering 
+		
+			ComPtr<ID3D12Resource> gbufferDiffuse = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbDiffuse.textureResource;
+			ComPtr<ID3D12Resource> gbufferPosition = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbPosition.textureResource;
+			ComPtr<ID3D12Resource> gbufferSpecular = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbSpecular.textureResource;
+			ComPtr<ID3D12Resource> gbufferNormal = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbNormal.textureResource;
+			ComPtr<ID3D12Resource> gbufferEmissive = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbEmissive.textureResource;
+			ComPtr<ID3D12Resource> gbufferDepth = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbDepth.textureResource;
+		{
+			mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gbufferDiffuse.Get(),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+			mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gbufferPosition.Get(),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+			//mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gbufferSpecular.Get(),
+			//	D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+			//mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gbufferNormal.Get(),
+			//	D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+			/*
+			mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gbufferEmissive.Get(),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+			mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gbufferDepth.Get(),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+				*/
+		}
+
 		if (Graphics::gMsaaEnabled) {
 			//use msaa render target for drawing
 			auto msaaRTVHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart());
@@ -1661,6 +1726,38 @@ namespace Renderer {
 				CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
 					gCurBackBufferIndex, Graphics::gRTVDescriptorSize),
 				DirectX::Colors::LightGray, 0, nullptr);
+
+			//clear textures 
+			int gbufferDiffuseIndex = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbDiffuse.rtvHeapIndex;
+			int gbufferPositionIndex = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbPosition.rtvHeapIndex;
+			int gbufferSpecularIndex = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbSpecular.rtvHeapIndex;
+			int gbufferNormalIndex = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbNormal.rtvHeapIndex;
+			int gbufferEmissiveIndex = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbEmissive.rtvHeapIndex;
+			int gbufferDepthIndex = Graphics::gFrameResourceManager.GetCurrentFrameResource()->gbuffer.gbDepth.rtvHeapIndex;
+
+			
+			mainCommandListPre->ClearRenderTargetView(
+				CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), gbufferDiffuseIndex, Graphics::gRTVDescriptorSize),
+				DirectX::Colors::Black, 0, nullptr);
+			mainCommandListPre->ClearRenderTargetView(
+				CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), gbufferPositionIndex, Graphics::gRTVDescriptorSize),
+				DirectX::Colors::Black, 0, nullptr);
+			//mainCommandListPre->ClearRenderTargetView(
+			//	CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), gbufferSpecularIndex, Graphics::gRTVDescriptorSize),
+			//	DirectX::Colors::Black, 0, nullptr);
+			//mainCommandListPre->ClearRenderTargetView(
+			//	CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), gbufferNormalIndex, Graphics::gRTVDescriptorSize),
+			//	DirectX::Colors::Black, 0, nullptr);
+			/*
+			mainCommandListPre->ClearRenderTargetView(
+				CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), gbufferEmissiveIndex, Graphics::gRTVDescriptorSize),
+				DirectX::Colors::Black, 0, nullptr);
+			mainCommandListPre->ClearRenderTargetView(
+				CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), gbufferDepthIndex, Graphics::gRTVDescriptorSize),
+				DirectX::Colors::Black, 0, nullptr);
+
+				*/
+
 			mainCommandListPre->ClearDepthStencilView(
 				CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()),
 				D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
@@ -1790,7 +1887,22 @@ namespace Renderer {
 				D3D12_RESOURCE_STATE_RESOLVE_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET));
 		}
 
+		//deferred rendering gbuffer state switch, after rendering 
+		mainCommandListPost->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gbufferDiffuse.Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));	
+		mainCommandListPost->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gbufferPosition.Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+		//mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gbufferSpecular.Get(),
+		//	D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+		//mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gbufferNormal.Get(),
+		//	D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
 
+		/*
+		mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gbufferEmissive.Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+		mainCommandListPre->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gbufferDepth.Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+		*/
 		RenderUI(mainCommandListPost);
 		
 		
@@ -1859,22 +1971,45 @@ namespace Renderer {
 		srvHandle.Offset(shadowMapSRVHeapIndexStart + curFrameIndex, Graphics::gCbvSrvUavDescriptorSize);
 		commandList->SetGraphicsRootDescriptorTable(5, srvHandle);
 		
+
+		//get g buffer texture heap indices for setting render targets 
+ 		int gbufferDiffuseIndex = Graphics::gFrameResourceManager.GetFrameResourceByIndex(curFrameIndex)->gbuffer.gbDiffuse.rtvHeapIndex;
+		int gbufferDepthIndex = Graphics::gFrameResourceManager.GetFrameResourceByIndex(curFrameIndex)->gbuffer.gbDepth.rtvHeapIndex;
+		int gbufferPositionIndex = Graphics::gFrameResourceManager.GetFrameResourceByIndex(curFrameIndex)->gbuffer.gbPosition.rtvHeapIndex;
+		int gbufferSpecularIndex = Graphics::gFrameResourceManager.GetFrameResourceByIndex(curFrameIndex)->gbuffer.gbSpecular.rtvHeapIndex;
+		int gbufferNormalIndex = Graphics::gFrameResourceManager.GetFrameResourceByIndex(curFrameIndex)->gbuffer.gbNormal.rtvHeapIndex;
+		int gbufferEmissiveIndex = Graphics::gFrameResourceManager.GetFrameResourceByIndex(curFrameIndex)->gbuffer.gbEmissive.rtvHeapIndex;
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE msaaHandles[1] = 
+		{	
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), msaabackBufferRTVIndexStart, Graphics::gRTVDescriptorSize)	
+		};
+		CD3DX12_CPU_DESCRIPTOR_HANDLE handles[3] = { 
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), gCurBackBufferIndex, Graphics::gRTVDescriptorSize),
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), gbufferDiffuseIndex, Graphics::gRTVDescriptorSize),
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), gbufferPositionIndex, Graphics::gRTVDescriptorSize),
+			//CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), gbufferSpecularIndex, Graphics::gRTVDescriptorSize)
+			
+			//CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), gbufferNormalIndex, Graphics::gRTVDescriptorSize),
+			//CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), gbufferEmissiveIndex, Graphics::gRTVDescriptorSize),
+			//CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), gbufferDepthIndex, Graphics::gRTVDescriptorSize)
+
+		};
+
 		if (Graphics::gMsaaEnabled) {
 			commandList->OMSetRenderTargets(1,
-				&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(), msaabackBufferRTVIndexStart, Graphics::gRTVDescriptorSize),
+				msaaHandles,
 				true,
 				&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart(), 1, Graphics::gDSVDescriptorSize));
 		}
 		else {
-			commandList->OMSetRenderTargets(1,
-				&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gRtvHeap->GetCPUDescriptorHandleForHeapStart(),
-					gCurBackBufferIndex,
-					Graphics::gRTVDescriptorSize),
-				true,
+			commandList->OMSetRenderTargets(sizeof(handles) / sizeof(CD3DX12_CPU_DESCRIPTOR_HANDLE),
+				handles,
+				false,
 				&CD3DX12_CPU_DESCRIPTOR_HANDLE(Graphics::gDsvHeap->GetCPUDescriptorHandleForHeapStart()));
 		}
 
-		DrawRenderItems(commandList, thradIndex, numThreads);
+		DrawRenderItems(commandList, thradIndex, numThreads);	
 	}
 
 	

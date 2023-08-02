@@ -3,8 +3,11 @@
 #include "CommandListManager.h"
 #include "UploadBuffer.h"
 #include "ShaderLightingData.h"
+#include "GBuffer.h"
 
 using Microsoft::WRL::ComPtr;
+
+
 
 class ObjectConstants {
 public:
@@ -118,6 +121,9 @@ public:
 	//shadow mapping related
 	ComPtr<ID3D12Resource> shadowMap;
 	bool shadowMapRenderRequired = false;
+
+	//GBuffer
+	GBuffer gbuffer;
 
 	UINT64 fence = 0;
 

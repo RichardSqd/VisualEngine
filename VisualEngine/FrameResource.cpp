@@ -43,6 +43,9 @@ FrameResource::FrameResource(UINT passCount, UINT objectCount, UINT materialCoun
 
 	CreateShadowMapAsset();
 
+	//initalize gbuffer
+	gbuffer.Init(Graphics::gWidth, Graphics::gHeight);
+
 }
 
 void FrameResource::CreateShadowMapAsset() {

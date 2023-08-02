@@ -119,6 +119,7 @@
     <ClCompile Include="RenderItem.cpp" />
     <ClCompile Include="SceneLoader.cpp" />
     <ClCompile Include="Math.cpp" />
+    <ClCompile Include="GBuffer.cpp" />
     <ClCompile Include="Time.cpp" />
     <ClCompile Include="UploadBuffer.cpp" />
   </ItemGroup>
@@ -135,6 +136,7 @@
     <ClInclude Include="EngineLoop.h" />
     <ClInclude Include="FrameResource.h" />
     <ClInclude Include="Graphics.h" />
+    <ClInclude Include="GBuffer.h" />
     <ClInclude Include="MultithreadingContext.h" />
     <ClInclude Include="ShaderLightingData.h" />
     <ClInclude Include="Light.h" />
@@ -156,6 +158,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_write.h" />
+    <ClInclude Include="Texture.h" />
     <ClInclude Include="Time.h" />
     <ClInclude Include="tiny_gltf.h" />
     <ClInclude Include="UploadBuffer.h" />
