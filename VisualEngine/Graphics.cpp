@@ -18,7 +18,7 @@ namespace Graphics {
 	HWND ghWnd = nullptr;
 	bool gRayTraceEnvironmentActive = false;
 	bool gRayTraced = false;
-	bool gMsaaEnabled = true;
+	bool gMsaaEnabled = false;
 	ComPtr<ID3D12Device> gDevice = nullptr;
 	ComPtr<ID3D12Device5> gDXRDevice = nullptr;
 	ComPtr<IDXGISwapChain3> gSwapChain = nullptr;

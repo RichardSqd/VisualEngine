@@ -119,6 +119,9 @@
     <ClCompile Include="MultithreadingContext.cpp">
       <Filter>Source\Core</Filter>
     </ClCompile>
+    <ClCompile Include="GBuffer.cpp">
+      <Filter>Source\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineCore.h">
@@ -230,6 +233,12 @@
       <Filter>Header Files\Core</Filter>
     </ClInclude>
     <ClInclude Include="MultithreadingContext.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="GBuffer.h">
+      <Filter>Header Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
       <Filter>Header Files\Core</Filter>
     </ClInclude>
   </ItemGroup>

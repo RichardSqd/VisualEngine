@@ -47,17 +47,4 @@ struct Material
 
 };
 
-struct Texture
-{
-	std::string name;
-	std::string uri;
-	int width;
-	int height;
-	int component;
-	int bits;
-	std::unique_ptr<uint8_t[]> decodedData;
-	ComPtr<ID3D12Resource> textureResource;
-	ComPtr<ID3D12Resource> textureUploader;
-	
-};
 

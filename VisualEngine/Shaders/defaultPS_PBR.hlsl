@@ -67,9 +67,21 @@ struct PixelIn
 	
 };
 
-
-float4 PS(PixelIn pin) : SV_Target
+struct PixelOut
 {
+	float4 pixelColor: SV_Target0;
+	float4 gBufferDiffuse : SV_Target1;
+	float4 gBufferPosition : SV_Target2;
+	float4 gBufferSpecular : SV_Target3;
+	float4 gBufferNormal : SV_Target4;
+	float4 gBufferEmmisive : SV_Target5;
+	float4 gBufferDepth : SV_Target6;
+};
+
+PixelOut PS(PixelIn pin) 
+{
+	PixelOut pout;
+
 	float4 diffuseAlbedo;
 	float2 metallicRoughnessFactor;
 	float4 roughnessmetallic;
@@ -136,7 +148,12 @@ float4 PS(PixelIn pin) : SV_Target
 	float3 dIBL = diffuseIBL(surface, materialParams);
 	float3 sIBL = specularIBL(surface, materialParams);
 	float3 color = dIBL  * shadowFactor + sIBL + emissive.rgb;
-	return float4(color, 1.0);
+
+	pout.pixelColor = float4(color, 1.0);
+	pout.gBufferDiffuse = float4(diffuseAlbedo.rgb, 1.0) ;
+	pout.gBufferPosition = pin.positionWorld;
+		//float4(surface.N, 1.0);
+	return pout;
 }
 
 float3 Fresnel_Shlick(float3 F0, float3 F90, float cosine)

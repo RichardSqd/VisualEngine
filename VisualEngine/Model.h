@@ -1,6 +1,7 @@
 #pragma once
 #include "pch.h"
 #include "Material.h"
+#include "Texture.h"
 #include "ShaderLightingData.h"
 #include <unordered_map>
 #include <string>
@@ -251,18 +252,6 @@ namespace Scene {
 	};
 
 	
-	struct TextureResource {
-		UINT width;
-		UINT height;
-		UINT miplvl;
-		DXGI_FORMAT format; 
-		struct DataProperties {
-			UINT offset;
-			UINT size;
-			UINT pitch;
-			
-		};
-	};
 
 	struct DrawParam {
 		INT diffuseIndex;
